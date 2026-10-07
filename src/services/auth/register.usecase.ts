@@ -1,0 +1,81 @@
+import mongoose from 'mongoose';
+import { Container, Service } from 'typedi';
+import { UserModel } from '../../database/models/user/user.model';
+import { PatientProfileModel } from '../../database/models/patient/patient-profile.model';
+import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
+import { Relation, UserRole, type Gender } from '../../interfaces/enums';
+import type { IUser } from '../../interfaces/IUser';
+import type { Language } from '../../utils/i18n';
+import { ConflictError } from '../../utils/types-errors';
+import { TokenService } from './token.service';
+import { verifyRegistrationToken } from './jwt';
+
+export type RegisterInput = {
+  role: UserRole.PATIENT | UserRole.PROVIDER | UserRole.OWNER;
+  fullName: string;
+  gender: Gender;
+  dateOfBirth: Date;
+  email?: string | null;
+  language?: Language;
+  referralCode?: string | null;
+};
+
+/**
+ * POST /auth/register (spec §7.1). The user and their role's profile are created in one transaction:
+ * patient → "self" patient profile; provider → draft provider profile; owner → nothing yet (POST /org, Phase 3).
+ */
+@Service()
+export class RegisterUseCase {
+  private readonly tokens = Container.get(TokenService);
+
+  async execute(registrationToken: string, input: RegisterInput) {
+    const phone = verifyRegistrationToken(registrationToken);
+
+    let user!: mongoose.HydratedDocument<IUser>;
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        if (await UserModel.exists({ phone }).session(session)) {
+          throw new ConflictError('errors.phone_taken');
+        }
+        [user] = await UserModel.create(
+          [
+            {
+              phone,
+              role: input.role,
+              fullName: input.fullName,
+              gender: input.gender,
+              dateOfBirth: input.dateOfBirth,
+              email: input.email ?? null,
+              language: input.language ?? 'ar',
+              referredByCode: input.referralCode ?? null,
+              lastLoginAt: new Date(),
+            },
+          ],
+          { session },
+        );
+
+        if (input.role === UserRole.PATIENT) {
+          await PatientProfileModel.create(
+            [
+              {
+                ownerUserId: user._id,
+                fullName: input.fullName,
+                relation: Relation.SELF,
+                gender: input.gender,
+                dateOfBirth: input.dateOfBirth,
+              },
+            ],
+            { session },
+          );
+        } else if (input.role === UserRole.PROVIDER) {
+          await ProviderProfileModel.create([{ userId: user._id }], { session });
+        }
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    return { user, tokens: await this.tokens.startSession(user) };
+  }
+}

@@ -1,0 +1,16 @@
+export enum QueueName {
+  NOTIFICATIONS = 'notifications',
+  MAINTENANCE = 'maintenance',
+}
+
+export enum MaintenanceJob {
+  PRESENCE_CLEANUP = 'presence-cleanup',
+  /** Direct-request timeouts, fallback broadcasts and broadcast expiry (spec §6.9a, §6.10). */
+  BOOKING_DEADLINES = 'booking-deadlines',
+  /** Visit reminders 24 h and 1 h before (spec §8). */
+  BOOKING_REMINDERS = 'booking-reminders',
+  /** Lifts timed suspensions that have ended (spec §4.10 `user_suspensions`). */
+  SUSPENSION_EXPIRY = 'suspension-expiry',
+  /** Documents expiring within 30 days → provider notice; expired license → pause (spec §4.4, decision 14). */
+  DOCUMENT_EXPIRY = 'document-expiry',
+}

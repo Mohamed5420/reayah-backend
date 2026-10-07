@@ -1,0 +1,51 @@
+# Local dev dependencies: `docker compose up -d`. The API itself runs on the host (`npm run dev`).
+services:
+  # Single-node replica set: MongoDB only supports transactions on replica sets.
+  mongo:
+    image: mongo:7
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    ports: ['27017:27017']
+    volumes: ['mongo-data:/data/db']
+    healthcheck:
+      # Also initiates the replica set on first start.
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }).ok }"
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    ports: ['6379:6379']
+    volumes: ['redis-data:/data']
+
+  # S3-compatible private storage. Console: http://localhost:9001 (reaya / reaya-dev-secret).
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    ports: ['9000:9000', '9001:9001']
+    environment:
+      MINIO_ROOT_USER: reaya
+      MINIO_ROOT_PASSWORD: reaya-dev-secret
+    volumes: ['minio-data:/data']
+
+  # One-shot: creates the bucket and expires unattached uploads under tmp/ after 1 day.
+  minio-setup:
+    image: minio/mc
+    depends_on: [minio]
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 reaya reaya-dev-secret; do sleep 1; done;
+      mc mb --ignore-existing local/reaya-private;
+      mc ilm rule ls local/reaya-private 2>/dev/null | grep -q tmp/ || mc ilm rule add --prefix tmp/ --expire-days 1 local/reaya-private
+      "
+
+volumes:
+  mongo-data:
+  redis-data:
+  minio-data:

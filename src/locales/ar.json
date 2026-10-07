@@ -1,0 +1,251 @@
+{
+  "errors": {
+    "BAD_REQUEST": "طلب غير صالح",
+    "VALIDATION_ERROR": "بيانات غير صالحة",
+    "UNAUTHENTICATED": "برجاء تسجيل الدخول",
+    "TOKEN_EXPIRED": "انتهت صلاحية الجلسة",
+    "FORBIDDEN": "غير مسموح لك بتنفيذ هذا الإجراء",
+    "NOT_FOUND": "غير موجود",
+    "CONFLICT": "تعارض في البيانات",
+    "RATE_LIMITED": "طلبات كثيرة جداً، حاول مرة أخرى بعد قليل",
+    "INTERNAL_ERROR": "حدث خطأ في الخادم",
+    "SERVICE_UNAVAILABLE": "الخدمة غير متاحة حالياً",
+    "IDEMPOTENCY_KEY_REUSED": "تم استخدام نفس مفتاح الطلب لطلب مختلف",
+    "OTP_INVALID": "كود التحقق غير صحيح",
+    "OTP_EXPIRED": "انتهت صلاحية كود التحقق",
+    "OTP_MAX_ATTEMPTS": "محاولات خاطئة كثيرة، اطلب كود جديد",
+    "ACCOUNT_SUSPENDED": "حسابك موقوف",
+    "PROVIDER_NOT_VERIFIED": "حسابك لم يتم توثيقه بعد",
+    "SLOT_UNAVAILABLE": "هذا الموعد لم يعد متاحاً",
+    "OFFER_TAKEN": "مقدم خدمة آخر قبل هذا الطلب بالفعل",
+    "ASSIGNMENT_DEADLINE_PASSED": "انتهى وقت تعيين مقدم الخدمة",
+    "AREA_NOT_COVERED": "هذه المنطقة غير مغطاة",
+    "INVALID_STATUS_TRANSITION": "لا يمكن تنفيذ هذا الإجراء في حالة الحجز الحالية",
+    "CANCELLATION_NOT_ALLOWED": "لم يعد الإلغاء متاحاً",
+    "ALREADY_REVIEWED": "لقد قمت بتقييم هذا الحجز بالفعل",
+    "PROMO_INVALID": "كود الخصم غير صالح",
+    "PROMO_EXPIRED": "انتهت صلاحية كود الخصم",
+    "PROMO_LIMIT_REACHED": "تم الوصول للحد الأقصى لاستخدام كود الخصم",
+    "PACKAGE_NO_VISITS_LEFT": "لا توجد زيارات متبقية في الباقة",
+    "PACKAGE_EXPIRED": "انتهت صلاحية الباقة",
+    "PAYMENT_FAILED": "فشلت عملية الدفع",
+    "malformed_body": "محتوى الطلب غير صالح",
+    "route_not_found": "المسار غير موجود",
+    "maintenance": "التطبيق تحت الصيانة حالياً",
+    "user_not_found": "المستخدم غير موجود",
+    "file_not_found": "الملف غير موجود",
+    "request_in_progress": "الطلب قيد التنفيذ بالفعل، حاول مرة أخرى بعد قليل",
+    "duplicate": "يوجد عنصر بنفس البيانات بالفعل",
+    "governorate_not_found": "المحافظة غير موجودة",
+    "area_not_found": "المنطقة غير موجودة",
+    "category_not_found": "الفئة غير موجودة",
+    "category_has_services": "لا يمكن حذف فئة تحتوي على خدمات، قم بنقل الخدمات أو إيقافها أولاً",
+    "service_not_found": "الخدمة غير موجودة",
+    "phone_taken": "رقم الموبايل مسجل بحساب آخر",
+    "invalid_refresh_token": "انتهت الجلسة، برجاء تسجيل الدخول مرة أخرى",
+    "invalid_registration_token": "انتهت صلاحية التسجيل، برجاء طلب كود تحقق جديد",
+    "otp_resend_wait": "انتظر دقيقة قبل طلب كود جديد",
+    "address_not_found": "العنوان غير موجود",
+    "patient_profile_not_found": "الملف الشخصي غير موجود",
+    "cannot_delete_self_profile": "لا يمكن حذف ملفك الشخصي الأساسي",
+    "record_not_found": "السجل غير موجود",
+    "document_not_found": "المستند غير موجود",
+    "provider_profile_not_found": "ملف مقدم الخدمة غير موجود",
+    "profile_locked": "لا يمكن تعديل نوع الحساب أو رقم الترخيص أو رقم النقابة أثناء المراجعة أو بعد التوثيق",
+    "time_off_not_found": "الإجازة غير موجودة",
+    "document_approved": "لا يمكن حذف مستند تمت الموافقة عليه، ارفع نسخة جديدة بدلاً منه",
+    "verification_not_allowed": "لا يمكن إرسال الطلب للمراجعة في حالته الحالية",
+    "verification_not_pending": "هذا الطلب ليس قيد المراجعة",
+    "documents_not_matching": "لا يمكن التوثيق وهناك مستندات مرفوضة، اطلب تعديلها أولاً",
+    "provider_not_found": "مقدم الخدمة غير موجود",
+    "service_not_offered": "مقدم الخدمة لا يقدم هذه الخدمة",
+    "booking_not_found": "الحجز غير موجود",
+    "provider_not_accepting": "مقدم الخدمة لا يستقبل حجوزات حالياً",
+    "provider_price_invalid": "سعر مقدم الخدمة لم يعد متاحاً لهذه الخدمة، اختر مقدم خدمة آخر",
+    "offer_not_found": "العرض غير موجود",
+    "offer_expired": "انتهت صلاحية هذا العرض",
+    "no_show_too_early": "لا يمكن تسجيل عدم الحضور قبل موعد الزيارة",
+    "address_in_use": "لا يمكن حذف عنوان مستخدم في حجز قادم",
+    "active_bookings": "لا يمكن حذف الحساب وهناك حجوزات جارية، ألغها أو انتظر انتهاءها أولاً",
+    "cash_not_applicable": "هذا الحجز ليس بالدفع النقدي",
+    "use_verification_flow": "استخدم شاشة التوثيق لتغيير حالة التوثيق",
+    "cannot_moderate_self": "لا يمكنك تنفيذ هذا الإجراء على حسابك",
+    "not_suspended": "الحساب غير موقوف",
+    "dispute_not_allowed": "لا يمكن الإبلاغ عن مشكلة إلا بعد انتهاء الزيارة أو تسجيل عدم الحضور",
+    "dispute_window_passed": "انتهت المدة المسموح فيها بالإبلاغ عن مشكلة",
+    "dispute_exists": "تم الإبلاغ عن مشكلة في هذا الحجز بالفعل",
+    "dispute_not_found": "البلاغ غير موجود",
+    "dispute_resolved": "تم حل هذا البلاغ بالفعل",
+    "review_not_allowed": "يمكنك التقييم بعد انتهاء الزيارة فقط",
+    "review_not_found": "التقييم غير موجود",
+    "report_not_allowed": "لا يمكن كتابة تقرير الزيارة قبل بدئها",
+    "report_exists": "تم كتابة تقرير لهذه الزيارة بالفعل، يمكنك تعديله",
+    "report_not_found": "تقرير الزيارة غير موجود",
+    "report_edit_window": "انتهت مدة تعديل التقرير (24 ساعة)"
+  },
+  "validation": {
+    "invalid_value": "قيمة غير صالحة",
+    "required": "هذا الحقل مطلوب",
+    "phone": "رقم الموبايل غير صحيح، استخدم رقم مصري بالصيغة ‎+2010xxxxxxxx",
+    "phone_unchanged": "هذا هو رقمك الحالي بالفعل",
+    "date_of_birth": "تاريخ الميلاد غير صحيح",
+    "not_found": "العنصر المحدد غير موجود",
+    "max_below_min": "الحد الأقصى يجب أن يكون أكبر من أو يساوي الحد الأدنى",
+    "unknown_setting": "إعداد غير معروف",
+    "idempotency_key": "الهيدر Idempotency-Key مطلوب ويجب أن يكون UUID",
+    "unknown_field": "هذا الحقل غير مسموح",
+    "area_unavailable": "الخدمة غير متاحة في هذه المنطقة حالياً",
+    "area_governorate_mismatch": "المنطقة لا تتبع المحافظة المختارة",
+    "self_relation_fixed": "لا يمكن تغيير صلة القرابة لملفك الأساسي",
+    "file_too_large": "حجم الملف أكبر من 10 ميجابايت",
+    "file_type": "نوع الملف غير مدعوم، المسموح: JPG أو PNG أو PDF",
+    "duplicate": "مكرر",
+    "travel_fee_above_cap": "رسوم الانتقال أعلى من الحد المسموح في هذه المنطقة",
+    "provider_type_required": "اختر نوع الحساب (ممرض أو طبيب) أولاً",
+    "service_unavailable": "الخدمة غير متاحة لنوع حسابك",
+    "price_out_of_range": "السعر خارج الحدود المسموحة لهذه الخدمة",
+    "slot_overlap": "هذه الفترة تتداخل مع فترة أخرى في نفس اليوم",
+    "ends_before_starts": "وقت النهاية يجب أن يكون بعد وقت البداية",
+    "in_the_past": "هذا الوقت في الماضي",
+    "onboarding_profile": "أكمل بياناتك المهنية (النوع، رقم الترخيص، رقم النقابة، سنوات الخبرة)",
+    "onboarding_documents": "ارفع الترخيص وكارنيه النقابة وصورتي البطاقة",
+    "onboarding_areas": "اختر منطقة عمل واحدة على الأقل",
+    "onboarding_services": "حدد خدمة واحدة على الأقل وسعرها",
+    "onboarding_availability": "حدد مواعيد عملك الأسبوعية",
+    "date_out_of_range": "اختر تاريخاً من اليوم وحتى 60 يوماً قادمة",
+    "quantity_out_of_range": "الكمية غير مسموحة لهذه الخدمة",
+    "time_requires_date": "حدد التاريخ مع الوقت",
+    "organizations_not_available": "الحجز من خلال المراكز سيتاح قريباً",
+    "video_not_available": "الاستشارات بالفيديو ستتاح قريباً",
+    "provider_gender_mismatch": "مقدم الخدمة لا يطابق النوع المفضل الذي اخترته",
+    "quote_invalid": "انتهت صلاحية عرض السعر، اطلب عرض سعر جديد",
+    "payment_method_unavailable": "الدفع النقدي فقط متاح حالياً",
+    "not_rebookable": "لا يمكن إعادة حجز هذا الطلب",
+    "use_dispute_flow": "استخدم البلاغات لتحويل الحجز إلى نزاع",
+    "already_assigned": "الحجز مُسند لمقدم الخدمة هذا بالفعل",
+    "use_reassign": "استخدم إعادة الإسناد لاختيار مقدم الخدمة",
+    "refund_amount": "مبلغ الاسترداد يجب أن يكون أكبر من صفر ولا يتجاوز إجمالي الحجز"
+  },
+  "address": {
+    "floor": "الدور {{floor}}",
+    "apartment": "شقة {{apartment}}",
+    "separator": "، "
+  },
+  "sms": {
+    "otp_login": "كود التحقق الخاص بك في رعاية+ هو {{code}}. لا تشاركه مع أي شخص.",
+    "otp_phone_change": "كود تأكيد رقمك الجديد في رعاية+ هو {{code}}. لا تشاركه مع أي شخص."
+  },
+  "app_config": {
+    "cancellation_policy": "إلغاء مجاني حتى {{hours}} ساعات قبل الموعد"
+  },
+  "quote": {
+    "service_line": "{{service}} × {{quantity}}",
+    "travel_line": "رسوم انتقال ({{area}})"
+  },
+  "notifications": {
+    "booking_request": {
+      "title": "طلب حجز جديد",
+      "body": "{{service}} — {{time}} في {{area}}"
+    },
+    "booking_rescheduled": {
+      "title": "طلب تغيير موعد",
+      "body": "طلب تغيير موعد {{service}} إلى {{time}}"
+    },
+    "booking_offer": {
+      "title": "طلب متاح الآن",
+      "body": "{{service}} — {{time}} في {{area}}. أول من يقبل يحصل على الطلب"
+    },
+    "booking_offer_taken": {
+      "title": "الطلب لم يعد متاحاً",
+      "body": "طلب {{service}} يوم {{time}} لم يعد متاحاً لك"
+    },
+    "booking_accepted": {
+      "title": "تم قبول حجزك",
+      "body": "{{provider}} قبل حجز {{service}} — {{time}}"
+    },
+    "booking_declined": {
+      "title": "تعذر قبول حجزك",
+      "body": "اعتذر {{provider}} عن حجز {{service}}، اختر مقدم خدمة آخر"
+    },
+    "booking_expired": {
+      "title": "لم يتم قبول حجزك",
+      "body": "لم يقبل أحد طلب {{service}} في الوقت المحدد، جرّب موعداً أو مقدم خدمة آخر"
+    },
+    "booking_fallback": {
+      "title": "بنبحث لك عن مقدم خدمة آخر",
+      "body": "لم يرد مقدم الخدمة على طلب {{service}}، فأرسلناه لمقدمي خدمة آخرين في منطقتك"
+    },
+    "booking_on_the_way": {
+      "title": "{{provider}} في الطريق إليك",
+      "body": "زيارة {{service}} — {{time}}"
+    },
+    "booking_started": {
+      "title": "بدأت الزيارة",
+      "body": "بدأ {{provider}} زيارة {{service}}"
+    },
+    "booking_cancelled": {
+      "title": "تم إلغاء الحجز",
+      "body": "تم إلغاء حجز {{service}} — {{time}}"
+    },
+    "booking_no_show": {
+      "title": "لم نجدك في موعد الزيارة",
+      "body": "سجّل {{provider}} عدم التواجد في موعد زيارة {{service}}"
+    },
+    "booking_reminder_day": {
+      "title": "تذكير بموعد زيارة",
+      "body": "{{service}} — {{time}}"
+    },
+    "booking_reminder_hour": {
+      "title": "الزيارة بعد ساعة",
+      "body": "{{service}} — {{time}}"
+    },
+    "verification_approved": {
+      "title": "تم توثيق حسابك",
+      "body": "يمكنك الآن تفعيل استقبال الحجوزات"
+    },
+    "verification_changes_requested": {
+      "title": "مطلوب تعديلات على طلب التوثيق",
+      "body": "{{message}}"
+    },
+    "verification_rejected": {
+      "title": "تم رفض طلب التوثيق",
+      "body": "{{reason}}"
+    },
+    "visit_report_ready": {
+      "title": "تقرير الزيارة جاهز",
+      "body": "كتب {{provider}} تقرير زيارة {{service}}"
+    },
+    "review_request": {
+      "title": "كيف كانت الزيارة؟",
+      "body": "قيّم {{provider}} وساعد غيرك يختار"
+    },
+    "account_suspended": {
+      "title": "تم إيقاف حسابك",
+      "body": "{{reason}}"
+    },
+    "account_suspended_until": {
+      "title": "تم إيقاف حسابك مؤقتاً",
+      "body": "{{reason}} — حتى {{until}}"
+    },
+    "account_warning": {
+      "title": "تنبيه من رعاية+",
+      "body": "{{reason}}"
+    },
+    "account_reactivated": {
+      "title": "تم تفعيل حسابك",
+      "body": "يمكنك استخدام رعاية+ مرة أخرى"
+    },
+    "dispute_resolved": {
+      "title": "تم الرد على البلاغ",
+      "body": "{{message}}"
+    },
+    "document_expiring": {
+      "title": "مستند قارب على الانتهاء",
+      "body": "ينتهي أحد مستنداتك في {{date}}، ارفع نسخة محدثة"
+    },
+    "license_expired": {
+      "title": "انتهى ترخيصك",
+      "body": "تم إيقاف استقبال الحجوزات حتى رفع ترخيص ساري واعتماده"
+    }
+  }
+}
