@@ -1,7 +1,7 @@
 # Operations runbook
 
-For whoever deploys and runs the Reaya+ API (staging and production). Development setup is in
-`README.md` / `CLAUDE.md`.
+For whoever deploys and runs the Reaya+ API (staging and production). Setting up a server: `docs/DEPLOYMENT.md`.
+Development setup: `README.md` / `CLAUDE.md`.
 
 ## Runtime
 
@@ -17,10 +17,11 @@ schedulers, so running several instances never duplicates them.
 
 ### Environment
 
-Copy `.env.example`. Must be set per environment (never shared between staging and production):
+Server template: `deploy/env.example`. Must be set per environment (never shared between staging and production):
 
 | Variable | Notes |
 |---|---|
+| `NODE_ENV` | `staging` or `production`: JSON logs to stdout, no stack traces. Staging also prints OTP codes to the log (`SMS_DRIVER=log`) and serves `/docs` |
 | `MONGO_URI`, `REDIS_*` | |
 | `JWT_SECRET` | long random string; rotating it logs everyone out |
 | `FIELD_ENCRYPTION_KEY` | base64 32-byte key. **Losing it makes encrypted medical/identity data unreadable — including in backups.** Keep it in the secret manager, backed up separately from the database. Never change it without a re-encryption migration. |

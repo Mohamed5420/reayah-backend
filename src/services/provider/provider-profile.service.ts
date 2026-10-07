@@ -5,9 +5,15 @@ import { ProviderType, VerificationStatus } from '../../interfaces/enums';
 import type { IProviderProfile } from '../../interfaces/IProfiles';
 import { DocumentReviewStatus, REQUIRED_PROVIDER_DOCUMENTS } from '../../interfaces/IProvider';
 import { invalidateCacheNamespace } from '../../utils/cache/cache';
-import { ConflictError, NotFoundError, ProviderNotVerifiedError } from '../../utils/types-errors';
+import {
+  ConflictError,
+  NotFoundError,
+  ProviderNotVerifiedError,
+  ValidationError,
+} from '../../utils/types-errors';
 import { applyPatch } from '../audit/audit.service';
 import { CatalogService, PROVIDER_PRICES_CACHE } from '../catalog/catalog.service';
+import type { SpecialtyKey } from '../catalog/specialties';
 
 /** Statuses in which a provider may edit identity fields and (re)submit for verification. */
 export const EDITABLE_STATUSES = [
@@ -21,7 +27,7 @@ const IDENTITY_FIELDS = ['type', 'licenseNumber', 'syndicateNumber'] as const;
 
 export type ProviderProfileInput = Partial<{
   type: ProviderType;
-  specialty: string | null;
+  specialty: SpecialtyKey | null;
   yearsOfExperience: number;
   bio: string | null;
   languages: string[];
@@ -59,6 +65,12 @@ export class ProviderProfileService {
     }
 
     const typeChanged = patch.type !== undefined && patch.type !== profile.type;
+    // A specialty belongs to doctors only (M2.1): required for them by the checklist, refused for nurses.
+    const nextType = patch.type ?? profile.type;
+    if (patch.specialty && nextType !== ProviderType.DOCTOR) {
+      throw new ValidationError({ specialty: ['validation.specialty_doctors_only'] });
+    }
+    if (nextType !== ProviderType.DOCTOR && profile.specialty) patch = { ...patch, specialty: null };
     if (!Object.keys(applyPatch(profile, patch)).length) return profile;
 
     if (typeChanged) {

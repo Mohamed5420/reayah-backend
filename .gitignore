@@ -15,3 +15,10 @@ serviceAccountKey*.json
 .DS_Store
 .vscode/*
 !.vscode/settings.json
+
+# Server deploy secrets
+deploy/.env
+deploy/secrets/*
+!deploy/secrets/README.md
+deploy/backups/
+backups/

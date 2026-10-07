@@ -2,7 +2,7 @@ import { Gender, ProviderType, UserRole, UserStatus, VerificationStatus } from '
 import { BookingStatus, BookingType, PaymentMethod, PaymentStatus } from '../../../interfaces/IBooking';
 import { DisputeStatus } from '../../../interfaces/IAftercare';
 import { EGYPT_MOBILE } from '../../../services/auth/auth.constants';
-import { objectId, z } from '../zod';
+import { objectId, specialtyView, z } from '../zod';
 
 const instant = z.iso.datetime({ offset: true }).openapi({ example: '2026-10-05T14:00:00Z' });
 const reason = z.string().trim().min(3).max(1000);
@@ -186,7 +186,7 @@ export const AdminSchemas = {
     .object({
       ...providerSummary.shape,
       user: adminUser,
-      specialty: z.string().nullable(),
+      specialty: specialtyView,
       years_of_experience: z.number().nullable(),
       license_number: z.string().nullable(),
       syndicate_number: z.string().nullable(),
@@ -238,6 +238,8 @@ export const AdminSchemas = {
           provider_payout: z.number(),
           total: z.number(),
         }),
+        /** Decrypted; every view is audited. */
+        patient_notes: z.string().nullable(),
         cancellation_reason: z.object({ code: z.string(), text: z.string().nullable() }).nullable(),
         cancelled_by: z.string().nullable(),
         completed_at: z.string().nullable(),

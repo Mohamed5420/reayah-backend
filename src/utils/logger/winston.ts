@@ -2,7 +2,8 @@ import winston from 'winston';
 import { getRequestId } from '../request-context';
 
 const { combine, timestamp, printf, colorize, errors, json } = winston.format;
-const isProduction = process.env.NODE_ENV === 'production';
+// staging and production: JSON to stdout only (the container runtime collects and rotates it).
+const isDeployed = ['staging', 'production'].includes(process.env.NODE_ENV ?? '');
 
 /** Tags every log line written while handling a request with that request's id. */
 const withRequestId = winston.format((info) => {
@@ -23,13 +24,13 @@ const isTest = process.env.NODE_ENV === 'test';
  * Tests: errors only, console only — test workers must not all append to the same log files.
  */
 export const logger = winston.createLogger({
-  level: isTest ? 'error' : isProduction ? 'info' : 'debug',
+  level: isTest ? 'error' : isDeployed ? 'info' : 'debug',
   format: combine(withRequestId(), errors({ stack: true }), timestamp()),
   transports: [
     new winston.transports.Console({
-      format: isProduction ? json() : combine(colorize(), lineFormat),
+      format: isDeployed ? json() : combine(colorize(), lineFormat),
     }),
-    ...(isTest
+    ...(isTest || isDeployed
       ? []
       : [
           new winston.transports.File({ filename: 'logs/error.log', level: 'error', format: json() }),

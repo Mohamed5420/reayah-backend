@@ -135,24 +135,24 @@ export default class AdminBookingController implements IBaseController {
       );
       return { data: data.map(presentAdminBooking), total };
     });
-    this.mount(r.booking, (req) => this.bookingDetail(req.params.id));
+    this.mount(r.booking, (req) => this.bookingDetail(req));
     this.mount(r.forceStatus, async (req) => {
       const body = req.body as z.infer<typeof AdminSchemas.forceStatusBody>;
       await this.bookings.forceStatus(req.params.id, body, auditContextFrom(req));
-      return this.bookingDetail(req.params.id);
+      return this.bookingDetail(req);
     });
     this.mount(r.reassign, async (req) => {
       const body = req.body as z.infer<typeof AdminSchemas.reassignBody>;
       await this.bookings.reassign(req.params.id, body.provider_profile_id, auditContextFrom(req));
-      return this.bookingDetail(req.params.id);
+      return this.bookingDetail(req);
     });
 
     this.list(r.disputes, async (req, pagination) => {
       const q = req.query as unknown as z.infer<typeof AftercareSchemas.adminDisputesQuery>;
       const { data, total } = await this.disputes.list({ status: q.status }, pagination);
-      return { data: await Promise.all(data.map((d) => this.disputeDetail(String(d._id)))), total };
+      return { data: await Promise.all(data.map((d) => this.disputeDetail(String(d._id), req))), total };
     });
-    this.mount(r.dispute, (req) => this.disputeDetail(req.params.id));
+    this.mount(r.dispute, (req) => this.disputeDetail(req.params.id, req));
     this.mount(r.resolve, async (req) => {
       const body = req.body as z.infer<typeof AftercareSchemas.resolveBody>;
       await this.disputes.resolve(
@@ -167,7 +167,7 @@ export default class AdminBookingController implements IBaseController {
         },
         auditContextFrom(req),
       );
-      return this.disputeDetail(req.params.id);
+      return this.disputeDetail(req.params.id, req);
     });
 
     this.list(r.reviews, async (req, pagination) => {
@@ -190,12 +190,12 @@ export default class AdminBookingController implements IBaseController {
     });
   }
 
-  private async bookingDetail(id: string) {
-    return presentAdminBookingDetail(await this.bookings.detail(id));
+  private async bookingDetail(req: Request) {
+    return presentAdminBookingDetail(await this.bookings.detail(req.params.id, auditContextFrom(req)));
   }
 
-  private async disputeDetail(id: string) {
-    const { dispute, booking, attachments } = await this.disputes.get(id);
+  private async disputeDetail(id: string, req: Request) {
+    const { dispute, booking, attachments } = await this.disputes.getForAdmin(id, auditContextFrom(req));
     return presentAdminDispute(dispute, booking?.referenceCode ?? null, attachments);
   }
 

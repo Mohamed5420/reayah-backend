@@ -55,3 +55,19 @@ export const encryptedString = <T extends string | null = string>(
   set: (value?: string | null) => (value && !isEncrypted(value) ? encryptField(value) : value) as T,
   get: (value?: string | null) => (value ? decryptField(value) : value) as T,
 });
+
+/**
+ * Encrypt-on-write only, for fields of models that are read with `.lean()` everywhere (bookings,
+ * disputes): stored encrypted, and decrypted explicitly with `decryptNullable` where the value is
+ * shown — which is also where the read gets audited.
+ */
+export const encryptOnWrite = <T extends string | null = string | null>(
+  options: SchemaTypeOptions<T> = {},
+): SchemaTypeOptions<T> => ({
+  ...options,
+  type: String as SchemaTypeOptions<T>['type'],
+  set: (value?: string | null) => (value && !isEncrypted(value) ? encryptField(value) : value) as T,
+});
+
+export const decryptNullable = (value: string | null | undefined): string | null =>
+  value ? decryptField(value) : null;

@@ -14,16 +14,22 @@ import { ReviewService } from '../../services/aftercare';
 import { invalidateCacheNamespace } from '../../utils/cache/cache';
 import { PROVIDER_PRICES_CACHE } from '../../services/catalog';
 import { runSeeds } from './index';
+import { SPECIALTY_KEYS } from '../../services/catalog/specialties';
 
 /**
  * Demo data for staging (spec §10 "Seed data for staging"): approved nurses spread over every active
  * area, patients with a home address, and bookings in several states — created through the real
  * booking services, so they obey every rule. Idempotent: accounts are keyed by reserved phone ranges
- * (+20100000xxxx patients, +20110000xxxx providers) and skipped when they already exist.
+ * (+20100000xxxx patients, +20110000xxxx nurses, +20120000xxxx doctors) and skipped when they already exist.
  * Never run it against production (the script refuses).
  */
 
-export type StagingSeedOptions = { providers?: number; patients?: number; bookings?: number };
+export type StagingSeedOptions = {
+  providers?: number;
+  doctors?: number;
+  patients?: number;
+  bookings?: number;
+};
 
 const FIRST_NAMES = {
   female: ['منى', 'سارة', 'هبة', 'نورا', 'مريم', 'ياسمين', 'دينا', 'ريهام', 'إيمان', 'آية'],
@@ -42,6 +48,7 @@ export const seedStaging = async (options: StagingSeedOptions = {}) => {
   const providersWanted = options.providers ?? 200;
   const patientsWanted = options.patients ?? 50;
   const bookingsWanted = options.bookings ?? 40;
+  const doctorsWanted = options.doctors ?? 30;
   const random = rng(42);
   const pick = <T>(list: T[]) => list[Math.floor(random() * list.length)];
   const name = (gender: Gender) =>
@@ -112,6 +119,51 @@ export const seedStaging = async (options: StagingSeedOptions = {}) => {
     providersCreated++;
   }
 
+  // ── Doctors (M2.1): hidden until an admin activates the doctor home-visit category ──
+  const doctorServices = await CatalogServiceModel.find({
+    isActive: true,
+    providerType: ProviderType.DOCTOR,
+  }).lean();
+  let doctorsCreated = 0;
+  for (let i = 1; i <= doctorsWanted && doctorServices.length; i++) {
+    const phone = `+20120000${String(i).padStart(4, '0')}`;
+    const gender = random() < 0.5 ? Gender.FEMALE : Gender.MALE;
+    const fullName = `د. ${name(gender)}`;
+    const home = pick(areas);
+    if (await UserModel.exists({ phone })) continue;
+    const user = await UserModel.create({
+      phone,
+      fullName,
+      gender,
+      dateOfBirth: new Date(1965 + Math.floor(random() * 25), 0, 1),
+      role: UserRole.PROVIDER,
+    });
+    await ProviderProfileModel.create({
+      userId: user._id,
+      type: ProviderType.DOCTOR,
+      specialty: pick([...SPECIALTY_KEYS]),
+      bio: 'طبيب/ة للزيارات المنزلية — بيانات تجريبية',
+      yearsOfExperience: 3 + Math.floor(random() * 30),
+      languages: ['ar', 'en'],
+      licenseNumber: `STG-D-${String(i).padStart(5, '0')}`,
+      syndicateNumber: `SYN-D-${String(i).padStart(5, '0')}`,
+      verificationStatus: VerificationStatus.APPROVED,
+      isAcceptingBookings: true,
+      serviceAreas: [{ areaId: home._id, travelFee: Math.min(home.maxTravelFee ?? 5000, 2000) }],
+      services: doctorServices.map((s) => ({
+        serviceId: s._id,
+        price: 30000 + 5000 * Math.floor(random() * 8),
+        isActive: true,
+      })),
+      availability: [0, 1, 2, 3, 4, 6].map((dayOfWeek) => ({
+        dayOfWeek,
+        startTime: '16:00',
+        endTime: '22:00',
+      })),
+    });
+    doctorsCreated++;
+  }
+
   // ── Patients: self profile + a default home address ──
   let patientsCreated = 0;
   for (let i = 1; i <= patientsWanted; i++) {
@@ -159,6 +211,7 @@ export const seedStaging = async (options: StagingSeedOptions = {}) => {
     }).lean();
     if (!address || !profile) continue;
     const provider = await ProviderProfileModel.findOne({
+      type: ProviderType.NURSE, // doctor services stay hidden until their category is activated
       'serviceAreas.areaId': address.areaId,
       verificationStatus: VerificationStatus.APPROVED,
       isAcceptingBookings: true,
@@ -208,5 +261,5 @@ export const seedStaging = async (options: StagingSeedOptions = {}) => {
     }
   }
 
-  return { providersCreated, patientsCreated, bookingsCreated, bookingsSkipped };
+  return { providersCreated, doctorsCreated, patientsCreated, bookingsCreated, bookingsSkipped };
 };

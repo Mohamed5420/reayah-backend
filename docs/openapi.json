@@ -2265,10 +2265,7 @@
             ]
           },
           "specialty": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "$ref": "#/components/schemas/Specialty"
           },
           "years_of_experience": {
             "type": [
@@ -2376,6 +2373,26 @@
           "onboarding"
         ]
       },
+      "Specialty": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "internal_medicine"
+          },
+          "name": {
+            "type": "string",
+            "example": "باطنة"
+          }
+        },
+        "required": [
+          "key",
+          "name"
+        ]
+      },
       "UpdateProviderProfile": {
         "type": "object",
         "properties": {
@@ -2391,7 +2408,25 @@
               "string",
               "null"
             ],
-            "maxLength": 100
+            "enum": [
+              "general_practice",
+              "family_medicine",
+              "internal_medicine",
+              "geriatrics",
+              "pediatrics",
+              "cardiology",
+              "chest",
+              "endocrinology",
+              "nephrology",
+              "neurology",
+              "orthopedics",
+              "dermatology",
+              "urology",
+              "obstetrics_gynecology",
+              "psychiatry",
+              "palliative_care",
+              null
+            ]
           },
           "years_of_experience": {
             "type": "integer",
@@ -2848,10 +2883,7 @@
             ]
           },
           "specialty": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "$ref": "#/components/schemas/Specialty"
           },
           "years_of_experience": {
             "type": [
@@ -3220,6 +3252,9 @@
               true
             ]
           },
+          "specialty": {
+            "$ref": "#/components/schemas/Specialty"
+          },
           "years_of_experience": {
             "type": [
               "number",
@@ -3273,6 +3308,7 @@
           "type",
           "gender",
           "is_verified",
+          "specialty",
           "years_of_experience",
           "rating_avg",
           "rating_count",
@@ -3321,10 +3357,7 @@
             ]
           },
           "specialty": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "$ref": "#/components/schemas/Specialty"
           },
           "bio": {
             "type": [
@@ -5661,10 +5694,7 @@
             "$ref": "#/components/schemas/AdminUser"
           },
           "specialty": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "$ref": "#/components/schemas/Specialty"
           },
           "years_of_experience": {
             "type": [
@@ -5876,6 +5906,12 @@
                       "total"
                     ]
                   },
+                  "patient_notes": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
                   "cancellation_reason": {
                     "type": [
                       "object",
@@ -5913,6 +5949,7 @@
                 "required": [
                   "address",
                   "price",
+                  "patient_notes",
                   "cancellation_reason",
                   "cancelled_by",
                   "completed_at"
@@ -7962,6 +7999,61 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/Service"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/specialties": {
+      "get": {
+        "summary": "Doctor specialties — for the doctor profile and the search filter",
+        "tags": [
+          "Lookups"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "example": "internal_medicine"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "باطنة"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "name"
+                        ]
+                      }
                     }
                   },
                   "required": [
@@ -11651,6 +11743,32 @@
             },
             "required": false,
             "name": "provider_type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "general_practice",
+                "family_medicine",
+                "internal_medicine",
+                "geriatrics",
+                "pediatrics",
+                "cardiology",
+                "chest",
+                "endocrinology",
+                "nephrology",
+                "neurology",
+                "orthopedics",
+                "dermatology",
+                "urology",
+                "obstetrics_gynecology",
+                "psychiatry",
+                "palliative_care"
+              ]
+            },
+            "required": false,
+            "name": "specialty",
             "in": "query"
           },
           {

@@ -5,16 +5,23 @@ import type { IUser } from '../../interfaces/IUser';
 import type { Slot } from '../../services/discovery';
 import type { Language } from '../../utils/i18n';
 import { localized } from './localize';
+import { presentSpecialty } from '../../services/catalog/specialties';
 
 /** Maps discovery results to the API shapes in discovery.validation.ts. */
 
-export const presentProviderCard = (card: ProviderCard, service: ServiceRow, avatarUrl: string | null) => ({
+export const presentProviderCard = (
+  card: ProviderCard,
+  service: ServiceRow,
+  avatarUrl: string | null,
+  lang: Language = 'ar',
+) => ({
   id: String(card.profile._id),
   name: card.user.fullName,
   avatar_url: avatarUrl,
   type: card.profile.type!,
   gender: card.user.gender,
   is_verified: true as const,
+  specialty: presentSpecialty(card.profile.specialty, lang),
   years_of_experience: card.profile.yearsOfExperience,
   rating_avg: card.profile.ratingAvg,
   rating_count: card.profile.ratingCount,
@@ -41,7 +48,7 @@ export const presentPublicProfile = (input: {
   avatar_url: input.avatarUrl,
   type: input.profile.type!,
   gender: input.user.gender,
-  specialty: input.profile.specialty,
+  specialty: presentSpecialty(input.profile.specialty, input.lang),
   bio: input.profile.bio,
   years_of_experience: input.profile.yearsOfExperience,
   is_verified: true as const,

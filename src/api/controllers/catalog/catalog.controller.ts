@@ -3,10 +3,11 @@ import { Container } from 'typedi';
 import type IBaseController from '../interfaces/base-controller.interface';
 import { CheckAppStatusMiddleware, PublicCacheMiddleware } from '../../middlewares/app';
 import { CatalogSchemas } from '../../validations/catalog/catalog.validation';
-import { z } from '../../validations/zod';
+import { specialtyView, z } from '../../validations/zod';
 import { presentCategory, presentService } from '../../presenters/catalog.presenter';
 import { defineRoute } from '../../../docs/openapi';
 import { CatalogService } from '../../../services/catalog';
+import { SPECIALTIES, presentSpecialty } from '../../../services/catalog/specialties';
 import { HttpResponse } from '../../../utils/response/http-response';
 import { resolveLanguage } from '../../../utils/i18n';
 
@@ -36,6 +37,13 @@ const routes = {
     request: { params: CatalogSchemas.idParams },
     response: { schema: CatalogSchemas.service },
   }),
+  specialties: defineRoute({
+    method: 'get',
+    path: '/specialties',
+    summary: 'Doctor specialties — for the doctor profile and the search filter',
+    tags,
+    response: { schema: z.array(specialtyView.unwrap()) },
+  }),
 };
 
 /** Public service catalog (spec §7.3). */
@@ -55,6 +63,12 @@ export default class CatalogController implements IBaseController {
     this.router.get(routes.categories.path, ...publicChain, this.categories.bind(this));
     this.router.get(routes.services.path, ...publicChain, routes.services.validate, this.services.bind(this));
     this.router.get(routes.service.path, ...publicChain, routes.service.validate, this.service.bind(this));
+    this.router.get(routes.specialties.path, ...publicChain, (req: Request, res: Response) =>
+      HttpResponse.ok(
+        res,
+        SPECIALTIES.map((s) => presentSpecialty(s.key, resolveLanguage(req))),
+      ),
+    );
   }
 
   private async categories(req: Request, res: Response, next: NextFunction) {

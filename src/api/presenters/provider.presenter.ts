@@ -6,6 +6,7 @@ import type { AreaDescription } from '../../services/location';
 import type { OnboardingChecklist } from '../../services/provider';
 import type { Language } from '../../utils/i18n';
 import { localized } from './localize';
+import { presentSpecialty } from '../../services/catalog/specialties';
 
 /** Maps provider data to the API shapes in provider.validation.ts. */
 
@@ -24,7 +25,7 @@ export const presentChecklist = (c: OnboardingChecklist) => ({
 const profileFields = (p: IProviderProfile) => ({
   id: String(p._id),
   type: p.type,
-  specialty: p.specialty,
+  specialty: presentSpecialty(p.specialty),
   years_of_experience: p.yearsOfExperience,
   bio: p.bio,
   languages: p.languages,

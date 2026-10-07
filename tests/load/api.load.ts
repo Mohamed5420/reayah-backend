@@ -84,7 +84,7 @@ describe(`load: ${PROVIDERS} providers, ${CONCURRENCY} concurrent clients`, () =
 
   beforeAll(async () => {
     const t0 = performance.now();
-    const seeded = await seedStaging({ providers: PROVIDERS, patients: 100, bookings: 0 });
+    const seeded = await seedStaging({ providers: PROVIDERS, doctors: 0, patients: 100, bookings: 0 });
     console.log(`Seeded in ${Math.round((performance.now() - t0) / 1000)} s:`, seeded);
 
     const server = new Server(getGlobalControllers());

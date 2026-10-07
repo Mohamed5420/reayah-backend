@@ -12,6 +12,7 @@ import { AuditService, type AuditContext } from '../audit/audit.service';
 import { runBookingTransaction, transitionBooking } from '../booking/booking-transaction';
 import { AccountService } from '../moderation/account.service';
 import { NotificationService } from '../notification/notification.service';
+import { auditDisputeRead } from '../patient/medical-audit';
 import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../storage/storage.service';
 
@@ -95,6 +96,13 @@ export class DisputeService {
       DisputeModel.countDocuments(query),
     ]);
     return { data, total };
+  }
+
+  /** Admin view: decrypted in the presenter; every view is audited (the description may hold health details). */
+  async getForAdmin(disputeId: string, context: AuditContext) {
+    const result = await this.get(disputeId);
+    await auditDisputeRead(context, disputeId);
+    return result;
   }
 
   async get(disputeId: string) {

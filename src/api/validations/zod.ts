@@ -41,3 +41,12 @@ export const paginationQuery = z.object({
   page: z.coerce.number().int().min(1).optional().openapi({ example: 1 }),
   per_page: z.coerce.number().int().min(1).max(100).optional().openapi({ example: 20 }),
 });
+
+/** A doctor's specialty as shown to clients (`null` for nurses). Keys: GET /specialties. */
+export const specialtyView = z
+  .object({
+    key: z.string().openapi({ example: 'internal_medicine' }),
+    name: z.string().openapi({ example: 'باطنة' }),
+  })
+  .nullable()
+  .openapi('Specialty');

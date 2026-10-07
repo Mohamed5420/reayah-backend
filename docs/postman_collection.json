@@ -1,0 +1,5472 @@
+{
+  "info": {
+    "name": "Reaya+ API",
+    "description": "Reaya+ backend API. Responses use `{ data, meta? }`; errors use `{ error: { code, message, fields? } }`. Messages are Arabic (`Accept-Language: ar`).\n\nSet `baseUrl`, then call \"Verify OTP\" (or \"Refresh\") and paste `access_token` into the `accessToken` variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/v1"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Liveness + database status",
+          "request": {
+            "method": "GET",
+            "description": "Liveness + database status",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Readiness for load balancers / uptime monitors: 200 when MongoDB and Redis answer within 2 s, otherwise 503",
+          "request": {
+            "method": "GET",
+            "description": "Readiness for load balancers / uptime monitors: 200 when MongoDB and Redis answer within 2 s, otherwise 503",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Scheduled jobs (booking deadlines, reminders, suspension lifts, document check): 200 when each ran recently, 503 when one has gone silent — point an alert at it",
+          "request": {
+            "method": "GET",
+            "description": "Scheduled jobs (booking deadlines, reminders, suspension lifts, document check): 200 when each ran recently, 503 when one has gone silent — point an alert at it",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health/jobs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "jobs"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Send a login code by SMS. Limits: 1/min and 3/10 min per phone, 10/hour per IP.",
+          "request": {
+            "method": "POST",
+            "description": "Send a login code by SMS. Limits: 1/min and 3/10 min per phone, 10/hour per IP.",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/otp/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "otp",
+                "request"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+201001234567\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Verify the code: a session for existing users, a registration token for new numbers",
+          "request": {
+            "method": "POST",
+            "description": "Verify the code: a session for existing users, a registration token for new numbers",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/otp/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "otp",
+                "verify"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+201001234567\",\n  \"code\": \"4821\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Finish sign-up. Authorization: Bearer <registration_token> (from /auth/otp/verify)",
+          "request": {
+            "method": "POST",
+            "description": "Finish sign-up. Authorization: Bearer <registration_token> (from /auth/otp/verify)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"patient\",\n  \"full_name\": \"أحمد محمود\",\n  \"gender\": \"male\",\n  \"date_of_birth\": \"1985-03-12\",\n  \"email\": \"string\",\n  \"language\": \"ar\",\n  \"referral_code\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Exchange a refresh token for a new pair. Each refresh token works once — never refresh in parallel.",
+          "request": {
+            "method": "POST",
+            "description": "Exchange a refresh token for a new pair. Each refresh token works once — never refresh in parallel.",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "End this session (and unregister the device push token if given)",
+          "request": {
+            "method": "POST",
+            "description": "End this session (and unregister the device push token if given)",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"string\",\n  \"fcm_token\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Send a code to the new phone number",
+          "request": {
+            "method": "POST",
+            "description": "Send a code to the new phone number",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/phone/change/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "phone",
+                "change",
+                "request"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_phone\": \"+201001234567\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Confirm the code and switch the account to the new number",
+          "request": {
+            "method": "POST",
+            "description": "Confirm the code and switch the account to the new number",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/phone/change/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "phone",
+                "change",
+                "verify"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_phone\": \"+201001234567\",\n  \"code\": \"4821\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Me",
+      "item": [
+        {
+          "name": "Current user + role-specific summary",
+          "request": {
+            "method": "GET",
+            "description": "Current user + role-specific summary",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Update name, email, gender, date of birth, language",
+          "request": {
+            "method": "PATCH",
+            "description": "Update name, email, gender, date of birth, language",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"أحمد محمود\",\n  \"email\": \"string\",\n  \"gender\": \"male\",\n  \"date_of_birth\": \"1985-03-12\",\n  \"language\": \"ar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Close the account (sessions end now; data retained per the retention policy)",
+          "request": {
+            "method": "DELETE",
+            "description": "Close the account (sessions end now; data retained per the retention policy)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Register or refresh this device’s FCM token",
+          "request": {
+            "method": "POST",
+            "description": "Register or refresh this device’s FCM token",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/devices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "devices"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcm_token\": \"string\",\n  \"platform\": \"ios\",\n  \"app_version\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove a device’s FCM token",
+          "request": {
+            "method": "DELETE",
+            "description": "Remove a device’s FCM token",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/devices/:fcm_token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "devices",
+                ":fcm_token"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "fcm_token",
+                  "value": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload a profile photo (JPG or PNG, max 10 MB); replaces the previous one",
+          "request": {
+            "method": "POST",
+            "description": "Upload a profile photo (JPG or PNG, max 10 MB); replaces the previous one",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/avatar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "avatar"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lookups",
+      "item": [
+        {
+          "name": "Startup config: min app versions, support/emergency numbers, policies, feature flags",
+          "request": {
+            "method": "GET",
+            "description": "Startup config: min app versions, support/emergency numbers, policies, feature flags",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/app-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "app-config"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Active governorates",
+          "request": {
+            "method": "GET",
+            "description": "Active governorates",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governorates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governorates"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Active areas of a governorate (address form picker)",
+          "request": {
+            "method": "GET",
+            "description": "Active areas of a governorate (address form picker)",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/governorates/:id/areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "governorates",
+                ":id",
+                "areas"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search active areas (provider coverage multi-select). Tolerates Arabic spelling variants.",
+          "request": {
+            "method": "GET",
+            "description": "Search active areas (provider coverage multi-select). Tolerates Arabic spelling variants.",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "areas"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "نصر",
+                  "disabled": true
+                },
+                {
+                  "key": "governorate_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Active service categories",
+          "request": {
+            "method": "GET",
+            "description": "Active service categories",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/service-categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "service-categories"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Active services, optionally filtered by category / provider type",
+          "request": {
+            "method": "GET",
+            "description": "Active services, optionally filtered by category / provider type",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services"
+              ],
+              "query": [
+                {
+                  "key": "category_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
+                  "key": "provider_type",
+                  "value": "nurse",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Service details",
+          "request": {
+            "method": "GET",
+            "description": "Service details",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/services/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "services",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Doctor specialties — for the doctor profile and the search filter",
+          "request": {
+            "method": "GET",
+            "description": "Doctor specialties — for the doctor profile and the search filter",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/specialties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "specialties"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Locations",
+      "item": [
+        {
+          "name": "List governorates (incl. inactive)",
+          "request": {
+            "method": "GET",
+            "description": "List governorates (incl. inactive)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/governorates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "governorates"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "string",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Create a governorate",
+          "request": {
+            "method": "POST",
+            "description": "Create a governorate",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/governorates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "governorates"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update / activate / deactivate a governorate",
+          "request": {
+            "method": "PATCH",
+            "description": "Update / activate / deactivate a governorate",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/governorates/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "governorates",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List areas (incl. inactive)",
+          "request": {
+            "method": "GET",
+            "description": "List areas (incl. inactive)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "areas"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "governorate_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "string",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Create an area",
+          "request": {
+            "method": "POST",
+            "description": "Create an area",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "areas"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"governorate_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"is_active\": true,\n  \"max_travel_fee\": 25000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update / activate / deactivate an area, or set its travel-fee cap",
+          "request": {
+            "method": "PATCH",
+            "description": "Update / activate / deactivate an area, or set its travel-fee cap",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/areas/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "areas",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"governorate_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"is_active\": true,\n  \"max_travel_fee\": 25000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Catalog",
+      "item": [
+        {
+          "name": "List service categories (incl. inactive)",
+          "request": {
+            "method": "GET",
+            "description": "List service categories (incl. inactive)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/service-categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "service-categories"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Create a service category",
+          "request": {
+            "method": "POST",
+            "description": "Create a service category",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/service-categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "service-categories"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"nursing\",\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"icon_url\": \"string\",\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update / activate / deactivate a service category",
+          "request": {
+            "method": "PATCH",
+            "description": "Update / activate / deactivate a service category",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/service-categories/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "service-categories",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"nursing\",\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"icon_url\": \"string\",\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete an empty service category (409 while it still has services)",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete an empty service category (409 while it still has services)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/service-categories/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "service-categories",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List services (incl. inactive)",
+          "request": {
+            "method": "GET",
+            "description": "List services (incl. inactive)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "services"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "category_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
+                  "key": "provider_type",
+                  "value": "nurse",
+                  "disabled": true
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "string",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Create a service",
+          "request": {
+            "method": "POST",
+            "description": "Create a service",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "services"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"provider_type\": \"nurse\",\n  \"pricing_unit\": \"per_visit\",\n  \"default_duration_minutes\": 5,\n  \"min_price\": 25000,\n  \"max_price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update a service (incl. min/max price bounds)",
+          "request": {
+            "method": "PATCH",
+            "description": "Update a service (incl. min/max price bounds)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/services/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "services",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"provider_type\": \"nurse\",\n  \"pricing_unit\": \"per_visit\",\n  \"default_duration_minutes\": 5,\n  \"min_price\": 25000,\n  \"max_price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Deactivate a service",
+          "request": {
+            "method": "DELETE",
+            "description": "Deactivate a service",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/services/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "services",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Uploads",
+      "item": [
+        {
+          "name": "Upload a private file (max 10 MB; JPG, PNG or PDF — avatars images only). Returns a temporary `file_key` to attach with the relevant endpoint; unattached files are removed after a day.",
+          "request": {
+            "method": "POST",
+            "description": "Upload a private file (max 10 MB; JPG, PNG or PDF — avatars images only). Returns a temporary `file_key` to attach with the relevant endpoint; unattached files are removed after a day.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/uploads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "uploads"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "purpose",
+                  "type": "text",
+                  "value": "provider_document"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patient — Addresses",
+      "item": [
+        {
+          "name": "My addresses (default first)",
+          "request": {
+            "method": "GET",
+            "description": "My addresses (default first)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/addresses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "addresses"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Add an address (text only — coordinates are rejected). The first one becomes the default.",
+          "request": {
+            "method": "POST",
+            "description": "Add an address (text only — coordinates are rejected). The first one becomes the default.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/addresses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "addresses"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"بيت بابا\",\n  \"governorate_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"area_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"street\": \"شارع عباس العقاد\",\n  \"building\": \"15\",\n  \"floor\": \"4\",\n  \"apartment\": \"12\",\n  \"landmark\": \"بجوار صيدلية العزبي\",\n  \"notes\": \"الأسانسير عطلان\",\n  \"is_default\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update an address",
+          "request": {
+            "method": "PATCH",
+            "description": "Update an address",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/addresses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "addresses",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"بيت بابا\",\n  \"governorate_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"area_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"street\": \"شارع عباس العقاد\",\n  \"building\": \"15\",\n  \"floor\": \"4\",\n  \"apartment\": \"12\",\n  \"landmark\": \"بجوار صيدلية العزبي\",\n  \"notes\": \"الأسانسير عطلان\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete an address (deleting the default promotes the newest remaining one)",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete an address (deleting the default promotes the newest remaining one)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/addresses/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "addresses",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Make this the default address",
+          "request": {
+            "method": "POST",
+            "description": "Make this the default address",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/addresses/:id/default",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "addresses",
+                ":id",
+                "default"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patient — Profiles & medical",
+      "item": [
+        {
+          "name": "Me + family members",
+          "request": {
+            "method": "GET",
+            "description": "Me + family members",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Add a family member",
+          "request": {
+            "method": "POST",
+            "description": "Add a family member",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"أحمد محمود\",\n  \"relation\": \"father\",\n  \"gender\": \"male\",\n  \"date_of_birth\": \"1985-03-12\",\n  \"blood_type\": \"A+\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Full profile with medical summary (audited)",
+          "request": {
+            "method": "GET",
+            "description": "Full profile with medical summary (audited)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update a profile (the \"self\" relation can’t change)",
+          "request": {
+            "method": "PATCH",
+            "description": "Update a profile (the \"self\" relation can’t change)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"أحمد محمود\",\n  \"relation\": \"father\",\n  \"gender\": \"male\",\n  \"date_of_birth\": \"1985-03-12\",\n  \"blood_type\": \"A+\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a family member (not \"self\")",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete a family member (not \"self\")",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Medical documents with 10-minute signed URLs (audited)",
+          "request": {
+            "method": "GET",
+            "description": "Medical documents with 10-minute signed URLs (audited)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "documents"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Attach a file uploaded via POST /uploads (purpose: medical_document)",
+          "request": {
+            "method": "POST",
+            "description": "Attach a file uploaded via POST /uploads (purpose: medical_document)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "documents"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_key\": \"tmp/665f.../medical_document/9f2c....pdf\",\n  \"type\": \"prescription\",\n  \"title\": \"روشتة د. سامي\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a medical document and its file",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete a medical document and its file",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/documents/:record_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "documents",
+                ":record_id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "record_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reports written by providers after visits, newest first (audited)",
+          "request": {
+            "method": "GET",
+            "description": "Reports written by providers after visits, newest first (audited)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/visit-reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "visit-reports"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Report details: vitals, procedures, recommendations, attachments (10-minute signed URLs; audited)",
+          "request": {
+            "method": "GET",
+            "description": "Report details: vitals, procedures, recommendations, attachments (10-minute signed URLs; audited)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/visit-reports/:rid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "visit-reports",
+                ":rid"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "rid",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List a chronic condition (audited)",
+          "request": {
+            "method": "GET",
+            "description": "List a chronic condition (audited)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/conditions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "conditions"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add a chronic condition",
+          "request": {
+            "method": "POST",
+            "description": "Add a chronic condition",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/conditions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "conditions"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"سكر\",\n  \"notes\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update a chronic condition",
+          "request": {
+            "method": "PATCH",
+            "description": "Update a chronic condition",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/conditions/:record_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "conditions",
+                ":record_id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "record_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"سكر\",\n  \"notes\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a chronic condition",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete a chronic condition",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/conditions/:record_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "conditions",
+                ":record_id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "record_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List a medication (audited)",
+          "request": {
+            "method": "GET",
+            "description": "List a medication (audited)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/medications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "medications"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add a medication",
+          "request": {
+            "method": "POST",
+            "description": "Add a medication",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/medications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "medications"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Glucophage\",\n  \"dosage\": \"1000mg\",\n  \"frequency\": \"مرتين يومياً\",\n  \"notes\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update a medication",
+          "request": {
+            "method": "PATCH",
+            "description": "Update a medication",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/medications/:record_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "medications",
+                ":record_id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "record_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Glucophage\",\n  \"dosage\": \"1000mg\",\n  \"frequency\": \"مرتين يومياً\",\n  \"notes\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a medication",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete a medication",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/medications/:record_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "medications",
+                ":record_id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "record_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List an allergy (audited)",
+          "request": {
+            "method": "GET",
+            "description": "List an allergy (audited)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/allergies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "allergies"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add an allergy",
+          "request": {
+            "method": "POST",
+            "description": "Add an allergy",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/allergies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "allergies"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"بنسلين\",\n  \"severity\": \"low\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update an allergy",
+          "request": {
+            "method": "PATCH",
+            "description": "Update an allergy",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/allergies/:record_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "allergies",
+                ":record_id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "record_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"بنسلين\",\n  \"severity\": \"low\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete an allergy",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete an allergy",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patient-profiles/:id/allergies/:record_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient-profiles",
+                ":id",
+                "allergies",
+                ":record_id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "record_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Provider",
+      "item": [
+        {
+          "name": "My provider profile + onboarding checklist",
+          "request": {
+            "method": "GET",
+            "description": "My provider profile + onboarding checklist",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "profile"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Update profile. Type / license / syndicate number are locked while under review or once approved.",
+          "request": {
+            "method": "PATCH",
+            "description": "Update profile. Type / license / syndicate number are locked while under review or once approved.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "profile"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"nurse\",\n  \"specialty\": \"general_practice\",\n  \"years_of_experience\": 0,\n  \"bio\": \"string\",\n  \"languages\": [\n    \"ar\"\n  ],\n  \"license_number\": \"string\",\n  \"syndicate_number\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "My verification documents + review status",
+          "request": {
+            "method": "GET",
+            "description": "My verification documents + review status",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "documents"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Attach a file uploaded via POST /uploads (purpose: provider_document). Replaces the previous one of a required type.",
+          "request": {
+            "method": "POST",
+            "description": "Attach a file uploaded via POST /uploads (purpose: provider_document). Replaces the previous one of a required type.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "documents"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"license\",\n  \"file_key\": \"string\",\n  \"expires_at\": \"2027-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove a document (not one the admin approved)",
+          "request": {
+            "method": "DELETE",
+            "description": "Remove a document (not one the admin approved)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/documents/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "documents",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit for admin review (draft / changes_requested / rejected → pending). 422 lists missing onboarding items.",
+          "request": {
+            "method": "POST",
+            "description": "Submit for admin review (draft / changes_requested / rejected → pending). 422 lists missing onboarding items.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/submit-verification",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "submit-verification"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Verification status, admin message / rejection reason, per-document results",
+          "request": {
+            "method": "GET",
+            "description": "Verification status, admin message / rejection reason, per-document results",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/verification-status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "verification-status"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Areas I cover, with travel fees",
+          "request": {
+            "method": "GET",
+            "description": "Areas I cover, with travel fees",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/service-areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "service-areas"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Replace covered areas (chosen from GET /areas — no map or radius). Independent providers only.",
+          "request": {
+            "method": "PUT",
+            "description": "Replace covered areas (chosen from GET /areas — no map or radius). Independent providers only.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/service-areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "service-areas"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"areas\": [\n    {\n      \"area_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n      \"travel_fee\": 25000\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "My services and prices",
+          "request": {
+            "method": "GET",
+            "description": "My services and prices",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "services"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Replace services and prices (piastres, within admin bounds). Independent providers only.",
+          "request": {
+            "method": "PUT",
+            "description": "Replace services and prices (piastres, within admin bounds). Independent providers only.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "services"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"services\": [\n    {\n      \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n      \"price\": 25000,\n      \"is_active\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Weekly schedule (Africa/Cairo local time)",
+          "request": {
+            "method": "GET",
+            "description": "Weekly schedule (Africa/Cairo local time)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/availability",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "availability"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Replace the weekly schedule (no overlapping slots per day; split overnight shifts across days)",
+          "request": {
+            "method": "PUT",
+            "description": "Replace the weekly schedule (no overlapping slots per day; split overnight shifts across days)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/availability",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "availability"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slots\": [\n    {\n      \"day_of_week\": 0,\n      \"start_time\": \"09:00\",\n      \"end_time\": \"09:00\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Current and upcoming time off",
+          "request": {
+            "method": "GET",
+            "description": "Current and upcoming time off",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/time-off",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "time-off"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Add time off",
+          "request": {
+            "method": "POST",
+            "description": "Add time off",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/time-off",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "time-off"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"starts_at\": \"2026-10-10T00:00:00Z\",\n  \"ends_at\": \"2026-10-10T00:00:00Z\",\n  \"reason\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove time off",
+          "request": {
+            "method": "DELETE",
+            "description": "Remove time off",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/time-off/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "time-off",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toggle accepting bookings (403 PROVIDER_NOT_VERIFIED unless approved)",
+          "request": {
+            "method": "PATCH",
+            "description": "Toggle accepting bookings (403 PROVIDER_NOT_VERIFIED unless approved)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/accepting",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "accepting"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_accepting_bookings\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Verification",
+      "item": [
+        {
+          "name": "Verification queue, oldest submission first (organizations: Phase 3)",
+          "request": {
+            "method": "GET",
+            "description": "Verification queue, oldest submission first (organizations: Phase 3)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/verifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "verifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "provider",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Full submission with signed document URLs, coverage, services and checklist",
+          "request": {
+            "method": "GET",
+            "description": "Full submission with signed document URLs, coverage, services and checklist",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/verifications/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "verifications",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Approve (pending documents are accepted with it; 409 while any document is \"not matching\")",
+          "request": {
+            "method": "POST",
+            "description": "Approve (pending documents are accepted with it; 409 while any document is \"not matching\")",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/verifications/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "verifications",
+                ":id",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send back for changes; the listed documents must be re-uploaded",
+          "request": {
+            "method": "POST",
+            "description": "Send back for changes; the listed documents must be re-uploaded",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/verifications/:id/request-changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "verifications",
+                ":id",
+                "request-changes"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"string\",\n  \"documents\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Reject (the provider can fix and resubmit)",
+          "request": {
+            "method": "POST",
+            "description": "Reject (the provider can fix and resubmit)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/verifications/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "verifications",
+                ":id",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"string\",\n  \"documents\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mark one document matching / not matching, optionally setting its expiry",
+          "request": {
+            "method": "POST",
+            "description": "Mark one document matching / not matching, optionally setting its expiry",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/documents/:id/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "documents",
+                ":id",
+                "review"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"matching\",\n  \"note\": \"string\",\n  \"expires_at\": \"2027-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patient — Discovery",
+      "item": [
+        {
+          "name": "Patient home screen",
+          "request": {
+            "method": "GET",
+            "description": "Patient home screen",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "home"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Search providers by service and area (never distance). Approved, accepting, active accounts only. `date` (+ optional `time`) keeps only providers with a free slot then.",
+          "request": {
+            "method": "GET",
+            "description": "Search providers by service and area (never distance). Approved, accepting, active accounts only. `date` (+ optional `time`) keeps only providers with a free slot then.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/providers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "providers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "service_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": false
+                },
+                {
+                  "key": "area_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": false,
+                  "description": "From the selected address — matching is by area only"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-10-05",
+                  "disabled": true,
+                  "description": "Cairo calendar date"
+                },
+                {
+                  "key": "time",
+                  "value": "14:00",
+                  "disabled": true,
+                  "description": "Cairo time"
+                },
+                {
+                  "key": "gender",
+                  "value": "male",
+                  "disabled": true,
+                  "description": "Preferred provider gender (strict filter)"
+                },
+                {
+                  "key": "provider_type",
+                  "value": "nurse",
+                  "disabled": true
+                },
+                {
+                  "key": "specialty",
+                  "value": "general_practice",
+                  "disabled": true
+                },
+                {
+                  "key": "min_price",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "max_price",
+                  "value": "0",
+                  "disabled": true
+                },
+                {
+                  "key": "min_rating",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "source",
+                  "value": "independent",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "rating",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Provider public profile",
+          "request": {
+            "method": "GET",
+            "description": "Provider public profile",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/providers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "providers",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Provider reviews, newest first (reviewer shown by first name + initial)",
+          "request": {
+            "method": "GET",
+            "description": "Provider reviews, newest first (reviewer shown by first name + initial)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/providers/:id/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "providers",
+                ":id",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bookable slots on a Cairo date (every 30 min, ≥ 60 min ahead, ≤ 60 days out)",
+          "request": {
+            "method": "GET",
+            "description": "Bookable slots on a Cairo date (every 30 min, ≥ 60 min ahead, ≤ 60 days out)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/providers/:id/slots",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "providers",
+                ":id",
+                "slots"
+              ],
+              "query": [
+                {
+                  "key": "service_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": false
+                },
+                {
+                  "key": "date",
+                  "value": "2026-10-05",
+                  "disabled": false,
+                  "description": "Cairo calendar date"
+                },
+                {
+                  "key": "quantity",
+                  "value": "1",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patient — Bookings",
+      "item": [
+        {
+          "name": "Price breakdown + a quote token that guarantees it for 10 minutes",
+          "request": {
+            "method": "POST",
+            "description": "Price breakdown + a quote token that guarantees it for 10 minutes",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                "quote"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"provider_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"organization_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"patient_profile_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"address_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"type\": \"home_visit\",\n  \"preferred_gender\": \"any\",\n  \"allow_fallback\": true,\n  \"scheduled_start\": \"2026-10-05T14:00:00Z\",\n  \"quantity\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Book from a quote (cash only in Phase 1). 409 SLOT_UNAVAILABLE if the time was just taken.",
+          "request": {
+            "method": "POST",
+            "description": "Book from a quote (cash only in Phase 1). 409 SLOT_UNAVAILABLE if the time was just taken.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quote_token\": \"string\",\n  \"payment_method\": \"cash\",\n  \"patient_notes\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "My bookings — upcoming (soonest first) or past (latest first)",
+          "request": {
+            "method": "GET",
+            "description": "My bookings — upcoming (soonest first) or past (latest first)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                },
+                {
+                  "key": "scope",
+                  "value": "upcoming",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Booking details + status timeline (manual status updates — no location tracking)",
+          "request": {
+            "method": "GET",
+            "description": "Booking details + status timeline (manual status updates — no location tracking)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel (free while pending, and until the cancellation window before the visit)",
+          "request": {
+            "method": "POST",
+            "description": "Cancel (free while pending, and until the cancellation window before the visit)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                ":id",
+                "cancel"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason_code\": \"changed_mind\",\n  \"reason_text\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "New time with the same provider — goes back to pending until they accept",
+          "request": {
+            "method": "POST",
+            "description": "New time with the same provider — goes back to pending until they accept",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/:id/reschedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                ":id",
+                "reschedule"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduled_start\": \"2026-10-05T14:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Same service, provider, patient and address at a new time — returns a quote",
+          "request": {
+            "method": "POST",
+            "description": "Same service, provider, patient and address at a new time — returns a quote",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/:id/rebook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                ":id",
+                "rebook"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduled_start\": \"2026-10-05T14:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Rate a completed visit — once per booking (409 ALREADY_REVIEWED)",
+          "request": {
+            "method": "POST",
+            "description": "Rate a completed visit — once per booking (409 ALREADY_REVIEWED)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/:id/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                ":id",
+                "review"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 1,\n  \"comment\": \"string\",\n  \"tags\": [\n    \"punctual\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Report a problem with a completed visit or a recorded no-show, within the dispute window (setting dispute_window_hours). The booking becomes \"disputed\".",
+          "request": {
+            "method": "POST",
+            "description": "Report a problem with a completed visit or a recorded no-show, within the dispute window (setting dispute_window_hours). The booking becomes \"disputed\".",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/:id/dispute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                ":id",
+                "dispute"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason_code\": \"no_show\",\n  \"description\": \"string\",\n  \"attachments\": [\n    \"string\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Provider — Bookings",
+      "item": [
+        {
+          "name": "Dashboard: today's visits, pending requests, open offers, today's earnings",
+          "request": {
+            "method": "GET",
+            "description": "Dashboard: today's visits, pending requests, open offers, today's earnings",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/home",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "home"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "My bookings",
+          "request": {
+            "method": "GET",
+            "description": "My bookings",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "2026-10-05",
+                  "disabled": true,
+                  "description": "Cairo date"
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Details. Patient, phone, address and notes only once accepted; medical summary only during the visit + 7 days (audited).",
+          "request": {
+            "method": "GET",
+            "description": "Details. Patient, phone, address and notes only once accepted; medical summary only during the visit + 7 days (audited).",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accept a direct request (before the response deadline)",
+          "request": {
+            "method": "POST",
+            "description": "Accept a direct request (before the response deadline)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id",
+                "accept"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Decline a direct request",
+          "request": {
+            "method": "POST",
+            "description": "Decline a direct request",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id/decline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id",
+                "decline"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason_code\": \"not_available\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Manual \"on my way\" (no location is collected)",
+          "request": {
+            "method": "POST",
+            "description": "Manual \"on my way\" (no location is collected)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id/on-the-way",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id",
+                "on-the-way"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Start the visit (records whether it was on time)",
+          "request": {
+            "method": "POST",
+            "description": "Start the visit (records whether it was on time)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id",
+                "start"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "End the visit",
+          "request": {
+            "method": "POST",
+            "description": "End the visit",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id",
+                "complete"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Patient not available (from the booked time on)",
+          "request": {
+            "method": "POST",
+            "description": "Patient not available (from the booked time on)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id/no-show",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id",
+                "no-show"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel an accepted visit",
+          "request": {
+            "method": "POST",
+            "description": "Cancel an accepted visit",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id",
+                "cancel"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason_code\": \"emergency\",\n  \"reason_text\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Confirm the cash was received",
+          "request": {
+            "method": "POST",
+            "description": "Confirm the cash was received",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id/cash-collected",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id",
+                "cash-collected"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Open requests offered to several providers — first to accept wins",
+          "request": {
+            "method": "GET",
+            "description": "Open requests offered to several providers — first to accept wins",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/offers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "offers"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Accept an offer — 409 OFFER_TAKEN if someone accepted first",
+          "request": {
+            "method": "POST",
+            "description": "Accept an offer — 409 OFFER_TAKEN if someone accepted first",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/offers/:id/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "offers",
+                ":id",
+                "accept"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Decline an offer",
+          "request": {
+            "method": "POST",
+            "description": "Decline an offer",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/offers/:id/decline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "offers",
+                ":id",
+                "decline"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Visit report (from the start of the visit) — added to the patient's medical record; the patient is notified",
+          "request": {
+            "method": "POST",
+            "description": "Visit report (from the start of the visit) — added to the patient's medical record; the patient is notified",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id",
+                "report"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"summary\": \"string\",\n  \"vitals\": {\n    \"bp\": \"130/85\",\n    \"pulse\": 20,\n    \"temp\": 30,\n    \"sugar\": 10,\n    \"spo2\": 50\n  },\n  \"procedures_done\": [\n    \"string\"\n  ],\n  \"recommendations\": \"string\",\n  \"attachments\": [\n    \"string\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Correct the report — within 24 hours of submitting it",
+          "request": {
+            "method": "PATCH",
+            "description": "Correct the report — within 24 hours of submitting it",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/bookings/:id/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "bookings",
+                ":id",
+                "report"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"summary\": \"string\",\n  \"vitals\": {\n    \"bp\": \"130/85\",\n    \"pulse\": 20,\n    \"temp\": 30,\n    \"sugar\": 10,\n    \"spo2\": 50\n  },\n  \"procedures_done\": [\n    \"string\"\n  ],\n  \"recommendations\": \"string\",\n  \"attachments\": [\n    \"string\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Provider — Reviews",
+      "item": [
+        {
+          "name": "My reviews (visible ones), newest first",
+          "request": {
+            "method": "GET",
+            "description": "My reviews (visible ones), newest first",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "My notifications, newest first (kept 180 days)",
+          "request": {
+            "method": "GET",
+            "description": "My notifications, newest first (kept 180 days)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Mark notifications read: `{ \"ids\": [...] }` or `{ \"all\": true }`",
+          "request": {
+            "method": "POST",
+            "description": "Mark notifications read: `{ \"ids\": [...] }` or `{ \"all\": true }`",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "read"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [\n    \"665f1c2b9e1d2a4c3b9e8f1a\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Notification preferences (turning one off silences its push; the in-app list keeps everything)",
+          "request": {
+            "method": "GET",
+            "description": "Notification preferences (turning one off silences its push; the in-app list keeps everything)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/notification-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "notification-settings"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Update notification preferences",
+          "request": {
+            "method": "PUT",
+            "description": "Update notification preferences",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/notification-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "notification-settings"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reminders\": true,\n  \"promotions\": true,\n  \"chat\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Dashboard",
+      "item": [
+        {
+          "name": "KPIs (bookings today, 30-day GMV / revenue, active providers, pending verifications, open disputes), 14-day chart, today by status, top areas, recent activity",
+          "request": {
+            "method": "GET",
+            "description": "KPIs (bookings today, 30-day GMV / revenue, active providers, pending verifications, open disputes), 14-day chart, today by status, top areas, recent activity",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "dashboard"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Needs attention: requests nobody took (last 24 h), open disputes, documents expired or expiring within 30 days",
+          "request": {
+            "method": "GET",
+            "description": "Needs attention: requests nobody took (last 24 h), open disputes, documents expired or expiring within 30 days",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/attention",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "attention"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — System",
+      "item": [
+        {
+          "name": "All platform settings (defaults merged with admin overrides)",
+          "request": {
+            "method": "GET",
+            "description": "All platform settings (defaults merged with admin overrides)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "settings"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Change some settings — all-or-nothing; unknown keys / bad values → 422 per key",
+          "request": {
+            "method": "PUT",
+            "description": "Change some settings — all-or-nothing; unknown keys / bad values → 422 per key",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "settings"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Audit trail, newest first",
+          "request": {
+            "method": "GET",
+            "description": "Audit trail, newest first",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "actor_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
+                  "key": "entity_type",
+                  "value": "string",
+                  "disabled": true
+                },
+                {
+                  "key": "entity_id",
+                  "value": "string",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "string",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Users",
+      "item": [
+        {
+          "name": "Users, newest first. `search` matches name or phone.",
+          "request": {
+            "method": "GET",
+            "description": "Users, newest first. `search` matches name or phone.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "patient",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "string",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "User details",
+          "request": {
+            "method": "GET",
+            "description": "User details",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Suspend (duration_days: null = until lifted). Sessions end, a provider stops taking bookings, and their active bookings are cancelled (the other side is notified).",
+          "request": {
+            "method": "POST",
+            "description": "Suspend (duration_days: null = until lifted). Sessions end, a provider stops taking bookings, and their active bookings are cancelled (the other side is notified).",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/:id/suspend",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                ":id",
+                "suspend"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"string\",\n  \"duration_days\": 1,\n  \"notify\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Record a warning (optionally tied to a booking / dispute / review) and notify the user",
+          "request": {
+            "method": "POST",
+            "description": "Record a warning (optionally tied to a booking / dispute / review) and notify the user",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/:id/warn",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                ":id",
+                "warn"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"string\",\n  \"related_type\": \"booking\",\n  \"related_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"notify\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Lift the suspension",
+          "request": {
+            "method": "POST",
+            "description": "Lift the suspension",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/:id/activate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                ":id",
+                "activate"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Suspensions, warnings, disputes and audit trail",
+          "request": {
+            "method": "GET",
+            "description": "Suspensions, warnings, disputes and audit trail",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users/:id/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                ":id",
+                "history"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Providers",
+      "item": [
+        {
+          "name": "Providers, newest first",
+          "request": {
+            "method": "GET",
+            "description": "Providers, newest first",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/providers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "providers"
+              ],
+              "query": [
+                {
+                  "key": "verification_status",
+                  "value": "draft",
+                  "disabled": true
+                },
+                {
+                  "key": "area_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "nurse",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Provider details + bookings by status",
+          "request": {
+            "method": "GET",
+            "description": "Provider details + bookings by status",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/providers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "providers",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Suspend the listing (approved → suspended: stops bookings, cancels active ones) or restore it, and/or set the admin message",
+          "request": {
+            "method": "PATCH",
+            "description": "Suspend the listing (approved → suspended: stops bookings, cancels active ones) or restore it, and/or set the admin message",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/providers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "providers",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verification_status\": \"approved\",\n  \"admin_message\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Admin accounts",
+      "item": [
+        {
+          "name": "Admin accounts",
+          "request": {
+            "method": "GET",
+            "description": "Admin accounts",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/admins",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "admins"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Create an admin account (they sign in with phone + OTP)",
+          "request": {
+            "method": "POST",
+            "description": "Create an admin account (they sign in with phone + OTP)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/admins",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "admins"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"string\",\n  \"full_name\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Disable / re-enable another admin (not yourself, not the last active one). Sub-roles: TBD.",
+          "request": {
+            "method": "PATCH",
+            "description": "Disable / re-enable another admin (not yourself, not the last active one). Sub-roles: TBD.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/admins/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "admins",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Bookings & disputes",
+      "item": [
+        {
+          "name": "Bookings, latest visit first. `search` matches the reference code.",
+          "request": {
+            "method": "GET",
+            "description": "Bookings, latest visit first. `search` matches the reference code.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "bookings"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                },
+                {
+                  "key": "date_from",
+                  "value": "2026-10-05T14:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "date_to",
+                  "value": "2026-10-05T14:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "area_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "string",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Full details + status history + offers (payments: Phase 2)",
+          "request": {
+            "method": "GET",
+            "description": "Full details + status history + offers (payments: Phase 2)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/bookings/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "bookings",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Force cancel / no-show / complete where the state machine allows it (completing records the commission). Disputes: patient flow; providers: /reassign.",
+          "request": {
+            "method": "POST",
+            "description": "Force cancel / no-show / complete where the state machine allows it (completing records the commission). Disputes: patient flow; providers: /reassign.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/bookings/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "bookings",
+                ":id",
+                "status"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"cancelled\",\n  \"note\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Give a pending / accepted booking to another approved provider who offers the service and is free then; it becomes accepted",
+          "request": {
+            "method": "POST",
+            "description": "Give a pending / accepted booking to another approved provider who offers the service and is free then; it becomes accepted",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/bookings/:id/reassign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "bookings",
+                ":id",
+                "reassign"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider_profile_id\": \"665f1c2b9e1d2a4c3b9e8f1a\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Disputes, oldest first",
+          "request": {
+            "method": "GET",
+            "description": "Disputes, oldest first",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/disputes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "disputes"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Dispute details with signed attachment URLs",
+          "request": {
+            "method": "GET",
+            "description": "Dispute details with signed attachment URLs",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/disputes/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "disputes",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Resolve: refund (defaults to the booking total) / partial refund / no action — recorded only until card payments (Phase 2); optionally warn or suspend the provider and message each side",
+          "request": {
+            "method": "POST",
+            "description": "Resolve: refund (defaults to the booking total) / partial refund / no action — recorded only until card payments (Phase 2); optionally warn or suspend the provider and message each side",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/disputes/:id/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "disputes",
+                ":id",
+                "resolve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolution\": \"refund\",\n  \"refund_amount\": 0,\n  \"provider_action\": \"none\",\n  \"suspend_days\": 1,\n  \"message_to_patient\": \"string\",\n  \"message_to_provider\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Reviews",
+      "item": [
+        {
+          "name": "Reviews, newest first. `flagged=true`: comments that look like they contain contact details.",
+          "request": {
+            "method": "GET",
+            "description": "Reviews, newest first. `flagged=true`: comments that look like they contain contact details.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "flagged",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "provider_profile_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Hide / show, or mask contact details in the comment (the original is kept). Clears the flag.",
+          "request": {
+            "method": "PATCH",
+            "description": "Hide / show, or mask contact details in the comment (the original is kept). Clears the flag.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reviews/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "reviews",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_visible\": true,\n  \"mask_contact\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

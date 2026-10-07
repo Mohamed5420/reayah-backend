@@ -11,6 +11,7 @@ import {
 } from '../../../interfaces/IBooking';
 import { PricingUnit } from '../../../interfaces/enums';
 import { baseSchemaOptions, piastresValidator } from '../../schema-options';
+import { encryptOnWrite } from '../../../utils/crypto/field-encryption';
 
 const money = { type: Number, required: true, validate: piastresValidator };
 const text = { type: String, default: null };
@@ -61,7 +62,8 @@ const bookingSchema = new Schema<IBooking>(
     startedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null },
     isOnTime: { type: Boolean, default: null },
-    patientNotes: text,
+    // May describe the patient's condition: encrypted at rest; decrypted + audited where shown.
+    patientNotes: encryptOnWrite({ default: null }),
     cancellationReason: {
       type: new Schema({ code: { type: String, required: true }, text }, { _id: false }),
       default: null,

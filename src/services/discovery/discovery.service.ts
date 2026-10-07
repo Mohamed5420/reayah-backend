@@ -31,6 +31,8 @@ export type SearchFilters = {
   time?: string;
   gender?: Gender;
   providerType?: ProviderType;
+  /** Doctors with this specialty key. */
+  specialty?: string;
   minPrice?: number;
   maxPrice?: number;
   minRating?: number;
@@ -45,6 +47,7 @@ export type ProviderCard = {
     IProviderProfile,
     | '_id'
     | 'type'
+    | 'specialty'
     | 'yearsOfExperience'
     | 'ratingAvg'
     | 'ratingCount'
@@ -321,6 +324,7 @@ export class DiscoveryService {
             },
           },
           ...(filters.providerType ? { type: filters.providerType } : {}),
+          ...(filters.specialty ? { specialty: filters.specialty } : {}),
           ...(filters.minRating !== undefined ? { ratingAvg: { $gte: filters.minRating } } : {}),
           ...(filters.source === 'independent' ? { organizationId: null } : {}),
           ...(filters.source === 'organization' ? { organizationId: { $ne: null } } : {}),
@@ -364,6 +368,7 @@ export class DiscoveryService {
           profile: {
             _id: '$_id',
             type: '$type',
+            specialty: '$specialty',
             yearsOfExperience: '$yearsOfExperience',
             ratingAvg: '$ratingAvg',
             ratingCount: '$ratingCount',

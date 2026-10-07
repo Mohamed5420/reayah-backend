@@ -1,0 +1,108 @@
+name: Deploy
+
+# Builds the API image and deploys it with deploy/docker-compose.yml over SSH.
+#   push to main      → image :sha + :staging → staging
+#   tag v*            → image :sha + :vX.Y.Z  → production (after approval on the `production` environment)
+# Until a server exists the deploy jobs skip themselves (repository variable STAGING_HOST / PRODUCTION_HOST unset).
+#
+# Setup (GitHub → Settings): see docs/DEPLOYMENT.md § CI/CD.
+#   Variables:  STAGING_HOST, STAGING_DOMAIN, PRODUCTION_HOST, PRODUCTION_DOMAIN, DEPLOY_USER, DEPLOY_PATH (default /opt/reaya)
+#   Secrets:    STAGING_SSH_KEY, PRODUCTION_SSH_KEY (private keys of a deploy user on each server)
+#   Environments: `staging`, `production` (add required reviewers to production)
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/reaya-api
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE }}:${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'staging' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  staging:
+    needs: image
+    if: github.ref == 'refs/heads/main' && vars.STAGING_HOST != ''
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Deploy
+        env:
+          SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          HOST: ${{ vars.STAGING_HOST }}
+          USER_NAME: ${{ vars.DEPLOY_USER || 'deploy' }}
+          DIR: ${{ vars.DEPLOY_PATH || '/opt/reaya' }}
+          TAG: ${{ needs.image.outputs.tag }}
+        run: |
+          install -m 600 /dev/null key && printf '%s\n' "$SSH_KEY" > key
+          ssh -i key -o StrictHostKeyChecking=accept-new "$USER_NAME@$HOST" \
+            "cd '$DIR/deploy' && sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/' .env && docker compose pull api && docker compose up -d --remove-orphans"
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS "https://${{ vars.STAGING_DOMAIN }}/api/v1/health/ready" && exit 0
+            sleep 5
+          done
+          echo "Staging did not become ready" && exit 1
+
+  production:
+    needs: image
+    if: startsWith(github.ref, 'refs/tags/v') && vars.PRODUCTION_HOST != ''
+    runs-on: ubuntu-latest
+    environment: production # required reviewers approve here
+    steps:
+      - name: Backup, then deploy
+        env:
+          SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          HOST: ${{ vars.PRODUCTION_HOST }}
+          USER_NAME: ${{ vars.DEPLOY_USER || 'deploy' }}
+          DIR: ${{ vars.DEPLOY_PATH || '/opt/reaya' }}
+          TAG: ${{ needs.image.outputs.tag }}
+        run: |
+          install -m 600 /dev/null key && printf '%s\n' "$SSH_KEY" > key
+          ssh -i key -o StrictHostKeyChecking=accept-new "$USER_NAME@$HOST" "
+            set -e
+            cd '$DIR/deploy'
+            if docker compose ps --services | grep -qx mongo; then ./backup.sh /var/backups/reaya; fi
+            sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/' .env
+            docker compose pull api && docker compose up -d --remove-orphans"
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS "https://${{ vars.PRODUCTION_DOMAIN }}/api/v1/health/ready" && exit 0
+            sleep 5
+          done
+          echo "Production did not become ready" && exit 1

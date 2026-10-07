@@ -13,6 +13,8 @@ const optional = (key: string, fallback = ''): string => process.env[key] ?? fal
 export const env = {
   nodeEnv: optional('NODE_ENV', 'development'),
   isProduction: optional('NODE_ENV') === 'production',
+  /** staging or production: JSON logs to stdout, no stack traces in responses. Staging still prints OTPs and serves /docs. */
+  isDeployed: ['staging', 'production'].includes(optional('NODE_ENV')),
   port: Number(optional('PORT', '3000')),
   apiPrefix: optional('API_PREFIX', '/api/v1'),
   corsOrigins: optional('CORS_ORIGINS', '*'),

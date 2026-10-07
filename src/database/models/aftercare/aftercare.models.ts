@@ -10,7 +10,7 @@ import {
   type IVisitReport,
 } from '../../../interfaces/IAftercare';
 import { baseSchemaOptions } from '../../schema-options';
-import { encryptedString } from '../../../utils/crypto/field-encryption';
+import { encryptOnWrite, encryptedString } from '../../../utils/crypto/field-encryption';
 
 const visitReportSchema = new Schema<IVisitReport>(
   {
@@ -51,7 +51,8 @@ const disputeSchema = new Schema<IDispute>(
     patientUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     providerProfileId: { type: Schema.Types.ObjectId, ref: 'ProviderProfile', default: null },
     reasonCode: { type: String, required: true },
-    description: { type: String, default: null },
+    // May describe health details: encrypted at rest; decrypted + audited where shown.
+    description: encryptOnWrite({ default: null }),
     attachmentKeys: { type: [String], default: [] },
     status: { type: String, enum: Object.values(DisputeStatus), default: DisputeStatus.OPEN },
     resolution: {

@@ -1,4 +1,5 @@
 import request from 'supertest';
+import mongoose from 'mongoose';
 import { Container } from 'typedi';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../helpers/app';
@@ -365,5 +366,52 @@ describe('settings, audit log and admin accounts', () => {
     expect(
       (await as(admin.auth).patch(`/admin/admins/${patient.userId}`, { status: 'suspended' })).status,
     ).toBe(404);
+  });
+});
+
+describe('sensitive free text: booking notes and dispute descriptions', () => {
+  it('are stored encrypted; the assigned provider and admins read them decrypted, and every read is audited', async () => {
+    const id = await bookAt('10:00'); // booking-world sends patient_notes 'المريض لا يستطيع الحركة'
+    const raw = await BookingModel.collection.findOne({ _id: new mongoose.Types.ObjectId(id) });
+    expect(String(raw!.patientNotes)).toMatch(/^enc:v1:/);
+
+    // Pending: hidden from the provider, so nothing to audit yet.
+    expect((await world.providerApi(provider, 'get', `/bookings/${id}`)).body.data.patient_notes).toBeNull();
+    expect(await AuditLogModel.exists({ action: 'booking_notes.read', entityId: id })).toBeNull();
+
+    const accepted = await accept(id);
+    expect(accepted.body.data.patient_notes).toBe('المريض لا يستطيع الحركة');
+    expect(
+      await AuditLogModel.exists({ action: 'booking_notes.read', entityId: id, actorId: provider.userId }),
+    ).toBeTruthy();
+
+    const adminView = await as(admin.auth).get(`/admin/bookings/${id}`);
+    expect(adminView.body.data.booking.patient_notes).toBe('المريض لا يستطيع الحركة');
+    expect(
+      await AuditLogModel.exists({ action: 'booking_notes.read', entityId: id, actorId: admin.id }),
+    ).toBeTruthy();
+    // The audit entries never hold the text itself.
+    const entries = await AuditLogModel.find({ action: 'booking_notes.read' }).lean();
+    expect(JSON.stringify(entries)).not.toContain('الحركة');
+
+    for (const step of ['on-the-way', 'start', 'complete']) {
+      await world.providerApi(provider, 'post', `/bookings/${id}/${step}`);
+    }
+    const opened = await as(patient.auth).post(`/bookings/${id}/dispute`, {
+      reason_code: 'unprofessional',
+      description: 'المريض عنده سكر والممرضة لم تقس السكر',
+    });
+    expect(opened.body.data.description).toBe('المريض عنده سكر والممرضة لم تقس السكر');
+    const disputeId: string = opened.body.data.id;
+    const rawDispute = await mongoose.connection
+      .collection('disputes')
+      .findOne({ _id: new mongoose.Types.ObjectId(disputeId) });
+    expect(String(rawDispute!.description)).toMatch(/^enc:v1:/);
+
+    const adminDispute = await as(admin.auth).get(`/admin/disputes/${disputeId}`);
+    expect(adminDispute.body.data.description).toBe('المريض عنده سكر والممرضة لم تقس السكر');
+    expect(
+      await AuditLogModel.exists({ action: 'dispute.read', entityId: disputeId, actorId: admin.id }),
+    ).toBeTruthy();
   });
 });

@@ -154,6 +154,7 @@ export default class DiscoveryController implements IBaseController {
           time: q.time,
           gender: q.gender,
           providerType: q.provider_type,
+          specialty: q.specialty,
           minPrice: q.min_price,
           maxPrice: q.max_price,
           minRating: q.min_rating,
@@ -164,7 +165,7 @@ export default class DiscoveryController implements IBaseController {
       );
       const cards = await Promise.all(
         data.map(async (card) =>
-          presentProviderCard(card, service, await this.avatarUrl(card.user.avatarKey)),
+          presentProviderCard(card, service, await this.avatarUrl(card.user.avatarKey), resolveLanguage(req)),
         ),
       );
       return HttpResponse.paginated(res, cards, pagination, total);

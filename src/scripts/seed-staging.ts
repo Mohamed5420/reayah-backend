@@ -1,7 +1,7 @@
 /**
  * Fills a staging database with demo data (approved nurses, patients, bookings in several states).
  *
- *   npm run seed:staging -- [--providers 200] [--patients 50] [--bookings 40]
+ *   npm run seed:staging -- [--providers 200] [--doctors 30] [--patients 50] [--bookings 40]
  *
  * Needs the app's .env (MongoDB + Redis). Safe to re-run: existing demo accounts are kept.
  * Refuses to run when NODE_ENV=production.
@@ -19,7 +19,12 @@ const main = async () => {
     process.exit(1);
   }
   const { values } = parseArgs({
-    options: { providers: { type: 'string' }, patients: { type: 'string' }, bookings: { type: 'string' } },
+    options: {
+      providers: { type: 'string' },
+      doctors: { type: 'string' },
+      patients: { type: 'string' },
+      bookings: { type: 'string' },
+    },
   });
   const count = (v: string | undefined) => (v === undefined ? undefined : Math.max(0, Number(v)));
 
@@ -27,12 +32,13 @@ const main = async () => {
   try {
     const result = await seedStaging({
       providers: count(values.providers),
+      doctors: count(values.doctors),
       patients: count(values.patients),
       bookings: count(values.bookings),
     });
     console.log('Staging seed done:', result);
     console.log(
-      'Patients: +20100000NNNN, providers: +20110000NNNN — log in with OTP (SMS_DRIVER=log prints codes).',
+      'Patients: +20100000NNNN, nurses: +20110000NNNN, doctors: +20120000NNNN — log in with OTP (SMS_DRIVER=log prints codes).',
     );
   } finally {
     await disconnectDB();

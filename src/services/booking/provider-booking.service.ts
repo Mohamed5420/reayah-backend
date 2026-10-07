@@ -27,6 +27,7 @@ import {
 import type { AuditContext } from '../audit/audit.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { PatientProfileService } from '../patient/patient-profile.service';
+import { auditNotesRead } from '../patient/medical-audit';
 import { SettingsService } from '../settings/settings.service';
 import { nextStatuses } from './booking-state';
 import {
@@ -129,6 +130,7 @@ export class ProviderBookingService {
     const medical = hasMedicalAccess(booking)
       ? await this.patients.medicalSummary(String(booking.patientProfileId), context)
       : null;
+    if (revealed && booking.patientNotes) await auditNotesRead(context, booking);
     return {
       booking,
       patientProfile,

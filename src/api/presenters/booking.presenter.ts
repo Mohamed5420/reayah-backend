@@ -1,4 +1,5 @@
 import type { IBooking, IBookingOffer, IBookingStatusHistory } from '../../interfaces/IBooking';
+import { decryptNullable } from '../../utils/crypto/field-encryption';
 import { BookingStatus } from '../../interfaces/IBooking';
 import type { IPatientProfile } from '../../interfaces/IProfiles';
 import type { IAllergy, IMedicalCondition, IMedication } from '../../interfaces/IMedical';
@@ -161,7 +162,7 @@ export const presentProviderDetail = (input: {
           allergies: input.medical.allergies.map((a) => a.name),
         }
       : null,
-    patient_notes: revealed ? b.patientNotes : null,
+    patient_notes: revealed ? decryptNullable(b.patientNotes) : null,
     price: { total: b.price.total, travel_fee: b.price.travelFee, provider_payout: b.price.providerPayout },
     payment_method: b.paymentMethod,
     payment_status: b.paymentStatus,

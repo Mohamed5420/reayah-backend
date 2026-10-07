@@ -1,0 +1,110 @@
+# Reaya+ server stack (staging or production). Runs from this folder on the server:
+#
+#   cp env.example .env   # fill it in (see docs/DEPLOYMENT.md)
+#   docker compose --profile self-hosted up -d     # API + Caddy (HTTPS) + MongoDB + Redis + MinIO on this machine
+#   docker compose up -d                           # API + Caddy only, with managed MongoDB / Redis / S3 set in .env
+#
+# CI deploys by setting IMAGE_TAG and running `docker compose pull api && docker compose up -d`.
+
+x-restart: &restart
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: '20m', max-file: '10' } # log rotation (~200 MB per service)
+
+services:
+  caddy:
+    <<: *restart
+    image: caddy:2.8-alpine
+    ports: ['80:80', '443:443', '443:443/udp']
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [api]
+
+  api:
+    <<: *restart
+    image: ${IMAGE:-ghcr.io/OWNER/reaya-api}:${IMAGE_TAG:-latest}
+    env_file: .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-production} # `staging` prints OTP codes in the log and serves /docs
+      PORT: '3000'
+      FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-}
+    volumes:
+      - ./secrets:/run/secrets:ro # firebase service account (optional)
+    expose: ['3000']
+    stop_grace_period: 30s
+
+  # ── self-hosted profile: data services on this machine ──────────────────────────────────────
+
+  mongo:
+    <<: *restart
+    profiles: [self-hosted]
+    image: mongo:7
+    # Auth + replica set (transactions need a replica set; a replica set with auth needs a keyfile).
+    entrypoint: >
+      bash -c 'printf "%s" "$$MONGO_REPLICA_KEY" > /tmp/keyfile && chmod 400 /tmp/keyfile && chown 999:999 /tmp/keyfile &&
+      exec docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --keyFile /tmp/keyfile'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?set MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD}
+      MONGO_REPLICA_KEY: ${MONGO_REPLICA_KEY:?set MONGO_REPLICA_KEY}
+    volumes: ['mongo-data:/data/db']
+    healthcheck:
+      # Also initiates the replica set on first start.
+      test:
+        - CMD-SHELL
+        - >
+          mongosh -u "$$MONGO_INITDB_ROOT_USERNAME" -p "$$MONGO_INITDB_ROOT_PASSWORD" --quiet --eval
+          "try { rs.status().ok } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }).ok }"
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
+
+  redis:
+    <<: *restart
+    profiles: [self-hosted]
+    image: redis:7-alpine
+    command: ['sh', '-c', 'exec redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes']
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+    volumes: ['redis-data:/data']
+
+  minio:
+    <<: *restart
+    profiles: [self-hosted]
+    # Prefer the host's own S3-compatible object storage in production; pin a tested tag if you keep MinIO.
+    image: minio/minio
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+    volumes: ['minio-data:/data']
+
+  # One-shot: private bucket + expire unattached uploads under tmp/ after 1 day.
+  minio-setup:
+    profiles: [self-hosted]
+    image: minio/mc
+    depends_on: [minio]
+    environment:
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET: ${S3_BUCKET:-reaya-private}
+    entrypoint: >
+      /bin/sh -c '
+      until mc alias set local http://minio:9000 "$$S3_ACCESS_KEY_ID" "$$S3_SECRET_ACCESS_KEY"; do sleep 1; done;
+      mc mb --ignore-existing "local/$$S3_BUCKET";
+      mc anonymous set none "local/$$S3_BUCKET";
+      mc ilm rule ls "local/$$S3_BUCKET" 2>/dev/null | grep -q tmp/ || mc ilm rule add --prefix tmp/ --expire-days 1 "local/$$S3_BUCKET"
+      '
+
+volumes:
+  caddy-data:
+  caddy-config:
+  mongo-data:
+  redis-data:
+  minio-data:

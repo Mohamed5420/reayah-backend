@@ -1,4 +1,5 @@
 import type { IDispute, IReview } from '../../interfaces/IAftercare';
+import { decryptNullable } from '../../utils/crypto/field-encryption';
 import type { VisitReportView } from '../../services/aftercare/visit-report.service';
 import type { ProviderType } from '../../interfaces/enums';
 
@@ -53,7 +54,7 @@ export const presentDispute = (d: IDispute) => ({
   booking_id: String(d.bookingId),
   status: d.status,
   reason_code: d.reasonCode,
-  description: d.description,
+  description: decryptNullable(d.description),
   created_at: d.createdAt.toISOString(),
 });
 

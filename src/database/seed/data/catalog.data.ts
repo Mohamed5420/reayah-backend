@@ -95,3 +95,31 @@ export const SEED_NURSING_SERVICES: SeedService[] = [
     defaultDurationMinutes: 1440,
   },
 ].map((service) => ({ ...service, providerType: ProviderType.NURSE }));
+
+/**
+ * Starter doctor home-visit services (M2.1). Their category starts inactive, so they stay hidden until
+ * an admin activates "زيارة طبيب منزلية" for launch.
+ */
+export const SEED_DOCTOR_SERVICES: SeedService[] = [
+  {
+    nameAr: 'كشف منزلي',
+    nameEn: 'Home consultation',
+    descriptionAr: 'فحص المريض في البيت وتشخيص الحالة وكتابة العلاج',
+    pricingUnit: PricingUnit.PER_VISIT,
+    defaultDurationMinutes: 45,
+  },
+  {
+    nameAr: 'متابعة منزلية',
+    nameEn: 'Follow-up home visit',
+    descriptionAr: 'زيارة متابعة لنفس الحالة بعد الكشف ومراجعة العلاج',
+    pricingUnit: PricingUnit.PER_VISIT,
+    defaultDurationMinutes: 30,
+  },
+  {
+    nameAr: 'تقييم شامل لكبار السن',
+    nameEn: 'Comprehensive elderly assessment',
+    descriptionAr: 'تقييم شامل لحالة المريض المسن وأدويته وخطة الرعاية',
+    pricingUnit: PricingUnit.PER_VISIT,
+    defaultDurationMinutes: 60,
+  },
+].map((service) => ({ ...service, providerType: ProviderType.DOCTOR }));

@@ -1,6 +1,7 @@
+import { SPECIALTY_KEYS } from '../../../services/catalog/specialties';
 import { Gender, PricingUnit, ProviderType, VerificationStatus } from '../../../interfaces/enums';
 import { DocumentReviewStatus, ProviderDocumentType } from '../../../interfaces/IProvider';
-import { objectId, paginationQuery, piastres, z } from '../zod';
+import { objectId, paginationQuery, piastres, z, specialtyView } from '../zod';
 
 const time = z
   .string()
@@ -23,7 +24,7 @@ const providerProfile = z
   .object({
     id: objectId,
     type: z.enum(ProviderType).nullable(),
-    specialty: z.string().nullable(),
+    specialty: specialtyView,
     years_of_experience: z.number().nullable(),
     bio: z.string().nullable(),
     languages: z.array(z.string()),
@@ -115,7 +116,8 @@ export const ProviderSchemas = {
   updateProfileBody: z
     .object({
       type: z.enum(ProviderType),
-      specialty: z.string().trim().max(100).nullable(),
+      /** Doctors only (required for them); keys from GET /specialties. */
+      specialty: z.enum(SPECIALTY_KEYS).nullable(),
       years_of_experience: z.number().int().min(0).max(60),
       bio: z.string().trim().max(1000).nullable(),
       languages: z.array(z.enum(['ar', 'en', 'fr', 'de'])).max(4),

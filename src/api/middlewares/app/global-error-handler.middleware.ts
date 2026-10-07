@@ -64,7 +64,7 @@ export const GlobalErrorHandlerMiddleware = (
         code: httpError.code,
         message: t(httpError.messageKey, httpError.params, lang),
         ...(httpError.fields ? { fields: translateFields(httpError.fields, lang) } : {}),
-        ...(!(err instanceof HttpError) && !env.isProduction ? { stack: (err as Error)?.stack } : {}),
+        ...(!(err instanceof HttpError) && !env.isDeployed ? { stack: (err as Error)?.stack } : {}),
       },
     });
 };

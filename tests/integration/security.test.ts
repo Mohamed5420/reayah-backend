@@ -10,7 +10,7 @@ import { createUserWithToken } from '../helpers/fixtures';
 import { buildOpenApiDocument, routeCatalog } from '../../src/docs/openapi';
 import { IsAuthenticatedMiddleware } from '../../src/api/middlewares/auth/is-authenticated.middleware';
 import { RequireActiveAccountMiddleware } from '../../src/api/middlewares/auth/require-active-account.middleware';
-import { isEncrypted } from '../../src/utils/crypto/field-encryption';
+import { decryptField, isEncrypted } from '../../src/utils/crypto/field-encryption';
 import { UserRole } from '../../src/interfaces/enums';
 
 /**
@@ -35,6 +35,7 @@ const PUBLIC_ROUTES = new Set([
   'GET /service-categories',
   'GET /services',
   'GET /services/:id',
+  'GET /specialties',
   'POST /auth/otp/request',
   'POST /auth/otp/verify',
   'POST /auth/register', // carries its own short-lived registration token
@@ -200,20 +201,20 @@ describe('encryption at rest (spec §9)', () => {
     MedicalDocument: ['title'],
     VisitReport: ['summary', 'vitalsData', 'proceduresData', 'recommendations'],
     ProviderProfile: ['licenseNumber', 'syndicateNumber'],
+    // Encrypt-on-write (read with .lean(); decrypted + audited where shown).
+    Booking: ['patientNotes'],
+    Dispute: ['description'],
   };
 
   it.each(Object.entries(ENCRYPTED))('%s encrypts %j', (model, fields) => {
     const schema = mongoose.model(model).schema;
     for (const field of fields) {
-      // applySetters / applyGetters exist at runtime but aren't in Mongoose's public typings.
-      const type = schema.path(field) as unknown as {
-        applySetters: (value: string, doc: object) => string;
-        applyGetters: (value: string, doc: object) => string;
-      };
+      // applySetters exists at runtime but isn't in Mongoose's public typings.
+      const type = schema.path(field) as unknown as { applySetters: (value: string, doc: object) => string };
       expect(type, `${model}.${field}`).toBeDefined();
       const stored = type.applySetters('سر طبي', {});
       expect(isEncrypted(stored), `${model}.${field}`).toBe(true);
-      expect(type.applyGetters(stored, {})).toBe('سر طبي');
+      expect(decryptField(stored)).toBe('سر طبي');
     }
   });
 });

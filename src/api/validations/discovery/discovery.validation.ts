@@ -1,6 +1,7 @@
 import { Gender, PricingUnit, ProviderType } from '../../../interfaces/enums';
 import { ProviderSort } from '../../../services/discovery/discovery.service';
-import { objectId, paginationQuery, z } from '../zod';
+import { objectId, paginationQuery, specialtyView, z } from '../zod';
+import { SPECIALTY_KEYS } from '../../../services/catalog/specialties';
 
 const date = z.iso.date().openapi({ example: '2026-10-05', description: 'Cairo calendar date' });
 const time = z
@@ -17,6 +18,7 @@ const providerCard = z
     type: z.enum(ProviderType),
     gender: z.enum(Gender).nullable(),
     is_verified: z.literal(true),
+    specialty: specialtyView,
     years_of_experience: z.number().nullable(),
     rating_avg: z.number(),
     rating_count: z.number(),
@@ -41,6 +43,8 @@ export const DiscoverySchemas = {
     time: time.optional(),
     gender: z.enum(Gender).optional().openapi({ description: 'Preferred provider gender (strict filter)' }),
     provider_type: z.enum(ProviderType).optional(),
+    /** Doctors with this specialty (keys from GET /specialties). */
+    specialty: z.enum(SPECIALTY_KEYS).optional(),
     min_price: money.optional(),
     max_price: money.optional(),
     min_rating: z.coerce.number().min(1).max(5).optional(),
@@ -56,7 +60,7 @@ export const DiscoverySchemas = {
       avatar_url: z.string().nullable(),
       type: z.enum(ProviderType),
       gender: z.enum(Gender).nullable(),
-      specialty: z.string().nullable(),
+      specialty: specialtyView,
       bio: z.string().nullable(),
       years_of_experience: z.number().nullable(),
       is_verified: z.literal(true),

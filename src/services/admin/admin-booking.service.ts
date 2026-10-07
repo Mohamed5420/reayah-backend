@@ -26,6 +26,7 @@ import {
   transitionBooking,
 } from '../booking/booking-transaction';
 import { LedgerService } from '../ledger/ledger.service';
+import { auditNotesRead } from '../patient/medical-audit';
 
 /** Admin panel bookings (spec §7.15 "Bookings & disputes"). Every write is audited. */
 @Service()
@@ -63,8 +64,10 @@ export class AdminBookingService {
     return { data, total };
   }
 
-  async detail(bookingId: string) {
+  /** Full details. Showing the patient's notes is audited (they may describe the patient's condition). */
+  async detail(bookingId: string, context: AuditContext) {
     const booking = await this.get(bookingId);
+    if (booking.patientNotes) await auditNotesRead(context, booking);
     const [history, offers] = await Promise.all([
       BookingStatusHistoryModel.find({ bookingId: booking._id }).sort({ createdAt: 1 }).lean(),
       BookingOfferModel.find({ bookingId: booking._id }).lean(),

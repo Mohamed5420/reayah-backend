@@ -19,7 +19,7 @@ describe('seeds', () => {
   it('create launch data and are safe to run on every boot', async () => {
     await runSeeds();
     const first = await counts();
-    expect(first).toEqual({ governorates: 3, areas: 48, categories: 5, services: 9 });
+    expect(first).toEqual({ governorates: 3, areas: 48, categories: 5, services: 12 }); // 9 nursing + 3 doctor
 
     await runSeeds();
     expect(await counts()).toEqual(first);

@@ -17,3 +17,20 @@ export const auditMedical = (
     entityId: patientProfileId,
     metadata,
   });
+
+/** A booking's patient notes were shown (they may describe the patient's condition). */
+export const auditNotesRead = (context: AuditContext, booking: { _id: unknown; patientProfileId: unknown }) =>
+  Container.get(AuditService).log(context, {
+    action: 'booking_notes.read',
+    entityType: 'booking',
+    entityId: String(booking._id),
+    metadata: { patientProfileId: String(booking.patientProfileId) },
+  });
+
+/** A dispute's description was shown (it may describe health details). */
+export const auditDisputeRead = (context: AuditContext, disputeId: string) =>
+  Container.get(AuditService).log(context, {
+    action: 'dispute.read',
+    entityType: 'dispute',
+    entityId: disputeId,
+  });

@@ -4,6 +4,8 @@ import type { IProviderDocument } from '../../interfaces/IProvider';
 import type { IBooking, IBookingOffer, IBookingStatusHistory } from '../../interfaces/IBooking';
 import type { IAuditLog } from '../../interfaces/IAuditLog';
 import type { IDispute, IUserSuspension, IUserWarning } from '../../interfaces/IAftercare';
+import { decryptNullable } from '../../utils/crypto/field-encryption';
+import { presentSpecialty } from '../../services/catalog/specialties';
 
 /** Maps admin-panel data to the API shapes in admin.validation.ts. Admin views are Arabic-first. */
 
@@ -67,7 +69,7 @@ export const presentProviderDetail = (input: {
 }) => ({
   ...providerSummary(input.profile),
   user: presentAdminUser(input.user),
-  specialty: input.profile.specialty,
+  specialty: presentSpecialty(input.profile.specialty),
   years_of_experience: input.profile.yearsOfExperience,
   license_number: input.profile.licenseNumber,
   syndicate_number: input.profile.syndicateNumber,
@@ -153,6 +155,7 @@ export const presentAdminBookingDetail = (input: {
         provider_payout: b.price.providerPayout,
         total: b.price.total,
       },
+      patient_notes: decryptNullable(b.patientNotes),
       cancellation_reason: b.cancellationReason,
       cancelled_by: b.cancelledBy,
       completed_at: iso(b.completedAt),
