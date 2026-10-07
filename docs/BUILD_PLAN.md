@@ -179,11 +179,12 @@ Goal: a patient can book a verified nurse for a home visit in a covered area, pa
 **Exit:** an admin can run the MVP day to day without database access.
 
 ### M1.9 MVP launch readiness
-- [ ] Security pass (§9): rate limits on all public routes, auth on every non-public route, audit of medical data access, encrypted fields checked, no location fields anywhere in the API.
-- [ ] Load test of search and booking flows against the p95 target.
-- [ ] Staging seed data; backup/restore drill for Mongo; monitoring alerts.
-- [ ] OpenAPI docs complete for all Phase 1 endpoints and shared with the mobile team (screen map §7.16).
-- [ ] Legal review of data handling (Law 151/2020) started.
+- [x] Security pass (§9): rate limits on all public routes, auth on every non-public route, audit of medical data access, encrypted fields checked, no location fields anywhere in the API. *(As tests in `security.test.ts`: every mounted route checked for auth middleware against an explicit public list; role guards; location scan of the OpenAPI doc and every Mongo schema; every sensitive field encrypts. Per-IP limits moved to Redis (shared across instances): 300/min overall, 30/min on public auth routes. Production deps audit clean (firebase-admin 13 → 14, modular API; `uuid` override); CI runs `npm audit --omit=dev`. Findings + open items: `docs/SECURITY.md`.)*
+- [x] Load test of search and booking flows against the p95 target. *(`npm run test:load`: 1,000 providers, real app over HTTP. Found and fixed a hotspot — Cairo time conversion in the slot engine (~20 µs/call, ~0.5 ms per provider-day) is now memoized: date search p95 349 → 82 ms, throughput ×4. All reads p95 ≤ 82 ms at 10 clients, ≤ 158 ms at 20; contested bookings never double-book. Numbers in `docs/OPERATIONS.md`.)*
+- [x] Staging seed data; backup/restore drill for Mongo; monitoring alerts. *(`npm run seed:staging` (real booking services, idempotent, refuses production). `ops/mongo-backup.sh` + `ops/mongo-restore-drill.sh` and the runbook in `docs/OPERATIONS.md`. `/health/ready` (Mongo + Redis) and `/health/jobs` (503 when a scheduled job goes silent) for alerting.)*
+- [ ] On real infrastructure (needs staging/production to exist): run the restore drill, wire the alerts in `docs/OPERATIONS.md`, re-run the load scenarios against staging.
+- [x] OpenAPI docs complete for all Phase 1 endpoints and shared with the mobile team (screen map §7.16). *(All Phase 1 endpoints implemented — `api-coverage.test.ts` fails if a spec endpoint is neither built nor assigned to a later milestone; `docs/API_COVERAGE.md` lists all 222 with status. Sharing with the mobile team: pending.)*
+- [ ] Legal review of data handling (Law 151/2020) started. *(Not an engineering task — open questions for it are listed in `docs/SECURITY.md`, incl. whether booking notes / dispute descriptions must be encrypted.)*
 
 **Exit:** production deploy; the mobile team signs off on all Phase 1 screens.
 

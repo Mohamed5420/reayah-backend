@@ -70,6 +70,11 @@ export type DefinedRoute = {
   validate: RequestHandler;
 };
 
+/** Every route declared so far (filled as controllers are constructed) — for the security audit tests. */
+const declaredRoutes: Array<Pick<RouteSpec, 'method' | 'path' | 'auth' | 'summary'>> = [];
+export const routeCatalog = (): ReadonlyArray<Pick<RouteSpec, 'method' | 'path' | 'auth' | 'summary'>> =>
+  declaredRoutes;
+
 const toOpenApiPath = (path: string) => `${env.apiPrefix}${path}`.replace(/:(\w+)/g, '{$1}');
 
 /** Documents a route and returns its validator, so docs and validation can't drift apart. */
@@ -116,6 +121,7 @@ export const defineRoute = (spec: RouteSpec): DefinedRoute => {
     },
   });
 
+  declaredRoutes.push({ method: spec.method, path: spec.path, auth: spec.auth, summary: spec.summary });
   return { method: spec.method, path: spec.path, validate: validate(spec.request ?? {}) };
 };
 

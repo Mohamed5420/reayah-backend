@@ -34,14 +34,29 @@ export const cairoOffsetMinutes = (instant: Date): number => {
   return Math.round((asUtc - instant.getTime()) / 60_000);
 };
 
+/**
+ * Memo for cairoToUtc: a pure function of its inputs, and the slot engine asks for the same few dates ×
+ * 30-minute times for every provider (Intl formatting costs ~20 µs a call). Bounded; cleared when full.
+ */
+const utcCache = new Map<string, number>();
+const UTC_CACHE_MAX = 20_000;
+
 /** "YYYY-MM-DD" + "HH:mm" in Cairo → the UTC instant. */
 export const cairoToUtc = (date: string, time: string): Date => {
+  const cacheKey = `${date}T${time}`;
+  const cached = utcCache.get(cacheKey);
+  if (cached !== undefined) return new Date(cached);
+
   const [y, m, d] = date.split('-').map(Number);
   const [hh, mm] = time.split(':').map(Number);
   const wallAsUtc = Date.UTC(y, m - 1, d, hh, mm);
   // Two passes: the offset can differ between the guess and the result around DST switches.
   const guess = wallAsUtc - cairoOffsetMinutes(new Date(wallAsUtc)) * 60_000;
-  return new Date(wallAsUtc - cairoOffsetMinutes(new Date(guess)) * 60_000);
+  const result = wallAsUtc - cairoOffsetMinutes(new Date(guess)) * 60_000;
+
+  if (utcCache.size >= UTC_CACHE_MAX) utcCache.clear();
+  utcCache.set(cacheKey, result);
+  return new Date(result);
 };
 
 /** The Cairo calendar date of an instant, "YYYY-MM-DD". */

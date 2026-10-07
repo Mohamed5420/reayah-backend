@@ -1,11 +1,11 @@
-import type { messaging } from 'firebase-admin';
+import type { Messaging } from 'firebase-admin/messaging';
 import { DeviceModel } from '../../database/models/auth/device.model';
 import { logger } from '../../utils/logger/winston';
 
 export type PushMessage = { userId: string; title: string; body: string; data: Record<string, string> };
 
 /** The slice of Firebase Messaging we use — injectable so it can be faked in tests. */
-export type PushClient = Pick<messaging.Messaging, 'sendEachForMulticast'>;
+export type PushClient = Pick<Messaging, 'sendEachForMulticast'>;
 
 /** FCM error codes meaning the token will never work again (app uninstalled, token rotated). */
 const DEAD_TOKEN_CODES = new Set([

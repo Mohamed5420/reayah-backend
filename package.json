@@ -15,7 +15,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "openapi": "tsx src/docs/export-openapi.ts",
-    "admin:create": "tsx src/scripts/create-admin.ts"
+    "admin:create": "tsx src/scripts/create-admin.ts",
+    "seed:staging": "tsx src/scripts/seed-staging.ts",
+    "test:load": "vitest run --config vitest.load.config.mts"
   },
   "engines": {
     "node": ">=20"
@@ -32,8 +34,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
-    "express-rate-limit": "^7.4.1",
-    "firebase-admin": "^13.0.1",
+    "firebase-admin": "^14.5.0",
     "helmet": "^8.0.0",
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
@@ -71,5 +72,8 @@
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.71.1",
     "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }

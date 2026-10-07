@@ -1,5 +1,5 @@
 import { Worker, type Job } from 'bullmq';
-import admin from 'firebase-admin';
+import { getMessaging } from 'firebase-admin/messaging';
 import { redisConnection } from '../../config/redis.config';
 import { isFirebaseReady } from '../../config/firebase.config';
 import { QueueName } from '../queue-names';
@@ -20,7 +20,7 @@ export const createNotificationWorker = () =>
         logger.debug(`Push skipped (Firebase disabled): ${job.data.data.type} → ${job.data.userId}`);
         return;
       }
-      await sendPushToUser(admin.messaging(), job.data);
+      await sendPushToUser(getMessaging(), job.data);
     },
     { connection: redisConnection, concurrency: 10 },
   );

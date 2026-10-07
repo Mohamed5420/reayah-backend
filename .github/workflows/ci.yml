@@ -17,7 +17,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       # mongodb-memory-server downloads a mongod binary on first use; keep it between runs.
@@ -32,3 +32,5 @@ jobs:
       - run: npm run format:check
       - run: npm test
       - run: npm run build
+      # Shipped dependencies only (test tools are excluded). Fails on moderate or worse.
+      - run: npm audit --omit=dev --audit-level=moderate

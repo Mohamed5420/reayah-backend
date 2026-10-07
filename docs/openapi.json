@@ -6389,6 +6389,129 @@
         }
       }
     },
+    "/api/v1/health/ready": {
+      "get": {
+        "summary": "Readiness for load balancers / uptime monitors: 200 when MongoDB and Redis answer within 2 s, otherwise 503",
+        "tags": [
+          "System"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "mongo": {
+                          "type": "string",
+                          "enum": [
+                            "up"
+                          ]
+                        },
+                        "redis": {
+                          "type": "string",
+                          "enum": [
+                            "up"
+                          ]
+                        },
+                        "timestamp": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "mongo",
+                        "redis",
+                        "timestamp"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health/jobs": {
+      "get": {
+        "summary": "Scheduled jobs (booking deadlines, reminders, suspension lifts, document check): 200 when each ran recently, 503 when one has gone silent — point an alert at it",
+        "tags": [
+          "System"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "job": {
+                            "type": "string"
+                          },
+                          "last_run_at": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "stale": {
+                            "type": "boolean",
+                            "enum": [
+                              false
+                            ]
+                          }
+                        },
+                        "required": [
+                          "job",
+                          "last_run_at",
+                          "stale"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/otp/request": {
       "post": {
         "summary": "Send a login code by SMS. Limits: 1/min and 3/10 min per phone, 10/hour per IP.",

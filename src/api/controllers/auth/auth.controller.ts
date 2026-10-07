@@ -1,7 +1,7 @@
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { Container } from 'typedi';
 import type IBaseController from '../interfaces/base-controller.interface';
-import { CheckAppStatusMiddleware } from '../../middlewares/app';
+import { AuthRateLimiterMiddleware, CheckAppStatusMiddleware } from '../../middlewares/app';
 import { Auth } from '../../middlewares/auth';
 import { AuthSchemas, parseDateOnly } from '../../validations/auth/auth.validation';
 import type { z } from '../../validations/zod';
@@ -113,7 +113,13 @@ export default class AuthController implements IBaseController {
       [routes.logout, this.logout],
     ] as const;
     for (const [route, handler] of publicRoutes) {
-      this.router.post(route.path, CheckAppStatusMiddleware, route.validate, handler.bind(this));
+      this.router.post(
+        route.path,
+        CheckAppStatusMiddleware,
+        AuthRateLimiterMiddleware,
+        route.validate,
+        handler.bind(this),
+      );
     }
 
     for (const [route, handler] of [

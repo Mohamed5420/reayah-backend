@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import admin from 'firebase-admin';
+import { cert, initializeApp } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import { env } from './env.config';
 import { logger } from '../utils/logger/winston';
 
@@ -24,7 +25,7 @@ export const initFirebase = (): boolean => {
   }
 
   const serviceAccount = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+  initializeApp({ credential: cert(serviceAccount) });
   initialized = true;
   logger.info('Firebase initialized');
   return true;
@@ -35,7 +36,7 @@ export const isFirebaseReady = () => initialized;
 export const sendTopicMessage = async (topic: string, data: Record<string, string>) => {
   if (!initialized) return;
   try {
-    await admin.messaging().send({ topic, data });
+    await getMessaging().send({ topic, data });
   } catch (err) {
     logger.error(`FCM send to topic "${topic}" failed`, err);
   }

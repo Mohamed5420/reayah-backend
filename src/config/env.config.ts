@@ -52,6 +52,12 @@ export const env = {
 
   firebaseServiceAccountPath: optional('FIREBASE_SERVICE_ACCOUNT_PATH'),
 
+  /** Per-IP request limits (Redis-backed, so shared by all instances). */
+  rateLimit: {
+    perMinute: Number(optional('RATE_LIMIT_PER_MINUTE', '300')),
+    authPerMinute: Number(optional('RATE_LIMIT_AUTH_PER_MINUTE', '30')),
+  },
+
   /** Error tracking; disabled when empty. */
   sentryDsn: optional('SENTRY_DSN'),
 
