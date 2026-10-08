@@ -39,6 +39,7 @@ import { PackageService } from '../marketing/package.service';
 import { SubscriptionService } from '../organization/subscription.service';
 import { PackageSubscriptionStatus } from '../../interfaces/IMarketing';
 import { activeGateway, gatewayByName, InvalidWebhookSignatureError, type WebhookRequest } from './gateways';
+import { confirmClinicVisit, confirmsInstantly } from '../booking/clinic-visit';
 
 const CARD_METHODS = [PaymentMethod.CARD, PaymentMethod.WALLET];
 /** How long a commission checkout stays open. */
@@ -639,6 +640,11 @@ export class PaymentService {
         : 'direct_request_response_minutes',
     );
     await runBookingTransaction(async (tx) => {
+      // An instant-confirm clinic appointment is confirmed now (no response clock).
+      if (confirmsInstantly(booking)) {
+        await confirmClinicVisit(tx, booking, { paymentStatus: PaymentStatus.PAID });
+        return;
+      }
       const updated = await transitionBooking(tx, booking, BookingStatus.PENDING, BookingActor.SYSTEM, {
         set: {
           paymentStatus: PaymentStatus.PAID,

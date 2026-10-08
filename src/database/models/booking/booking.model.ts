@@ -25,7 +25,7 @@ const bookingSchema = new Schema<IBooking>(
     referenceCode: { type: String, required: true, unique: true },
     patientUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     patientProfileId: { type: Schema.Types.ObjectId, ref: 'PatientProfile', required: true },
-    addressId: { type: Schema.Types.ObjectId, ref: 'Address', required: true },
+    addressId: { type: Schema.Types.ObjectId, ref: 'Address', default: null },
     address: {
       label: { type: String, required: true },
       governorateId: { type: Schema.Types.ObjectId, required: true },
@@ -50,6 +50,31 @@ const bookingSchema = new Schema<IBooking>(
     providerProfileId: { type: Schema.Types.ObjectId, ref: 'ProviderProfile', default: null },
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', default: null },
     isTestAccount: { type: Boolean, default: false },
+    clinicId: { type: Schema.Types.ObjectId, ref: 'Clinic', default: null },
+    clinic: {
+      type: new Schema(
+        {
+          name: { type: String, required: true },
+          phone: { type: String, required: true },
+          instantConfirm: { type: Boolean, default: true },
+        },
+        { _id: false },
+      ),
+      default: null,
+    },
+    visitCode: { type: String, default: null },
+    visitCodeAttempts: { type: Number, default: 0 },
+    checkIn: {
+      type: new Schema(
+        {
+          method: { type: String, enum: ['code', 'without_code'], required: true },
+          reason: { type: String, default: null },
+          at: { type: Date, required: true },
+        },
+        { _id: false },
+      ),
+      default: null,
+    },
     type: { type: String, enum: Object.values(BookingType), required: true },
     scheduledStart: { type: Date, required: true },
     scheduledEnd: { type: Date, required: true },

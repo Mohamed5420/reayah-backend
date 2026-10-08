@@ -134,7 +134,7 @@ describe('visit types and prices', () => {
     expect(nurseClinic.body.error.fields).toHaveProperty(['services.0.visit_type']);
   });
 
-  it('home visits are unchanged: a clinic price never shows in home search or quotes, and clinic quotes wait for C3', async () => {
+  it('home visits are unchanged: a clinic price never shows in home search or quotes, and clinic quotes are off while the feature is off', async () => {
     await as(doctor.auth)
       .put('/provider/services', {
         services: [{ service_id: consultation, price: 30000, visit_type: 'clinic_visit' }],
@@ -148,9 +148,10 @@ describe('visit types and prices', () => {
     const clinicQuote = await world.quote(patient, doctor, {
       service_id: consultation,
       type: 'clinic_visit',
+      clinic_id: consultation, // any id: the feature check comes first
     });
     expect(clinicQuote.status).toBe(422);
-    expect(clinicQuote.body.error.fields).toHaveProperty('type');
+    expect(clinicQuote.body.error.fields).toHaveProperty('visit_type');
   });
 });
 

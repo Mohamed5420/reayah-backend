@@ -10,12 +10,18 @@ import {
   AssignmentMode,
   BookingActor,
   BookingStatus,
+  BookingType,
   OfferStatus,
   type IBooking,
 } from '../../interfaces/IBooking';
 import { escapeRegExp } from '../../utils/text/arabic';
 import type { Pagination } from '../../utils/response/pagination';
-import { InvalidStatusTransitionError, NotFoundError, ValidationError } from '../../utils/types-errors';
+import {
+  ConflictError,
+  InvalidStatusTransitionError,
+  NotFoundError,
+  ValidationError,
+} from '../../utils/types-errors';
 import { AuditService, type AuditContext } from '../audit/audit.service';
 import { canTransition } from '../booking/booking-state';
 import {
@@ -145,6 +151,9 @@ export class AdminBookingService {
    */
   async reassign(bookingId: string, providerProfileId: string, context: AuditContext) {
     const booking = await this.get(bookingId);
+    // A clinic appointment is at that doctor's clinic: another doctor would be another place.
+    if (booking.type === BookingType.CLINIC_VISIT)
+      throw new ConflictError('errors.clinic_reassign_unsupported');
     if (![BookingStatus.PENDING, BookingStatus.ACCEPTED].includes(booking.status)) {
       throw new InvalidStatusTransitionError();
     }

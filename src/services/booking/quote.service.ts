@@ -31,6 +31,11 @@ import { PackageService } from '../marketing/package.service';
 import { inSameWorld } from '../auth/test-accounts';
 import { PromoService } from '../marketing/promo.service';
 import { offeredEntry } from '../catalog/visit-types';
+import { ClinicDiscoveryService } from '../discovery/clinic-discovery.service';
+import { assertClinicBookingAllowed } from './clinic-visit';
+import { priceBounds, withinBounds } from '../catalog/visit-types';
+import type { IAddress } from '../../interfaces/IAddress';
+import type { Settings } from '../settings/settings.definitions';
 
 type BookableArea = NonNullable<Awaited<ReturnType<LocationService['findBookableArea']>>>;
 
@@ -44,6 +49,12 @@ const assertWithinBounds = (service: ServiceRow, price: number) => {
   }
 };
 
+/** What a booking keeps of where the visit happens: a saved address, or a clinic (label = clinic name). */
+export type AddressLike = Pick<
+  IAddress,
+  'label' | 'governorateId' | 'areaId' | 'street' | 'building' | 'floor' | 'apartment' | 'landmark' | 'notes'
+>;
+
 /** A quote is guaranteed for 10 minutes (spec §7.8). */
 export const QUOTE_TTL_SECONDS = 600;
 
@@ -52,7 +63,10 @@ export type QuoteInput = {
   providerId: string | null;
   organizationId: string | null;
   patientProfileId: string;
-  addressId: string;
+  /** Home visits: the patient's saved address. Clinic visits: null (the patient goes to the clinic). */
+  addressId: string | null;
+  /** Clinic visits (C3): the doctor's clinic. */
+  clinicId?: string | null;
   type: BookingType;
   preferredGender: PreferredGender;
   allowFallback: boolean;
@@ -100,24 +114,55 @@ export class QuoteService {
     if (input.type === BookingType.VIDEO && !settings.features.video_consult) {
       throw new ValidationError({ type: ['validation.video_not_available'] });
     }
-    // Clinic visits are being built (C1–C5): not bookable until the booking flow (C3) is in.
-    if (input.type === BookingType.CLINIC_VISIT) {
-      throw new ValidationError({ type: ['validation.clinic_visit_not_available'] });
+    const clinicVisit = input.type === BookingType.CLINIC_VISIT;
+    if (clinicVisit) {
+      await Container.get(ClinicDiscoveryService).assertEnabled();
+      // Organization branches: C4. Packages cover home visits only (until C5).
+      if (input.organizationId)
+        throw new ValidationError({ organization_id: ['validation.clinic_branches_later'] });
+      if (input.packageSubscriptionId) {
+        throw new ValidationError({ package_subscription_id: ['validation.package_home_only'] });
+      }
+      if (!input.clinicId) throw new ValidationError({ clinic_id: ['validation.required'] });
+    } else if (!input.addressId) {
+      throw new ValidationError({ address_id: ['validation.required'] });
     }
 
     const patientProfile = await this.profiles.getOwned(userId, input.patientProfileId);
     const isTestAccount = Boolean(
       (await UserModel.findById(userId).select('isTestAccount').lean())?.isTestAccount,
     );
-    const address = await this.addresses.getOwned(userId, input.addressId);
+    // Where the visit happens: the patient's address, or the clinic (whose address the booking keeps).
+    const seat = clinicVisit
+      ? await Container.get(ClinicDiscoveryService).bookableSeat(
+          input.providerId!,
+          input.serviceId,
+          input.clinicId!,
+        )
+      : null;
+    const address: AddressLike = seat
+      ? {
+          label: seat.clinic.name,
+          governorateId: seat.clinic.governorateId,
+          areaId: seat.clinic.areaId,
+          street: seat.clinic.street,
+          building: seat.clinic.building,
+          floor: seat.clinic.floor,
+          apartment: null,
+          landmark: seat.clinic.landmark,
+          notes: null,
+        }
+      : await this.addresses.getOwned(userId, input.addressId!);
     const area = await this.locations.findBookableArea(String(address.areaId));
     if (!area) throw new AreaNotCoveredError();
     const service = await this.catalog.getActiveService(input.serviceId);
     assertQuantity(service.pricingUnit, input.quantity);
 
-    const terms = input.organizationId
-      ? await this.organizationTerms(input, input.organizationId, area, service, excludeBookingId)
-      : await this.providerTerms(input, input.providerId!, area, service, excludeBookingId);
+    const terms = seat
+      ? await this.clinicTerms(input, seat, settings, excludeBookingId)
+      : input.organizationId
+        ? await this.organizationTerms(input, input.organizationId, area, service, excludeBookingId)
+        : await this.providerTerms(input, input.providerId!, area, service, excludeBookingId);
     // Test and real accounts never book each other in production (test numbers, launch decision).
     if (!inSameWorld(isTestAccount, (terms.organization ?? terms.provider)?.isTestAccount)) {
       throw new NotFoundError(
@@ -125,10 +170,21 @@ export class QuoteService {
       );
     }
     const { slot, unitPrice, areaTravelFee } = terms;
+    if (clinicVisit) {
+      await assertClinicBookingAllowed(
+        { userId, patientProfileId: input.patientProfileId, providerId: input.providerId! },
+        slot,
+        settings.max_upcoming_clinic_bookings,
+        excludeBookingId,
+      );
+    }
 
     // Travel fee: the provider's / organization's fee for the area, never above the area's cap (spec §4.2, §6.12).
+    // Video and clinic visits have no journey, so no travel fee.
     const travelFee =
-      input.type === BookingType.VIDEO ? 0 : Math.min(areaTravelFee, area.maxTravelFee ?? Infinity);
+      input.type === BookingType.VIDEO || clinicVisit
+        ? 0
+        : Math.min(areaTravelFee, area.maxTravelFee ?? Infinity);
     const base = {
       unitPrice,
       quantity: input.quantity,
@@ -182,6 +238,10 @@ export class QuoteService {
       packageSubscriptionId: packageSubscription ? String(packageSubscription._id) : null,
       providerId: input.organizationId ? null : input.providerId,
       organizationId: input.organizationId ?? null,
+      addressId: clinicVisit ? null : input.addressId,
+      clinicId: clinicVisit ? input.clinicId! : null,
+      // A clinic appointment is at that clinic: it never falls back to another doctor or address.
+      allowFallback: clinicVisit ? false : input.allowFallback,
       scheduledStart: slot.start.toISOString(),
       scheduledEnd: slot.end.toISOString(),
       price,
@@ -196,8 +256,52 @@ export class QuoteService {
       patientProfile,
       providerProfile: terms.provider,
       organization: terms.organization,
+      clinic: seat?.clinic ?? null,
+      clinicLink: seat?.link ?? null,
       settings,
       packageSubscription,
+    };
+  }
+
+  /**
+   * A doctor's clinic (clinic visits, C3): the clinic seat was checked by `bookableSeat` (approved, active,
+   * the doctor's, priced as a clinic visit, hours there). The doctor must take bookings; the start must be
+   * a free appointment there. Commission: `clinic_commission_rate` when set (≥ 0), else the platform's.
+   */
+  private async clinicTerms(
+    input: QuoteInput,
+    seat: Awaited<ReturnType<ClinicDiscoveryService['bookableSeat']>>,
+    settings: Settings,
+    excludeBookingId?: string,
+  ) {
+    const { profile: provider, entry, service } = seat;
+    const providerUser = await UserModel.findOne({ _id: provider.userId, status: UserStatus.ACTIVE }).lean();
+    if (!providerUser) throw new NotFoundError('errors.provider_not_found');
+    if (!provider.isAcceptingBookings) throw new ConflictError('errors.provider_not_accepting');
+    if (!withinBounds(priceBounds(service, BookingType.CLINIC_VISIT), entry.price)) {
+      throw new ConflictError('errors.provider_price_invalid');
+    }
+    if (input.quantity !== 1) throw new ValidationError({ quantity: ['validation.invalid_value'] });
+    if (
+      input.preferredGender !== PreferredGender.ANY &&
+      String(providerUser.gender) !== input.preferredGender
+    ) {
+      throw new ValidationError({ preferred_gender: ['validation.provider_gender_mismatch'] });
+    }
+    const slots = await Container.get(ClinicDiscoveryService).slots(
+      String(provider._id),
+      { serviceId: service.id, clinicId: String(seat.clinic._id), date: cairoDate(input.scheduledStart) },
+      excludeBookingId,
+    );
+    const slot = slots.find((s) => s.available && s.start.getTime() === input.scheduledStart.getTime());
+    if (!slot) throw new SlotUnavailableError();
+    return {
+      slot,
+      unitPrice: entry.price,
+      areaTravelFee: 0,
+      commissionRate: settings.clinic_commission_rate >= 0 ? settings.clinic_commission_rate : null,
+      provider,
+      organization: null,
     };
   }
 
@@ -365,8 +469,11 @@ export class QuoteService {
     }
   }
 
-  /** Booking-time snapshot of the address (later edits to the saved address don't change the booking). */
-  async addressSnapshot(address: Awaited<ReturnType<QuoteService['prepare']>>['address']) {
+  /**
+   * Booking-time snapshot of the address — the patient's, or the clinic's for clinic visits (later edits
+   * to either don't change the booking).
+   */
+  async addressSnapshot(address: AddressLike) {
     const places = await this.locations.describeAreas([String(address.areaId)]);
     const place = places.get(String(address.areaId));
     return {

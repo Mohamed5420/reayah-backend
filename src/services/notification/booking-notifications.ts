@@ -3,7 +3,13 @@ import { ProviderProfileModel } from '../../database/models/provider/provider-pr
 import { OrganizationModel } from '../../database/models/organization/organization.models';
 import { UserModel } from '../../database/models/user/user.model';
 import { bookingEvents, type BookingEvent } from '../../events/booking.events';
-import { AssignmentMode, BookingActor, BookingStatus, type IBooking } from '../../interfaces/IBooking';
+import {
+  AssignmentMode,
+  BookingActor,
+  BookingStatus,
+  BookingType,
+  type IBooking,
+} from '../../interfaces/IBooking';
 import { NotificationType } from '../../interfaces/INotification';
 import type { Language } from '../../utils/i18n';
 import { formatCairoDateTime } from '../../utils/time/cairo';
@@ -163,6 +169,35 @@ export const handleBookingEvent = async (event: BookingEvent) => {
     return;
   }
 
+  // Clinic visits confirmed at once (C3): the patient gets the clinic and the visit code is in the app;
+  // the doctor is told a new appointment is booked.
+  if (event.to === BookingStatus.ACCEPTED && event.reason === 'instant_confirm') {
+    await notifications.notify([booking.patientUserId], {
+      type: NotificationType.BOOKING_STATUS,
+      template: 'clinic_booking_confirmed',
+      params,
+      data: statusData,
+    });
+    if (booking.providerProfileId) {
+      await notifications.notify(await providerUserIds([String(booking.providerProfileId)]), {
+        type: NotificationType.BOOKING_REQUEST,
+        template: 'clinic_booking_new',
+        params,
+        data: statusData,
+      });
+    }
+    return;
+  }
+  if (event.to === BookingStatus.NO_SHOW && booking.type === BookingType.CLINIC_VISIT) {
+    await notifications.notify([booking.patientUserId], {
+      type: NotificationType.BOOKING_STATUS,
+      template: 'clinic_booking_no_show',
+      params,
+      data: statusData,
+    });
+    return;
+  }
+
   const template = PATIENT_TEMPLATES[event.to];
   if (template) {
     await notifications.notify([booking.patientUserId], {
@@ -178,6 +213,7 @@ export const handleBookingEvent = async (event: BookingEvent) => {
 export const bookingParams = async (booking: IBooking) => {
   const provider = booking.providerProfileId ? await providerNameOf(String(booking.providerProfileId)) : '';
   return (lang: Language) => ({
+    clinic: booking.clinic?.name ?? '',
     service: lang === 'en' && booking.service.nameEn ? booking.service.nameEn : booking.service.nameAr,
     time: formatCairoDateTime(booking.scheduledStart, lang),
     area: booking.address.areaNameAr,

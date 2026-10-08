@@ -3637,7 +3637,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"provider_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"organization_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"patient_profile_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"address_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"type\": \"home_visit\",\n  \"preferred_gender\": \"any\",\n  \"allow_fallback\": true,\n  \"scheduled_start\": \"2026-10-05T14:00:00Z\",\n  \"quantity\": 1,\n  \"promo_code\": \"string\",\n  \"package_subscription_id\": \"665f1c2b9e1d2a4c3b9e8f1a\"\n}",
+              "raw": "{\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"provider_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"organization_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"patient_profile_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"address_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"clinic_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"type\": \"home_visit\",\n  \"preferred_gender\": \"any\",\n  \"allow_fallback\": true,\n  \"scheduled_start\": \"2026-10-05T14:00:00Z\",\n  \"quantity\": 1,\n  \"promo_code\": \"string\",\n  \"package_subscription_id\": \"665f1c2b9e1d2a4c3b9e8f1a\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4172,10 +4172,10 @@
           }
         },
         {
-          "name": "Start the visit (records whether it was on time)",
+          "name": "Start the visit (records whether it was on time). Clinic visits: with the patient’s 4-digit visit_code (5 tries), or without_code_reason (audited).",
           "request": {
             "method": "POST",
-            "description": "Start the visit (records whether it was on time)",
+            "description": "Start the visit (records whether it was on time). Clinic visits: with the patient’s 4-digit visit_code (5 tries), or without_code_reason (audited).",
             "header": [
               {
                 "key": "Accept-Language",
@@ -4200,6 +4200,15 @@
                   "value": "665f1c2b9e1d2a4c3b9e8f1a"
                 }
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },

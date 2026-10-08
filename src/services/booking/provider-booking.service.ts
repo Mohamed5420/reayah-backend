@@ -23,8 +23,9 @@ import {
   InvalidStatusTransitionError,
   NotFoundError,
   OfferTakenError,
+  ValidationError,
 } from '../../utils/types-errors';
-import type { AuditContext } from '../audit/audit.service';
+import { AuditService, type AuditContext } from '../audit/audit.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { PatientProfileService } from '../patient/patient-profile.service';
 import { patientFeeFor } from './patient-fees';
@@ -39,6 +40,8 @@ import {
   transitionBooking,
 } from './booking-transaction';
 import { ConsentService } from '../consent/consent.service';
+import { isClinicVisit, VISIT_CODE_MAX_ATTEMPTS } from './clinic-visit';
+import { timingSafeEqual } from 'node:crypto';
 
 type ProviderDoc = HydratedDocument<IProviderProfile>;
 
@@ -150,7 +153,11 @@ export class ProviderBookingService {
       patientPhone: patientUser?.phone ?? null,
       medical,
       medicalWithheld,
-      allowedActions: allowedActions(booking),
+      allowedActions: allowedActions(
+        booking,
+        new Date(),
+        await this.settings.get('clinic_no_show_grace_minutes'),
+      ),
     };
   }
 
@@ -194,14 +201,64 @@ export class ProviderBookingService {
     return this.act(profile, bookingId, userId, BookingStatus.ON_THE_WAY);
   }
 
-  /** Start: records whether it began within `on_time_grace_minutes` of the booked time (spec §6.13). */
-  async start(profile: ProviderDoc, bookingId: string, userId: string) {
+  /**
+   * Start: records whether it began within `on_time_grace_minutes` of the booked time (spec §6.13).
+   * Clinic visits (C3): with the patient's visit code (`VISIT_CODE_MAX_ATTEMPTS` tries), or without it
+   * with a reason — recorded and audited.
+   */
+  async start(
+    profile: ProviderDoc,
+    bookingId: string,
+    userId: string,
+    checkIn: { visitCode?: string; withoutCodeReason?: string } = {},
+    context?: AuditContext,
+  ) {
     const booking = await this.getAssigned(profile, bookingId);
     const grace = await this.settings.get('on_time_grace_minutes');
     const startedAt = new Date();
-    return this.act(profile, bookingId, userId, BookingStatus.IN_PROGRESS, {
-      set: { startedAt, isOnTime: startedAt.getTime() <= booking.scheduledStart.getTime() + grace * 60_000 },
+    const checkInRecord = isClinicVisit(booking) ? await this.checkIn(booking, checkIn, startedAt) : null;
+    const updated = await this.act(profile, bookingId, userId, BookingStatus.IN_PROGRESS, {
+      set: {
+        startedAt,
+        isOnTime: startedAt.getTime() <= booking.scheduledStart.getTime() + grace * 60_000,
+        ...(checkInRecord ? { checkIn: checkInRecord } : {}),
+      },
     });
+    if (checkInRecord?.method === 'without_code' && context) {
+      await Container.get(AuditService).log(context, {
+        action: 'booking.start_without_code',
+        entityType: 'booking',
+        entityId: String(booking._id),
+        metadata: { reason: checkInRecord.reason },
+      });
+    }
+    return updated;
+  }
+
+  /** Checks the visit code (counting tries) or takes a reason to start without it. */
+  private async checkIn(
+    booking: IBooking,
+    input: { visitCode?: string; withoutCodeReason?: string },
+    at: Date,
+  ): Promise<NonNullable<IBooking['checkIn']>> {
+    if (input.withoutCodeReason) return { method: 'without_code', reason: input.withoutCodeReason, at };
+    if (!input.visitCode) throw new ValidationError({ visit_code: ['validation.required'] });
+    if ((booking.visitCodeAttempts ?? 0) >= VISIT_CODE_MAX_ATTEMPTS) {
+      throw new ConflictError('errors.visit_code_locked');
+    }
+    const counted = await BookingModel.findOneAndUpdate(
+      { _id: booking._id, visitCodeAttempts: { $lt: VISIT_CODE_MAX_ATTEMPTS } },
+      { $inc: { visitCodeAttempts: 1 } },
+      { new: true },
+    ).lean();
+    if (!counted) throw new ConflictError('errors.visit_code_locked');
+    if (
+      !booking.visitCode ||
+      !timingSafeEqual(Buffer.from(booking.visitCode), Buffer.from(input.visitCode.padEnd(4)))
+    ) {
+      throw new ValidationError({ visit_code: ['validation.visit_code_wrong'] });
+    }
+    return { method: 'code', reason: null, at };
   }
 
   /** Complete: counts the visit and records the cash commission in the provider's ledger. */
@@ -222,7 +279,11 @@ export class ProviderBookingService {
   /** The patient wasn't there — only from the booked time on. */
   async noShow(profile: ProviderDoc, bookingId: string, userId: string) {
     const booking = await this.getAssigned(profile, bookingId);
-    if (booking.scheduledStart > new Date()) throw new ConflictError('errors.no_show_too_early');
+    // Clinic visits: the patient gets `clinic_no_show_grace_minutes` to arrive.
+    const grace = isClinicVisit(booking) ? await this.settings.get('clinic_no_show_grace_minutes') : 0;
+    if (booking.scheduledStart.getTime() + grace * 60_000 > Date.now()) {
+      throw new ConflictError('errors.no_show_too_early');
+    }
     // The patient is charged the travel fee (setting travel_fee_on_no_show); it goes to the provider.
     const patientFee = await patientFeeFor(booking, 'no_show');
     return this.act(profile, bookingId, userId, BookingStatus.NO_SHOW, { set: { patientFee } });
@@ -434,8 +495,11 @@ export const hasMedicalAccess = (booking: IBooking, now = new Date()) => {
   );
 };
 
-/** Buttons the provider app should show (spec `allowed_actions`). */
-export const allowedActions = (booking: IBooking, now = new Date()) => {
+/**
+ * Buttons the provider app should show (spec `allowed_actions`). Clinic visits: `start_with_code`
+ * instead of `start`; `no_show` once `clinicNoShowGraceMinutes` have passed.
+ */
+export const allowedActions = (booking: IBooking, now = new Date(), clinicNoShowGraceMinutes = 0) => {
   const map: Partial<Record<BookingStatus, string>> = {
     [BookingStatus.ACCEPTED]: 'accept',
     [BookingStatus.DECLINED]: 'decline',
@@ -446,8 +510,14 @@ export const allowedActions = (booking: IBooking, now = new Date()) => {
     [BookingStatus.CANCELLED]: 'cancel',
   };
   const actions = nextStatuses(booking.status, BookingActor.PROVIDER, booking.type)
-    .filter((to) => to !== BookingStatus.NO_SHOW || booking.scheduledStart <= now)
-    .flatMap((to) => (map[to] ? [map[to]] : []));
+    .filter(
+      (to) =>
+        to !== BookingStatus.NO_SHOW ||
+        booking.scheduledStart.getTime() + (isClinicVisit(booking) ? clinicNoShowGraceMinutes : 0) * 60_000 <=
+          now.getTime(),
+    )
+    .flatMap((to) => (map[to] ? [map[to]] : []))
+    .map((action) => (action === 'start' && isClinicVisit(booking) ? 'start_with_code' : action));
   if (
     booking.paymentMethod === PaymentMethod.CASH &&
     booking.paymentStatus === PaymentStatus.UNPAID &&

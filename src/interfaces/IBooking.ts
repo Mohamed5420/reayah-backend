@@ -104,8 +104,16 @@ export interface IBooking {
   patientUserId: Types.ObjectId;
   /** Made by a test account: only test providers / organizations are offered it in production. */
   isTestAccount?: boolean;
+  /** Clinic visits (C3): the clinic, a snapshot of what the patient needs (the address is in `address`). */
+  clinicId?: Types.ObjectId | null;
+  clinic?: { name: string; phone: string; instantConfirm: boolean } | null;
+  /** Clinic visits: 4 digits shown to the patient; the doctor enters it to start. */
+  visitCode?: string | null;
+  visitCodeAttempts?: number;
+  /** How a clinic visit was started: with the code, or without it (reason, audited). */
+  checkIn?: { method: 'code' | 'without_code'; reason: string | null; at: Date } | null;
   patientProfileId: Types.ObjectId;
-  addressId: Types.ObjectId;
+  addressId: Types.ObjectId | null;
   address: {
     label: string;
     governorateId: Types.ObjectId;

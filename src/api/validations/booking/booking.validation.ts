@@ -19,7 +19,10 @@ const quoteBody = z
     /** Book an organization (a search card with kind = organization); its owner assigns a staff member. */
     organization_id: objectId.nullable().optional(),
     patient_profile_id: objectId,
-    address_id: objectId,
+    /** Home visits: where the visit happens. Not used for clinic visits. */
+    address_id: objectId.nullable().optional(),
+    /** Clinic visits (type clinic_visit): the doctor's clinic, from the search card or profile. */
+    clinic_id: objectId.nullable().optional(),
     type: z.enum(BookingType).default(BookingType.HOME_VISIT),
     preferred_gender: z.enum(PreferredGender).default(PreferredGender.ANY),
     /** If the provider doesn't answer in time, offer the request to other providers. */
@@ -30,6 +33,14 @@ const quoteBody = z
     promo_code: z.string().trim().min(1).max(32).nullable().optional(),
     /** Book one visit of my package (GET /me/package-subscriptions). Quantity must be 1. */
     package_subscription_id: objectId.nullable().optional(),
+  })
+  .refine((q) => q.type !== BookingType.CLINIC_VISIT || Boolean(q.clinic_id), {
+    error: 'validation.required',
+    path: ['clinic_id'],
+  })
+  .refine((q) => q.type === BookingType.CLINIC_VISIT || Boolean(q.address_id), {
+    error: 'validation.required',
+    path: ['address_id'],
   })
   .openapi('QuoteRequest');
 
@@ -132,7 +143,12 @@ export const BookingSchemas = {
       status: z.enum(BookingStatus),
       service: z.object({ id: objectId, name: z.string() }),
       patient_profile: z.object({ id: objectId }),
-      address: z.object({ label: z.string(), full_text: z.string() }),
+      /** Where the visit happens: the patient's address, or the clinic's for clinic visits. */
+      address: z.object({ label: z.string(), full_text: z.string(), landmark: z.string().nullable() }),
+      /** Clinic visits: the clinic; its phone once the appointment is confirmed. */
+      clinic: z.object({ id: objectId, name: z.string(), phone: z.string().nullable() }).nullable(),
+      /** Clinic visits: show this to the doctor on arrival (from confirmation until the visit starts). */
+      visit_code: z.string().nullable(),
       scheduled_start: z.string(),
       scheduled_end: z.string(),
       provider: z
@@ -240,11 +256,27 @@ export const BookingSchemas = {
       payment_method: z.enum(PaymentMethod),
       payment_status: z.enum(PaymentStatus),
       is_on_time: z.boolean().nullable(),
+      /** Clinic visits: the clinic; how the visit was started (with the code or without, and why). */
+      clinic: z.object({ id: objectId, name: z.string() }).nullable(),
+      check_in: z
+        .object({ method: z.enum(['code', 'without_code']), reason: z.string().nullable(), at: z.string() })
+        .nullable(),
+      /** Clinic visits: `start_with_code` instead of `start` (send visit_code, or without_code_reason). */
       allowed_actions: z.array(z.string()),
       /** Chat open: from accepted until 24 h after completed. */
       can_chat: z.boolean(),
     })
     .openapi('ProviderBookingDetail'),
+  /** Clinic visits: the patient's visit code, or a reason to start without it (audited). Home visits: empty. */
+  startBody: z
+    .strictObject({
+      visit_code: z
+        .string()
+        .regex(/^\d{4}$/, { error: 'validation.visit_code_wrong' })
+        .optional(),
+      without_code_reason: z.string().trim().min(5).max(300).optional(),
+    })
+    .default({}),
   declineBody: z.object({ reason_code: z.enum(['not_available', 'too_far', 'other']) }),
   providerCancelBody: z.object({
     reason_code: z.enum(['emergency', 'patient_request', 'schedule_conflict', 'other']),

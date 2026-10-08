@@ -51,6 +51,7 @@ import { CreditService } from '../marketing/credit.service';
 import { PackageService } from '../marketing/package.service';
 import { PromoService } from '../marketing/promo.service';
 import { discountsOf } from './pricing';
+import { confirmClinicVisit, confirmsInstantly, isClinicVisit, newVisitCode } from './clinic-visit';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I
 
@@ -112,6 +113,14 @@ export class BookingService {
       scheduledStart: new Date(draft.scheduledStart),
     });
     const address = await this.quotes.addressSnapshot(prepared.address);
+    const clinic = prepared.clinic
+      ? {
+          name: prepared.clinic.name,
+          phone: prepared.clinic.phone,
+          instantConfirm: prepared.clinicLink?.instantConfirm ?? true,
+        }
+      : null;
+    const instant = Boolean(clinic?.instantConfirm);
     const start = new Date(draft.scheduledStart);
     const end = new Date(draft.scheduledEnd);
     const responseMinutes = await this.settings.get(
@@ -133,8 +142,11 @@ export class BookingService {
             patientUserId: userId,
             isTestAccount: prepared.isTestAccount,
             patientProfileId: draft.patientProfileId,
-            addressId: draft.addressId,
+            addressId: draft.addressId ?? null,
             address,
+            clinicId: draft.clinicId ?? null,
+            clinic,
+            visitCode: clinic ? newVisitCode() : null,
             areaId: prepared.area.id,
             serviceId: draft.serviceId,
             service: {
@@ -153,7 +165,8 @@ export class BookingService {
             assignmentMode: orgBooking ? AssignmentMode.ORGANIZATION : AssignmentMode.DIRECT,
             // Card / wallet: held in awaiting_payment, invisible to the provider; the response clock starts once paid.
             status: awaitingPayment ? BookingStatus.AWAITING_PAYMENT : BookingStatus.PENDING,
-            assignmentDeadline: awaitingPayment ? null : minutesFromNow(responseMinutes),
+            // Instant-confirm clinic appointments are confirmed right below (no response deadline).
+            assignmentDeadline: awaitingPayment || instant ? null : minutesFromNow(responseMinutes),
             allowFallback: draft.allowFallback,
             patientNotes: input.patientNotes ?? null,
             price: draft.price,
@@ -178,7 +191,9 @@ export class BookingService {
       }
       await Container.get(CreditService).use(booking.patientUserId, discounts.credit, booking, tx.session);
       await recordHistory(tx, booking._id, null, booking.status, BookingActor.PATIENT, userId, null);
-      if (!awaitingPayment) tx.publish(requestEventFor(booking.toObject()));
+      if (awaitingPayment) return booking;
+      if (instant) return confirmClinicVisit(tx, booking.toObject());
+      tx.publish(requestEventFor(booking.toObject()));
       return booking;
     });
   }
@@ -257,12 +272,19 @@ export class BookingService {
     if (!canTransition(booking.status, BookingStatus.CANCELLED, BookingActor.PATIENT, booking.type)) {
       throw new InvalidStatusTransitionError();
     }
-    const patientFee =
-      booking.status === BookingStatus.ON_THE_WAY ? await patientFeeFor(booking, 'late_cancellation') : null;
     // Accepted, inside the free window, provider not on the way yet: free, but on the patient's record.
     const lateCancellation =
       booking.status === BookingStatus.ACCEPTED &&
       !withinFreeWindow(booking, await this.settings.get('cancellation_free_window_hours'));
+    // Home visits: the travel fee once the provider is on the way. Clinic visits (no journey): the
+    // clinic late-cancellation percentage for a late cancellation (0 at launch).
+    const patientFee = isClinicVisit(booking)
+      ? lateCancellation
+        ? await patientFeeFor(booking, 'late_cancellation')
+        : null
+      : booking.status === BookingStatus.ON_THE_WAY
+        ? await patientFeeFor(booking, 'late_cancellation')
+        : null;
     await runBookingTransaction(async (tx) => {
       await transitionBooking(tx, booking, BookingStatus.CANCELLED, BookingActor.PATIENT, {
         changedBy: userId,
@@ -360,6 +382,11 @@ export class BookingService {
           actor: BookingActor.PATIENT,
           reason: 'rescheduled',
         });
+      }
+      // An instant-confirm clinic appointment is confirmed again at its new time.
+      if (confirmsInstantly(booking)) {
+        await confirmClinicVisit(tx, updated);
+        return;
       }
       tx.publish({
         type: 'new_request',
@@ -607,7 +634,8 @@ export class BookingService {
       providerId: booking.organizationId ? null : String(booking.providerProfileId),
       organizationId: booking.organizationId ? String(booking.organizationId) : null,
       patientProfileId: String(booking.patientProfileId),
-      addressId: String(booking.addressId),
+      addressId: booking.addressId ? String(booking.addressId) : null,
+      clinicId: booking.clinicId ? String(booking.clinicId) : null,
       type: booking.type,
       preferredGender: booking.preferredGender,
       allowFallback: booking.allowFallback,

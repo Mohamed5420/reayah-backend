@@ -4739,7 +4739,18 @@
             "example": "665f1c2b9e1d2a4c3b9e8f1a"
           },
           "address_id": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "clinic_id": {
+            "type": [
+              "string",
+              "null"
+            ],
             "pattern": "^[0-9a-f]{24}$/i",
             "example": "665f1c2b9e1d2a4c3b9e8f1a"
           },
@@ -4795,7 +4806,6 @@
         "required": [
           "service_id",
           "patient_profile_id",
-          "address_id",
           "scheduled_start"
         ]
       },
@@ -5062,11 +5072,51 @@
               },
               "full_text": {
                 "type": "string"
+              },
+              "landmark": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             },
             "required": [
               "label",
-              "full_text"
+              "full_text",
+              "landmark"
+            ]
+          },
+          "clinic": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "phone"
+            ]
+          },
+          "visit_code": {
+            "type": [
+              "string",
+              "null"
             ]
           },
           "scheduled_start": {
@@ -5292,6 +5342,8 @@
           "service",
           "patient_profile",
           "address",
+          "clinic",
+          "visit_code",
           "scheduled_start",
           "scheduled_end",
           "provider",
@@ -5783,6 +5835,55 @@
               "null"
             ]
           },
+          "clinic": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "check_in": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "method": {
+                "type": "string",
+                "enum": [
+                  "code",
+                  "without_code"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "method",
+              "reason",
+              "at"
+            ]
+          },
           "allowed_actions": {
             "type": "array",
             "items": {
@@ -5810,6 +5911,8 @@
           "payment_method",
           "payment_status",
           "is_on_time",
+          "clinic",
+          "check_in",
           "allowed_actions",
           "can_chat"
         ]
@@ -19584,7 +19687,7 @@
     },
     "/api/v1/provider/bookings/{id}/start": {
       "post": {
-        "summary": "Start the visit (records whether it was on time)",
+        "summary": "Start the visit (records whether it was on time). Clinic visits: with the patient’s 4-digit visit_code (5 tries), or without_code_reason (audited).",
         "tags": [
           "Provider — Bookings"
         ],
@@ -19605,6 +19708,28 @@
             "in": "path"
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "visit_code": {
+                    "type": "string",
+                    "pattern": "^\\d{4}$"
+                  },
+                  "without_code_reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 300
+                  }
+                },
+                "default": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Success",

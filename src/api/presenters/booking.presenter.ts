@@ -81,6 +81,15 @@ export const presentListItem = (
   currency: 'EGP' as const,
 });
 
+/** Clinic visits: the clinic phone is shown from confirmation on. */
+const CLINIC_PHONE_STATUSES = [
+  BookingStatus.ACCEPTED,
+  BookingStatus.IN_PROGRESS,
+  BookingStatus.COMPLETED,
+  BookingStatus.NO_SHOW,
+  BookingStatus.DISPUTED,
+];
+
 export const presentDetail = (input: {
   booking: IBooking;
   timeline: IBookingStatusHistory[];
@@ -100,7 +109,17 @@ export const presentDetail = (input: {
     status: b.status,
     service: { id: String(b.serviceId), name: serviceName(b, input.lang) },
     patient_profile: { id: String(b.patientProfileId) },
-    address: { label: b.address.label, full_text: b.address.fullText },
+    address: { label: b.address.label, full_text: b.address.fullText, landmark: b.address.landmark ?? null },
+    clinic:
+      b.clinicId && b.clinic
+        ? {
+            id: String(b.clinicId),
+            name: b.clinic.name,
+            // The phone once confirmed (decision: never before booking).
+            phone: CLINIC_PHONE_STATUSES.includes(b.status) ? b.clinic.phone : null,
+          }
+        : null,
+    visit_code: b.visitCode && b.status === BookingStatus.ACCEPTED ? b.visitCode : null,
     scheduled_start: b.scheduledStart.toISOString(),
     scheduled_end: b.scheduledEnd.toISOString(),
     provider: input.provider
@@ -202,6 +221,10 @@ export const presentProviderDetail = (input: {
     payment_method: b.paymentMethod,
     payment_status: b.paymentStatus,
     is_on_time: b.isOnTime,
+    clinic: b.clinicId && b.clinic ? { id: String(b.clinicId), name: b.clinic.name } : null,
+    check_in: b.checkIn
+      ? { method: b.checkIn.method, reason: b.checkIn.reason, at: b.checkIn.at.toISOString() }
+      : null,
     allowed_actions: input.allowedActions,
     can_chat: chatOpen(b),
   };

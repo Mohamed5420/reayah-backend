@@ -67,6 +67,8 @@ export interface Settings {
   clinic_commission_rate: number;
   /** Clinics an independent doctor may have. */
   max_clinics_per_doctor: number;
+  /** Clinic visits: upcoming clinic appointments one patient account may hold (against slot hoarding). */
+  max_upcoming_clinic_bookings: number;
   features: { video_consult: boolean; card_payment: boolean; packages: boolean; clinic_visits: boolean };
 }
 
@@ -101,6 +103,7 @@ export const SETTING_DEFAULTS: Settings = {
   clinic_no_show_fee_percent: 0,
   clinic_commission_rate: -1,
   max_clinics_per_doctor: 3,
+  max_upcoming_clinic_bookings: 3,
   features: { video_consult: false, card_payment: false, packages: false, clinic_visits: false },
 };
 
@@ -156,6 +159,7 @@ export const SETTING_VALIDATORS: { [K in SettingKey]: Validator<Settings[K]> } =
   clinic_no_show_fee_percent: intBetween(0, 100),
   clinic_commission_rate: intBetween(-1, 100),
   max_clinics_per_doctor: intBetween(1, 20),
+  max_upcoming_clinic_bookings: intBetween(1, 20),
   features: shape<Settings['features']>({
     video_consult: isBoolean,
     card_payment: isBoolean,

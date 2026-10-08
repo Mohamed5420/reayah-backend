@@ -67,7 +67,11 @@ const r = {
   accept: action('accept', 'Accept a direct request (before the response deadline)'),
   decline: action('decline', 'Decline a direct request', BookingSchemas.declineBody),
   onTheWay: action('on-the-way', 'Manual "on my way" (no location is collected)'),
-  start: action('start', 'Start the visit (records whether it was on time)'),
+  start: action(
+    'start',
+    'Start the visit (records whether it was on time). Clinic visits: with the patient’s 4-digit visit_code (5 tries), or without_code_reason (audited).',
+    BookingSchemas.startBody,
+  ),
   complete: action('complete', 'End the visit'),
   noShow: action('no-show', 'Patient not available (from the booked time on)'),
   cancel: action('cancel', 'Cancel an accepted visit', BookingSchemas.providerCancelBody),
@@ -205,7 +209,16 @@ export default class ProviderBookingController implements IBaseController {
     visit(r.onTheWay, async (req) =>
       this.bookings.onTheWay(await this.profile(req), req.params.id, req.user!.id),
     );
-    visit(r.start, async (req) => this.bookings.start(await this.profile(req), req.params.id, req.user!.id));
+    visit(r.start, async (req) => {
+      const body = (req.body ?? {}) as z.infer<typeof BookingSchemas.startBody>;
+      return this.bookings.start(
+        await this.profile(req),
+        req.params.id,
+        req.user!.id,
+        { visitCode: body.visit_code, withoutCodeReason: body.without_code_reason },
+        auditContextFrom(req),
+      );
+    });
     visit(r.complete, async (req) =>
       this.bookings.complete(await this.profile(req), req.params.id, req.user!.id),
     );

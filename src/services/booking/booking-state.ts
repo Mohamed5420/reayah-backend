@@ -47,8 +47,18 @@ export const canTransition = (
   actor: BookingActor,
   type: BookingType,
 ) => {
-  // Video consultations have no journey (spec §5).
-  if (to === S.ON_THE_WAY && type === BookingType.VIDEO) return false;
+  // Video consultations and clinic visits have no journey (spec §5; clinic visits C3).
+  if (to === S.ON_THE_WAY && (type === BookingType.VIDEO || type === BookingType.CLINIC_VISIT)) return false;
+  // Clinic visits with instant confirmation: the system confirms a free appointment (when booked, or
+  // once paid) — clinic visits only.
+  if (
+    type === BookingType.CLINIC_VISIT &&
+    actor === SYSTEM &&
+    to === S.ACCEPTED &&
+    (from === S.PENDING || from === S.AWAITING_PAYMENT)
+  ) {
+    return true;
+  }
   return TRANSITIONS[from]?.[to]?.includes(actor) ?? false;
 };
 
