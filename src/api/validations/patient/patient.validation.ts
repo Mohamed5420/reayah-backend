@@ -83,6 +83,12 @@ export const PatientSchemas = {
       allergies: z.array(allergy),
       documents_count: z.number(),
       visit_reports_count: z.number(),
+      /**
+       * The account holder withdrew health-data consent: medical data is kept and shown here read-only,
+       * not shared with providers. Show `health_data_notice` and a way to consent again.
+       */
+      health_data_paused: z.boolean(),
+      health_data_notice: z.string().nullable(),
     })
     .openapi('PatientProfileDetail'),
 

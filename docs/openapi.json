@@ -1849,6 +1849,15 @@
               },
               "visit_reports_count": {
                 "type": "number"
+              },
+              "health_data_paused": {
+                "type": "boolean"
+              },
+              "health_data_notice": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             },
             "required": [
@@ -1856,7 +1865,9 @@
               "medications",
               "allergies",
               "documents_count",
-              "visit_reports_count"
+              "visit_reports_count",
+              "health_data_paused",
+              "health_data_notice"
             ]
           }
         ]
@@ -5408,6 +5419,9 @@
               "allergies"
             ]
           },
+          "medical_summary_withheld": {
+            "type": "boolean"
+          },
           "patient_notes": {
             "type": [
               "string",
@@ -5479,6 +5493,7 @@
           "patient",
           "address",
           "medical_summary",
+          "medical_summary_withheld",
           "patient_notes",
           "price",
           "payment_method",

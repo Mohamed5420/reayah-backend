@@ -9,7 +9,10 @@ import {
   type IConsentRecord,
 } from '../../interfaces/IConsent';
 import { AuditService, type AuditContext } from '../audit/audit.service';
-import { ConflictError, ValidationError } from '../../utils/types-errors';
+import { ConflictError, HealthDataConsentWithdrawnError, ValidationError } from '../../utils/types-errors';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../../interfaces/INotification';
+import { logger } from '../../utils/logger/winston';
 
 const KIND_ORDER = Object.values(ConsentKind);
 
@@ -38,6 +41,12 @@ export type PublishConsentInput = {
  * and nothing is required until a kind has a published version. From then on sign-up must accept the
  * current versions for the role, and `GET /me/consents` tells the app when someone has to accept a newer
  * one. Every acceptance or withdrawal is an append-only `consent_records` row (user, kind, version, time, IP).
+ *
+ * Interim rule until counsel answers (launch decision): a patient who withdraws health-data consent keeps
+ * their account and can book, but their health data is paused (`healthDataPaused`): the medical profile,
+ * conditions, medications, allergies and documents of every profile they own are not shared with
+ * providers and can't be edited (still stored, still readable by the patient, with a notice). Accepting
+ * the current version again restores everything. The patient is notified on both changes.
  */
 @Service()
 export class ConsentService {
@@ -100,7 +109,42 @@ export class ConsentService {
         ip,
       };
     });
+    const pausedBefore = session ? null : await this.healthDataPaused(userId);
     if (rows.length) await ConsentRecordModel.insertMany(rows, { session });
+    if (pausedBefore !== null && rows.some((r) => r.kind === ConsentKind.HEALTH_DATA)) {
+      const pausedNow = await this.healthDataPaused(userId);
+      if (pausedNow !== pausedBefore) await this.notifyHealthData(String(userId), pausedNow);
+    }
+  }
+
+  /**
+   * True while the user's latest health-data consent record is a withdrawal (interim rule above). Never
+   * accepting (e.g. signed up before a text was published) is not a withdrawal.
+   */
+  async healthDataPaused(userId: Types.ObjectId | string) {
+    const last = await ConsentRecordModel.findOne({
+      userId: new Types.ObjectId(String(userId)),
+      kind: ConsentKind.HEALTH_DATA,
+    })
+      .sort({ createdAt: -1, _id: -1 })
+      .select('action')
+      .lean();
+    return last?.action === ConsentAction.WITHDRAWN;
+  }
+
+  /** For edits to medical data: refused while paused, with the notice as the message. */
+  async assertHealthDataAllowed(userId: string) {
+    if (await this.healthDataPaused(userId)) throw new HealthDataConsentWithdrawnError();
+  }
+
+  private async notifyHealthData(userId: string, paused: boolean) {
+    await Container.get(NotificationService)
+      .notify([userId], {
+        type: NotificationType.ACCOUNT,
+        template: paused ? 'health_data_paused' : 'health_data_resumed',
+        data: { kind: ConsentKind.HEALTH_DATA },
+      })
+      .catch((err: unknown) => logger.error(`Health-data consent notice failed for ${userId}`, err));
   }
 
   /** Inside the registration transaction: every current text for the role must be accepted. */

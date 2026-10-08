@@ -99,6 +99,12 @@ export class AccountSuspendedError extends HttpError {
   }
 }
 
+export class HealthDataConsentWithdrawnError extends HttpError {
+  constructor() {
+    super(403, ErrorCode.HEALTH_DATA_CONSENT_WITHDRAWN);
+  }
+}
+
 export class ProviderNotVerifiedError extends HttpError {
   constructor() {
     super(403, ErrorCode.PROVIDER_NOT_VERIFIED);

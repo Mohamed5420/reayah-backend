@@ -233,6 +233,8 @@ export const BookingSchemas = {
           allergies: z.array(z.string()),
         })
         .nullable(),
+      /** The patient withdrew health-data consent: no medical summary is shared — ask the patient directly. */
+      medical_summary_withheld: z.boolean(),
       patient_notes: z.string().nullable(),
       price: z.object({ total: money, travel_fee: money, provider_payout: money }),
       payment_method: z.enum(PaymentMethod),

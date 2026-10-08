@@ -28,6 +28,8 @@ import { VisitReportService } from '../../../services/aftercare';
 import { UserRole } from '../../../interfaces/enums';
 import { HttpResponse } from '../../../utils/response/http-response';
 import { camelizeKeys } from '../../../utils/case';
+import { ConsentService } from '../../../services/consent';
+import { resolveLanguage, t } from '../../../utils/i18n';
 
 const tags = ['Patient — Profiles & medical'];
 const auth = true;
@@ -218,6 +220,7 @@ export default class PatientProfileController implements IBaseController {
   private medical = Container.get(MedicalRecordService);
   private documents = Container.get(MedicalDocumentService);
   private reports = Container.get(VisitReportService);
+  private consents = Container.get(ConsentService);
 
   constructor() {
     this.initializeRoutes();
@@ -263,6 +266,7 @@ export default class PatientProfileController implements IBaseController {
 
   private async createProfile(req: Request, res: Response, next: NextFunction) {
     try {
+      if (req.body.blood_type != null) await this.consents.assertHealthDataAllowed(req.user!.id);
       const profile = await this.profiles.create(
         req.user!.id,
         this.toProfileInput(req.body),
@@ -285,6 +289,7 @@ export default class PatientProfileController implements IBaseController {
         allergies: summary.allergies.map(presentAllergy),
         documents_count: summary.documentsCount,
         visit_reports_count: await this.reports.countForProfile(req.params.id),
+        ...(await this.healthDataState(req)),
       });
     } catch (err) {
       next(err);
@@ -293,6 +298,7 @@ export default class PatientProfileController implements IBaseController {
 
   private async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
+      if ('blood_type' in req.body) await this.consents.assertHealthDataAllowed(req.user!.id);
       const profile = await this.profiles.update(
         req.user!.id,
         req.params.id,
@@ -322,6 +328,17 @@ export default class PatientProfileController implements IBaseController {
     } as PatientProfileInput;
   }
 
+  /** Interim rule (ConsentService): paused health data is shown read-only, with the notice. */
+  private async healthDataState(req: Request) {
+    const paused = await this.consents.healthDataPaused(req.user!.id);
+    return {
+      health_data_paused: paused,
+      health_data_notice: paused
+        ? t('consent_notice.health_data_paused', undefined, resolveLanguage(req))
+        : null,
+    };
+  }
+
   // ── Medical records ──
 
   private mountRecords(kind: RecordKind) {
@@ -345,6 +362,7 @@ export default class PatientProfileController implements IBaseController {
     this.mount(routes.create, async (req, res, next) => {
       try {
         await this.profiles.getOwned(req.user!.id, req.params.id);
+        await this.consents.assertHealthDataAllowed(req.user!.id);
         const record = await service.create(req.params.id, camelizeKeys(req.body), auditContextFrom(req));
         return HttpResponse.created(res, present_(record as never));
       } catch (err) {
@@ -355,6 +373,7 @@ export default class PatientProfileController implements IBaseController {
     this.mount(routes.update, async (req, res, next) => {
       try {
         await this.profiles.getOwned(req.user!.id, req.params.id);
+        await this.consents.assertHealthDataAllowed(req.user!.id);
         const record = await service.update(
           req.params.id,
           req.params.record_id,
@@ -370,6 +389,7 @@ export default class PatientProfileController implements IBaseController {
     this.mount(routes.remove, async (req, res, next) => {
       try {
         await this.profiles.getOwned(req.user!.id, req.params.id);
+        await this.consents.assertHealthDataAllowed(req.user!.id);
         await service.remove(req.params.id, req.params.record_id, auditContextFrom(req));
         return HttpResponse.noContent(res);
       } catch (err) {
@@ -396,6 +416,7 @@ export default class PatientProfileController implements IBaseController {
   private async attachDocument(req: Request, res: Response, next: NextFunction) {
     try {
       await this.profiles.getOwned(req.user!.id, req.params.id);
+      await this.consents.assertHealthDataAllowed(req.user!.id);
       const body = req.body as z.infer<typeof PatientSchemas.attachDocumentBody>;
       const { document, fileUrl } = await this.documents.attach(
         req.user!.id,
@@ -412,6 +433,7 @@ export default class PatientProfileController implements IBaseController {
   private async removeDocument(req: Request, res: Response, next: NextFunction) {
     try {
       await this.profiles.getOwned(req.user!.id, req.params.id);
+      await this.consents.assertHealthDataAllowed(req.user!.id);
       await this.documents.remove(req.params.id, req.params.record_id, auditContextFrom(req));
       return HttpResponse.noContent(res);
     } catch (err) {

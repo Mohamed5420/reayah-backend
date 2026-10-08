@@ -160,6 +160,7 @@ export const presentProviderDetail = (input: {
   patientProfile: IPatientProfile | null;
   patientPhone: string | null;
   medical: { conditions: IMedicalCondition[]; medications: IMedication[]; allergies: IAllergy[] } | null;
+  medicalWithheld?: boolean;
   allowedActions: string[];
   lang: Language;
 }) => {
@@ -195,6 +196,7 @@ export const presentProviderDetail = (input: {
           allergies: input.medical.allergies.map((a) => a.name),
         }
       : null,
+    medical_summary_withheld: Boolean(input.medicalWithheld),
     patient_notes: revealed ? decryptNullable(b.patientNotes) : null,
     price: { total: b.price.total, travel_fee: b.price.travelFee, provider_payout: b.price.providerPayout },
     payment_method: b.paymentMethod,

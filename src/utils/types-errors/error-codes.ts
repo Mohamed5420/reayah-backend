@@ -22,6 +22,8 @@ export enum ErrorCode {
   OTP_MAX_ATTEMPTS = 'OTP_MAX_ATTEMPTS',
   ACCOUNT_SUSPENDED = 'ACCOUNT_SUSPENDED',
   PROVIDER_NOT_VERIFIED = 'PROVIDER_NOT_VERIFIED',
+  /** Not in the spec list: the patient withdrew health-data consent, so medical data is read-only and not shared. */
+  HEALTH_DATA_CONSENT_WITHDRAWN = 'HEALTH_DATA_CONSENT_WITHDRAWN',
 
   // ── Booking ──
   SLOT_UNAVAILABLE = 'SLOT_UNAVAILABLE',

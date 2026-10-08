@@ -38,6 +38,7 @@ import {
   runBookingTransaction,
   transitionBooking,
 } from './booking-transaction';
+import { ConsentService } from '../consent/consent.service';
 
 type ProviderDoc = HydratedDocument<IProviderProfile>;
 
@@ -133,15 +134,22 @@ export class ProviderBookingService {
           UserModel.findById(booking.patientUserId).select('phone').setOptions({ withDeleted: true }).lean(),
         ])
       : [null, null];
-    const medical = hasMedicalAccess(booking)
-      ? await this.patients.medicalSummary(String(booking.patientProfileId), context)
-      : null;
+    // Health-data consent withdrawn (interim rule, ConsentService): nothing medical is shared, and the
+    // provider is told it was withheld so an empty summary isn't read as "no allergies".
+    const medicalWithheld =
+      hasMedicalAccess(booking) &&
+      (await Container.get(ConsentService).healthDataPaused(booking.patientUserId));
+    const medical =
+      hasMedicalAccess(booking) && !medicalWithheld
+        ? await this.patients.medicalSummary(String(booking.patientProfileId), context)
+        : null;
     if (revealed && booking.patientNotes) await auditNotesRead(context, booking);
     return {
       booking,
       patientProfile,
       patientPhone: patientUser?.phone ?? null,
       medical,
+      medicalWithheld,
       allowedActions: allowedActions(booking),
     };
   }
