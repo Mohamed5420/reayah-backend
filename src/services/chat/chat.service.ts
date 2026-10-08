@@ -18,6 +18,7 @@ import {
   TooManyRequestsError,
   ValidationError,
 } from '../../utils/types-errors';
+import { AuditService, type AuditContext } from '../audit/audit.service';
 import { NotificationService } from '../notification/notification.service';
 import { StorageService, mimeOfKey } from '../storage/storage.service';
 
@@ -26,6 +27,8 @@ export { chatOpen, CHAT_HOURS_AFTER_COMPLETION } from './chat-window';
 /** Messages per user per minute. */
 export const CHAT_SENDS_PER_MINUTE = 30;
 export const MESSAGES_PAGE_MAX = 100;
+/** Admin dispute view: messages per conversation. */
+export const ADMIN_MESSAGES_MAX = 1000;
 
 /** A message as the API shows it: decrypted body, signed attachment URL. */
 export type MessageView = Omit<IMessage, 'body' | 'attachmentKey'> & {
@@ -36,14 +39,16 @@ export type MessageView = Omit<IMessage, 'body' | 'attachmentKey'> & {
 type Access = { booking: IBooking; role: ChatRole; providerUserId: string | null };
 
 /**
- * Patient ↔ provider chat, one conversation per booking (spec §4.9, §7.12). Only the booking's patient
- * and its currently assigned provider take part. Message bodies are encrypted at rest; pushes say only
- * that a message arrived (the text never goes to the push provider).
+ * Patient ↔ provider chat (spec §4.9, §7.12): one conversation per booking and provider. Only the booking's
+ * patient and its currently assigned provider take part; after an admin reassignment the old conversation
+ * is closed — read-only for the patient, gone for both providers, kept for admins (disputes).
+ * Message bodies are encrypted at rest; pushes say only that a message arrived (never the text).
  */
 @Service()
 export class ChatService {
   private readonly storage = Container.get(StorageService);
   private readonly notifications = Container.get(NotificationService);
+  private readonly audit = Container.get(AuditService);
 
   async send(
     userId: string,
@@ -51,7 +56,7 @@ export class ChatService {
     input: { body?: string | null; attachmentKey?: string | null },
   ) {
     const { booking, role, providerUserId } = await this.access(userId, bookingId);
-    if (!chatOpen(booking)) throw new ConflictError('errors.chat_closed');
+    if (!chatOpen(booking) || !booking.providerProfileId) throw new ConflictError('errors.chat_closed');
     const body = input.body?.trim() || null;
     if (!body && !input.attachmentKey) throw new ValidationError({ body: ['validation.required'] });
     if (await isOverLimit(`chat:${userId}`, CHAT_SENDS_PER_MINUTE, 60)) throw new TooManyRequestsError();
@@ -65,11 +70,14 @@ export class ChatService {
       : null;
     const now = new Date();
     const conversation = await ConversationModel.findOneAndUpdate(
-      { bookingId: booking._id },
+      { bookingId: booking._id, providerProfileId: booking.providerProfileId, closedAt: null },
       {
-        $setOnInsert: { bookingId: booking._id, patientUserId: booking.patientUserId },
-        $set: {
+        $setOnInsert: {
+          bookingId: booking._id,
           providerProfileId: booking.providerProfileId,
+          patientUserId: booking.patientUserId,
+        },
+        $set: {
           lastMessage: {
             body: body ? encryptField(body.slice(0, 120)) : null,
             senderRole: role,
@@ -108,12 +116,32 @@ export class ChatService {
     return view;
   }
 
-  /** Newest first, `limit` per page; pass the last id back as `before` for older messages. */
-  async messages(userId: string, bookingId: string, page: { before?: string; limit: number }) {
-    const { booking } = await this.access(userId, bookingId);
+  /**
+   * Newest first, `limit` per page; pass the last id back as `before` for older messages. Defaults to the
+   * open conversation with the current provider; a patient may pass `conversationId` to read a closed one.
+   */
+  async messages(
+    userId: string,
+    bookingId: string,
+    page: { before?: string; limit: number; conversationId?: string },
+  ) {
+    const { booking, role } = await this.access(userId, bookingId);
     const limit = Math.min(page.limit, MESSAGES_PAGE_MAX);
+    let conversation: IConversation | null;
+    if (page.conversationId) {
+      conversation =
+        role === ChatRole.PATIENT && Types.ObjectId.isValid(page.conversationId)
+          ? await ConversationModel.findOne({ _id: page.conversationId, bookingId: booking._id }).lean()
+          : null;
+      if (!conversation) throw new NotFoundError('errors.conversation_not_found');
+    } else {
+      conversation = await this.openConversation(booking);
+    }
+    if (!conversation) {
+      return { data: [], nextBefore: null, canSend: chatOpen(booking), conversationId: null };
+    }
     const rows = await MessageModel.find({
-      bookingId: booking._id,
+      conversationId: conversation._id,
       ...(page.before ? { _id: { $lt: new Types.ObjectId(page.before) } } : {}),
     })
       .sort({ _id: -1 })
@@ -124,16 +152,19 @@ export class ChatService {
     return {
       data,
       nextBefore: hasMore ? String(data[data.length - 1]._id) : null,
-      canSend: chatOpen(booking),
+      canSend: !conversation.closedAt && chatOpen(booking),
+      conversationId: String(conversation._id),
     };
   }
 
   /** Marks everything the other party sent as read; tells the sender over the socket. */
   async markRead(userId: string, bookingId: string) {
     const { booking, role, providerUserId } = await this.access(userId, bookingId);
+    const conversation = await this.openConversation(booking);
+    if (!conversation) return { read: 0 };
     const readAt = new Date();
     const result = await MessageModel.updateMany(
-      { bookingId: booking._id, senderRole: { $ne: role }, readAt: null },
+      { conversationId: conversation._id, senderRole: { $ne: role }, readAt: null },
       { readAt },
     );
     if (result.modifiedCount) {
@@ -148,8 +179,9 @@ export class ChatService {
   /** GET /conversations — the caller's chats, latest message first, with unread counts. */
   async conversations(userId: string, pagination: Pagination) {
     const profile = await ProviderProfileModel.findOne({ userId }).select('_id').lean();
+    // Providers see only their open conversations; patients also see closed ones (read-only).
     const query = profile
-      ? { providerProfileId: profile._id }
+      ? { providerProfileId: profile._id, closedAt: null }
       : { patientUserId: new Types.ObjectId(userId) };
     const myRole = profile ? ChatRole.PROVIDER : ChatRole.PATIENT;
     const [conversations, total] = await Promise.all([
@@ -181,10 +213,58 @@ export class ChatService {
           preview: c.lastMessage ? decryptNullable(c.lastMessage.body) : null,
           unread: unreadBy.get(String(c._id)) ?? 0,
           other: others.get(String(c._id)) ?? null,
-          canSend: chatOpen(booking),
+          canSend: !c.closedAt && chatOpen(booking),
         };
       }),
     };
+  }
+
+  /**
+   * After an admin reassigns a booking: closes the conversation with the previous provider. The patient
+   * keeps it read-only; neither provider can open it; admins still can.
+   */
+  async closeForReassignment(
+    bookingId: Types.ObjectId | string,
+    previousProviderProfileId: Types.ObjectId | string,
+  ) {
+    await ConversationModel.updateMany(
+      { bookingId, providerProfileId: previousProviderProfileId, closedAt: null },
+      { closedAt: new Date(), closedReason: 'reassigned' },
+    );
+  }
+
+  /** Every conversation of a booking with its messages, for admins (disputes). Audited: messages may hold health details. */
+  async forAdmin(bookingId: string, context: AuditContext) {
+    const booking = Types.ObjectId.isValid(bookingId) ? await BookingModel.findById(bookingId).lean() : null;
+    if (!booking) throw new NotFoundError('errors.booking_not_found');
+    const conversations = await ConversationModel.find({ bookingId: booking._id })
+      .sort({ createdAt: 1 })
+      .lean();
+    const result = await Promise.all(
+      conversations.map(async (conversation) => {
+        const messages = await MessageModel.find({ conversationId: conversation._id })
+          .sort({ _id: 1 })
+          .limit(ADMIN_MESSAGES_MAX)
+          .lean();
+        return { conversation, messages: await Promise.all(messages.map((m) => this.view(m))) };
+      }),
+    );
+    await this.audit.log(context, {
+      action: 'chat.read',
+      entityType: 'booking',
+      entityId: bookingId,
+      metadata: { conversations: conversations.length },
+    });
+    return result;
+  }
+
+  private openConversation(booking: IBooking) {
+    if (!booking.providerProfileId) return Promise.resolve(null);
+    return ConversationModel.findOne({
+      bookingId: booking._id,
+      providerProfileId: booking.providerProfileId,
+      closedAt: null,
+    }).lean();
   }
 
   /** Booking detail flag: can this booking be chatted about right now? */

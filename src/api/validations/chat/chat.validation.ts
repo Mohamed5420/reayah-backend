@@ -5,6 +5,7 @@ import { objectId, paginationQuery, z } from '../zod';
 const message = z
   .object({
     id: objectId,
+    conversation_id: objectId,
     booking_id: objectId,
     sender_id: objectId,
     sender_role: z.enum(ChatRole),
@@ -24,8 +25,15 @@ export const ChatSchemas = {
     /** A message id from the previous page: returns older messages. */
     before: objectId.optional(),
     limit: z.coerce.number().int().min(1).max(100).default(30),
+    /** Patients: read an earlier, closed conversation of this booking (from GET /conversations). */
+    conversation_id: objectId.optional(),
   }),
-  messagesMeta: z.object({ next_before: objectId.nullable(), can_send: z.boolean() }),
+  messagesMeta: z.object({
+    next_before: objectId.nullable(),
+    can_send: z.boolean(),
+    /** null until the first message. */
+    conversation_id: objectId.nullable(),
+  }),
   sendBody: z
     .strictObject({
       body: z.string().trim().max(2000).nullable().optional(),
@@ -56,7 +64,20 @@ export const ChatSchemas = {
         })
         .nullable(),
       unread_count: z.number(),
+      /** Closed after the booking was reassigned to another provider: read-only. */
+      closed: z.boolean(),
       can_send: z.boolean(),
     })
     .openapi('Conversation'),
 };
+
+/** GET /admin/bookings/{id}/conversations. */
+export const adminConversation = z
+  .object({
+    id: objectId,
+    provider_profile_id: objectId,
+    closed_at: z.string().nullable(),
+    closed_reason: z.enum(['reassigned']).nullable(),
+    messages: z.array(ChatSchemas.message),
+  })
+  .openapi('AdminConversation');

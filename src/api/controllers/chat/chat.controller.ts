@@ -94,10 +94,12 @@ export default class ChatController implements IBaseController {
       const page = await this.chat.messages(req.user!.id, req.params.id, {
         before: q.before,
         limit: q.limit,
+        conversationId: q.conversation_id,
       });
       return HttpResponse.ok(res, page.data.map(presentMessage), {
         next_before: page.nextBefore,
         can_send: page.canSend,
+        conversation_id: page.conversationId,
       });
     });
     this.mount(r.send, async (req, res) => {

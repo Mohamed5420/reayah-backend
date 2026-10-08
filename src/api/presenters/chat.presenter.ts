@@ -7,6 +7,7 @@ import type { Language } from '../../utils/i18n';
 
 export const presentMessage = (m: MessageView) => ({
   id: String(m._id),
+  conversation_id: String(m.conversationId),
   booking_id: String(m.bookingId),
   sender_id: String(m.senderId),
   sender_role: m.senderRole,
@@ -47,5 +48,15 @@ export const presentConversation = (
       }
     : null,
   unread_count: row.unread,
+  /** Closed after the booking moved to another provider: read-only. */
+  closed: !!row.conversation.closedAt,
   can_send: row.canSend,
+});
+
+export const presentAdminConversation = (row: { conversation: IConversation; messages: MessageView[] }) => ({
+  id: String(row.conversation._id),
+  provider_profile_id: String(row.conversation.providerProfileId),
+  closed_at: row.conversation.closedAt ? row.conversation.closedAt.toISOString() : null,
+  closed_reason: row.conversation.closedReason,
+  messages: row.messages.map(presentMessage),
 });

@@ -9,9 +9,11 @@ import { encryptOnWrite } from '../../../utils/crypto/field-encryption';
  */
 const conversationSchema = new Schema<IConversation>(
   {
-    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', required: true, unique: true },
+    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', required: true },
     patientUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    providerProfileId: { type: Schema.Types.ObjectId, ref: 'ProviderProfile', default: null },
+    providerProfileId: { type: Schema.Types.ObjectId, ref: 'ProviderProfile', required: true },
+    closedAt: { type: Date, default: null },
+    closedReason: { type: String, enum: ['reassigned', null], default: null },
     lastMessage: {
       type: new Schema(
         {
@@ -26,6 +28,11 @@ const conversationSchema = new Schema<IConversation>(
     },
   },
   baseSchemaOptions,
+);
+// One open conversation per booking and provider; closed ones stay for the record.
+conversationSchema.index(
+  { bookingId: 1, providerProfileId: 1 },
+  { unique: true, partialFilterExpression: { closedAt: { $type: 'null' } } },
 );
 conversationSchema.index({ patientUserId: 1, 'lastMessage.at': -1 });
 conversationSchema.index({ providerProfileId: 1, 'lastMessage.at': -1 });

@@ -19,6 +19,9 @@ import { BookingModel } from '../../src/database/models/booking/booking.model';
 import { ConversationModel, MessageModel } from '../../src/database/models/chat/chat.models';
 import { ChatRole } from '../../src/interfaces/IChat';
 import { socketIOHandler } from '../../src/gateway';
+import { createUserWithToken } from '../helpers/fixtures';
+import { UserRole } from '../../src/interfaces/enums';
+import { AuditLogModel } from '../../src/database/models/audit-log/audit-log.model';
 
 /** M2.2: patient ↔ provider chat per booking (spec §7.12). */
 
@@ -271,5 +274,62 @@ describe('live', () => {
     const read = next<{ reader_role: string }>(patientSocket, 'message.read');
     await as(provider.auth).post(`/bookings/${id}/messages/read`);
     expect(await read).toMatchObject({ event: 'message.read', booking_id: id, reader_role: 'provider' });
+  });
+});
+
+describe('after an admin reassigns the booking', () => {
+  it('the new provider starts fresh, the old chat is read-only for the patient, hidden from both providers, kept for admins', async () => {
+    const admin = await createUserWithToken(UserRole.ADMIN);
+    const id = await booking('accept');
+    await as(patient.auth).post(`/bookings/${id}/messages`, { body: 'للممرضة الأولى' });
+    await as(provider.auth).post(`/bookings/${id}/messages`, { body: 'رد الممرضة الأولى' });
+
+    const newcomer = await world.newProvider();
+    const moved = await as(admin.auth).post(`/admin/bookings/${id}/reassign`, {
+      provider_profile_id: newcomer.id,
+    });
+    expect(moved.status).toBe(200);
+
+    // Previous provider: no access at all.
+    expect((await as(provider.auth).get(`/bookings/${id}/messages`)).status).toBe(404);
+    expect((await as(provider.auth).get('/conversations')).body.data).toEqual([]);
+
+    // New provider: an empty chat, then their own conversation.
+    const fresh = await as(newcomer.auth).get(`/bookings/${id}/messages`);
+    expect(fresh.body.data).toEqual([]);
+    expect(fresh.body.meta).toMatchObject({ can_send: true, conversation_id: null });
+    await as(newcomer.auth).post(`/bookings/${id}/messages`, { body: 'أنا الممرضة الجديدة' });
+    const theirs = await as(newcomer.auth).get(`/bookings/${id}/messages`);
+    expect(theirs.body.data.map((m: { body: string }) => m.body)).toEqual(['أنا الممرضة الجديدة']);
+
+    // Patient: both conversations; the old one closed and read-only.
+    const list = await as(patient.auth).get('/conversations');
+    expect(list.body.data).toHaveLength(2);
+    const old = list.body.data.find((c: { closed: boolean }) => c.closed);
+    expect(old).toMatchObject({ closed: true, can_send: false, with: { id: provider.userId } });
+    const oldMessages = await as(patient.auth).get(`/bookings/${id}/messages?conversation_id=${old.id}`);
+    expect(oldMessages.body.data.map((m: { body: string }) => m.body)).toEqual([
+      'رد الممرضة الأولى',
+      'للممرضة الأولى',
+    ]);
+    expect(oldMessages.body.meta.can_send).toBe(false);
+    expect((await as(newcomer.auth).get(`/bookings/${id}/messages?conversation_id=${old.id}`)).status).toBe(
+      404,
+    );
+    const current = await as(patient.auth).get(`/bookings/${id}/messages`);
+    expect(current.body.data.map((m: { body: string }) => m.body)).toEqual(['أنا الممرضة الجديدة']);
+
+    // Admins see everything, and the view is audited.
+    const review = await as(admin.auth).get(`/admin/bookings/${id}/conversations`);
+    expect(review.body.data).toHaveLength(2);
+    expect(review.body.data[0]).toMatchObject({
+      closed_reason: 'reassigned',
+      provider_profile_id: provider.id,
+    });
+    expect(review.body.data[0].messages.map((m: { body: string }) => m.body)).toEqual([
+      'للممرضة الأولى',
+      'رد الممرضة الأولى',
+    ]);
+    expect(await AuditLogModel.exists({ action: 'chat.read', entityId: id, actorId: admin.id })).toBeTruthy();
   });
 });

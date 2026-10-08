@@ -5263,6 +5263,38 @@
           }
         },
         {
+          "name": "Every chat of the booking, including ones closed by a reassignment, decrypted (for disputes). Each view is audited.",
+          "request": {
+            "method": "GET",
+            "description": "Every chat of the booking, including ones closed by a reassignment, decrypted (for disputes). Each view is audited.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/bookings/:id/conversations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "bookings",
+                ":id",
+                "conversations"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "Disputes, oldest first",
           "request": {
             "method": "GET",
@@ -5536,6 +5568,11 @@
                 {
                   "key": "limit",
                   "value": "30",
+                  "disabled": true
+                },
+                {
+                  "key": "conversation_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
                   "disabled": true
                 }
               ],

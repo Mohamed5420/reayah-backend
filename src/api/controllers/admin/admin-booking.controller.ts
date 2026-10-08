@@ -5,7 +5,10 @@ import { CheckAppStatusMiddleware } from '../../middlewares/app';
 import { AdminGuard } from '../../middlewares/auth';
 import { AdminSchemas } from '../../validations/admin/admin.validation';
 import { AftercareSchemas } from '../../validations/aftercare/aftercare.validation';
-import { paginationQuery, type z } from '../../validations/zod';
+import { paginationQuery, z } from '../../validations/zod';
+import { adminConversation } from '../../validations/chat/chat.validation';
+import { presentAdminConversation } from '../../presenters/chat.presenter';
+import { ChatService } from '../../../services/chat/chat.service';
 import { presentAdminBooking, presentAdminBookingDetail } from '../../presenters/admin.presenter';
 import { presentAdminDispute, presentAdminReview } from '../../presenters/aftercare.presenter';
 import { defineRoute, type DefinedRoute } from '../../../docs/openapi';
@@ -58,6 +61,16 @@ const r = {
     auth,
     request: { params, body: AdminSchemas.reassignBody },
     response: { schema: AdminSchemas.bookingDetail },
+  }),
+  conversations: defineRoute({
+    method: 'get',
+    path: '/admin/bookings/:id/conversations',
+    summary:
+      'Every chat of the booking, including ones closed by a reassignment, decrypted (for disputes). Each view is audited.',
+    tags: bookings,
+    auth,
+    request: { params },
+    response: { schema: z.array(adminConversation) },
   }),
   disputes: defineRoute({
     method: 'get',
@@ -115,6 +128,7 @@ export default class AdminBookingController implements IBaseController {
   private bookings = Container.get(AdminBookingService);
   private disputes = Container.get(DisputeService);
   private reviews = Container.get(ReviewService);
+  private chat = Container.get(ChatService);
 
   constructor() {
     this.initializeRoutes();
@@ -146,6 +160,10 @@ export default class AdminBookingController implements IBaseController {
       await this.bookings.reassign(req.params.id, body.provider_profile_id, auditContextFrom(req));
       return this.bookingDetail(req);
     });
+
+    this.mount(r.conversations, async (req) =>
+      (await this.chat.forAdmin(req.params.id, auditContextFrom(req))).map(presentAdminConversation),
+    );
 
     this.list(r.disputes, async (req, pagination) => {
       const q = req.query as unknown as z.infer<typeof AftercareSchemas.adminDisputesQuery>;

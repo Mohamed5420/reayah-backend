@@ -201,7 +201,7 @@ Goal: a patient can book a verified nurse for a home visit in a covered area, pa
 ### M2.2 Chat (§4.9, §7.12)
 - [x] `conversations` (one per booking) + `messages`; available from `accepted` until 24 h after `completed`. *(Only the booking's patient and current provider; others get 404. History stays readable after the window. Message bodies and the list preview encrypted at rest. 30 messages/minute per user.)*
 - [x] REST (cursor pagination) + socket events `message.new`, `message.read`; chat push respects notification settings; attachments through `/uploads`. *(`?before=<id>&limit=` with `meta.next_before`; events go to `booking:<id>` and both users' rooms. Push only — no in-app notification per message — never carries the text (Google FCM is abroad), and is skipped while the recipient has the chat open. `can_chat` on patient and provider booking details.)*
-- [ ] Open question for the product team: after an admin reassigns a booking, the new provider sees the earlier chat with the previous provider. Keep, or start a fresh conversation per provider?
+- [x] Decision: one conversation per booking and provider. On an admin reassign the old one closes: read-only for the patient (`?conversation_id=`), no access for either provider, kept for admins (`GET /admin/bookings/{id}/conversations`, audited).
 
 ### M2.3 Card & wallet payments (§4.8, §7.14)
 - [ ] `PaymentGateway` interface + implementation for the chosen gateway (decision 1).

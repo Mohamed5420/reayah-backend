@@ -6,13 +6,17 @@ export enum ChatRole {
   PROVIDER = 'provider',
 }
 
-/** Spec §4.9 `conversations`: one per booking. Participants come from the booking (patient + assigned provider). */
+/**
+ * Spec §4.9 `conversations`: one per booking AND provider. When an admin reassigns the booking, the
+ * conversation with the previous provider is closed (read-only for the patient, hidden from both
+ * providers, kept for admins) and the new provider starts a fresh one.
+ */
 export interface IConversation {
   _id: Types.ObjectId;
   bookingId: Types.ObjectId;
   patientUserId: Types.ObjectId;
-  /** The provider assigned when the last message was sent (an admin reassign moves the chat with the booking). */
-  providerProfileId: Types.ObjectId | null;
+  /** The provider on this side of the conversation (fixed for its lifetime). */
+  providerProfileId: Types.ObjectId;
   lastMessage: {
     /** Encrypted; preview for the conversation list. */
     body: string | null;
@@ -20,6 +24,9 @@ export interface IConversation {
     hasAttachment: boolean;
     at: Date;
   } | null;
+  /** Set when the booking moved to another provider; no more messages after that. */
+  closedAt: Date | null;
+  closedReason: 'reassigned' | null;
   createdAt: Date;
   updatedAt: Date;
 }

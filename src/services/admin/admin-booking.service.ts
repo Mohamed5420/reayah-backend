@@ -26,6 +26,7 @@ import {
   transitionBooking,
 } from '../booking/booking-transaction';
 import { LedgerService } from '../ledger/ledger.service';
+import { ChatService } from '../chat/chat.service';
 import { auditNotesRead } from '../patient/medical-audit';
 
 /** Admin panel bookings (spec §7.15 "Bookings & disputes"). Every write is audited. */
@@ -33,6 +34,7 @@ import { auditNotesRead } from '../patient/medical-audit';
 export class AdminBookingService {
   private readonly audit = Container.get(AuditService);
   private readonly ledger = Container.get(LedgerService);
+  private readonly chat = Container.get(ChatService);
 
   async list(
     filters: { status?: BookingStatus; dateFrom?: Date; dateTo?: Date; areaId?: string; search?: string },
@@ -220,6 +222,8 @@ export class AdminBookingService {
         tx.publish({ type: 'offer_taken', booking: result, providerProfileIds: [String(previous)] });
       return result;
     });
+    // The previous provider's chat closes: read-only for the patient, kept for admins; the new provider starts fresh.
+    if (previous) await this.chat.closeForReassignment(booking._id, previous);
     await this.audit.log(context, {
       action: 'booking.reassign',
       entityType: 'booking',

@@ -6086,6 +6086,126 @@
         ],
         "additionalProperties": false
       },
+      "AdminConversation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "provider_profile_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "closed_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "closed_reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "reassigned",
+              null
+            ]
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "provider_profile_id",
+          "closed_at",
+          "closed_reason",
+          "messages"
+        ]
+      },
+      "ChatMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "conversation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "booking_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "sender_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "sender_role": {
+            "type": "string",
+            "enum": [
+              "patient",
+              "provider"
+            ]
+          },
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attachment": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "file_url": {
+                "type": "string"
+              },
+              "mime": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_url",
+              "mime"
+            ]
+          },
+          "read_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "conversation_id",
+          "booking_id",
+          "sender_id",
+          "sender_role",
+          "body",
+          "attachment",
+          "read_at",
+          "created_at"
+        ]
+      },
       "AdminDispute": {
         "type": "object",
         "properties": {
@@ -6480,6 +6600,9 @@
           "unread_count": {
             "type": "number"
           },
+          "closed": {
+            "type": "boolean"
+          },
           "can_send": {
             "type": "boolean"
           }
@@ -6490,77 +6613,8 @@
           "with",
           "last_message",
           "unread_count",
+          "closed",
           "can_send"
-        ]
-      },
-      "ChatMessage": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{24}$/i",
-            "example": "665f1c2b9e1d2a4c3b9e8f1a"
-          },
-          "booking_id": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{24}$/i",
-            "example": "665f1c2b9e1d2a4c3b9e8f1a"
-          },
-          "sender_id": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{24}$/i",
-            "example": "665f1c2b9e1d2a4c3b9e8f1a"
-          },
-          "sender_role": {
-            "type": "string",
-            "enum": [
-              "patient",
-              "provider"
-            ]
-          },
-          "body": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "attachment": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "properties": {
-              "file_url": {
-                "type": "string"
-              },
-              "mime": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "file_url",
-              "mime"
-            ]
-          },
-          "read_at": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "created_at": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "booking_id",
-          "sender_id",
-          "sender_role",
-          "body",
-          "attachment",
-          "read_at",
-          "created_at"
         ]
       },
       "SendMessage": {
@@ -15711,6 +15765,64 @@
         }
       }
     },
+    "/api/v1/admin/bookings/{id}/conversations": {
+      "get": {
+        "summary": "Every chat of the booking, including ones closed by a reassignment, decrypted (for disputes). Each view is audited.",
+        "tags": [
+          "Admin — Bookings & disputes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminConversation"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/disputes": {
       "get": {
         "summary": "Disputes, oldest first",
@@ -16189,6 +16301,16 @@
             "required": false,
             "name": "limit",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
+            "name": "conversation_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -16218,11 +16340,20 @@
                         },
                         "can_send": {
                           "type": "boolean"
+                        },
+                        "conversation_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "pattern": "^[0-9a-f]{24}$/i",
+                          "example": "665f1c2b9e1d2a4c3b9e8f1a"
                         }
                       },
                       "required": [
                         "next_before",
-                        "can_send"
+                        "can_send",
+                        "conversation_id"
                       ]
                     }
                   },
