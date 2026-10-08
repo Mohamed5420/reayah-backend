@@ -21,6 +21,15 @@ const DEFERRED: Array<[RegExp, string]> = [
   [/^\w+ \/admin\/analytics|^POST \/admin\/notifications\/broadcast/, 'M3.5 — Advanced admin'],
 ];
 
+/** Milestones put on hold (docs/BUILD_PLAN.md) whose spec surface is fields and enums, not endpoints. */
+const DEFERRED_MILESTONES = [
+  {
+    milestone: 'M2.6 — Video consultations',
+    covers:
+      'Bookings with `type = video` (refused while `features.video_consult` is off, the default); the `video` block on booking details (always `null`); the `video_consultation` category and its services (hidden from lookups, search and booking while the flag is off).',
+  },
+];
+
 type SpecEndpoint = { section: string; method: string; path: string; description: string };
 
 const specEndpoints = (): SpecEndpoint[] => {
@@ -86,6 +95,14 @@ describe('API coverage against the spec', () => {
       }
       lines.push(`| \`${e.method}\` | \`${e.path}\` | ${e.done ? '✅ Built' : `⏳ ${e.deferredTo}`} |`);
     }
+    lines.push(
+      '',
+      '## Deferred milestones (no endpoints of their own)',
+      '',
+      '| Milestone | Status | What waits for it |',
+      '|---|---|---|',
+      ...DEFERRED_MILESTONES.map((m) => `| ${m.milestone} | ⏸ Deferred — not cancelled | ${m.covers} |`),
+    );
     const content = `${lines.join('\n')}\n`;
     const file = path.resolve(__dirname, '../../docs/API_COVERAGE.md');
     if (process.env.UPDATE_API_COVERAGE) fs.writeFileSync(file, content);

@@ -226,11 +226,12 @@ Goal: a patient can book a verified nurse for a home visit in a covered area, pa
 - [x] Referrals: code per user, 50 EGP credit each side after the referred user's first completed booking. *(Decision: patients get in-app credit applied automatically to their next bookings (as much as each needs; given back if that booking ends without a visit); a provider referrer gets it on their earnings ledger (`referral_reward`). A phone number can be referred once ever. A booking fully covered by credit / package has total 0 and payment method `covered` (paid; the provider is credited their share like a card booking, so cash reports, commission dues and the commission limit are unaffected; the quote says `payment_required: false`). On a covered no-show (or a cancellation after "on the way") the travel-fee charge paid with credit is kept and credited to the provider, as with card; the package visit and the rest of the credit come back. Reward notices are account notifications, pushed even with promotions turned off.)*
 - [x] Admin banners; `GET /home` now returns banners and active package. *(Banner actions: none / promo / service / category / package / https url; optional start / end dates.)*
 
-### M2.6 Video consultations
+### M2.6 Video consultations — ⏸ DEFERRED (not cancelled; we'll come back to it)
+Put on hold by product decision: no video work at this stage. Until it resumes, the `video_consult` flag stays **off**, and while it is off the server refuses any booking with `type = video` (quote, booking, reschedule and rebook all go through the quote check) and the `video_consultation` category and its services are left out of every public lookup, search, provider service list and booking — even if an admin activates the category (`CatalogService`, `tests/integration/video-deferred.test.ts`). The booking detail's `video` block stays `null`.
 - [ ] Video SDK integration (decision pending): room creation on accept, `join_available_at`, booking `type = video` with no travel fee and no `on_the_way`.
-- [ ] Feature flag `video_consult` in `/app-config`.
+- [ ] Feature flag `video_consult` in `/app-config`. *(The flag is already served, off.)*
 
-**Phase 2 exit:** card payment and payout reconcile in a test run (payment → completion → ledger → payout batch → mark paid), and chat, packages and promos work end to end.
+**Phase 2 exit** (does not depend on video): card payment and payout reconcile in a test run (payment → completion → ledger → payout batch → mark paid), and chat, packages and promos work end to end. ✅ Met by `tests/integration/phase2-exit.test.ts`: a card + promo visit paid by webhook (with chat), a cash visit and a package visit, then a payout batch approved and marked paid; the payout statement adds up and gateway money in − payout = commission − promo + unused package value.
 
 ---
 

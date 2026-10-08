@@ -292,3 +292,8 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `GET` | `/admin/admins` | ✅ Built |
 | `POST` | `/admin/admins` | ✅ Built |
 | `PATCH` | `/admin/admins/{id}` | ✅ Built |
+## Deferred milestones (no endpoints of their own)
+
+| Milestone | Status | What waits for it |
+|---|---|---|
+| M2.6 — Video consultations | ⏸ Deferred — not cancelled | Bookings with `type = video` (refused while `features.video_consult` is off, the default); the `video` block on booking details (always `null`); the `video_consultation` category and its services (hidden from lookups, search and booking while the flag is off). |
