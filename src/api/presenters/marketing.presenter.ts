@@ -16,6 +16,7 @@ export const presentPackage = (
   pkg: IPackage,
   service: { id: string; nameAr: string; nameEn: string | null },
   lang: Language,
+  organization: { id: string; name: string } | null = null,
 ) => ({
   id: String(pkg._id),
   name: localized(pkg.nameAr, pkg.nameEn, lang),
@@ -26,6 +27,8 @@ export const presentPackage = (
   price: pkg.price,
   per_visit_value: perVisitValue(pkg),
   currency: 'EGP' as const,
+  /** An organization's package: book that organization with it. null = a platform package. */
+  organization,
   travel_fee_included: false as const,
   travel_fee_note: t('packages.travel_fee_note', {}, lang),
 });

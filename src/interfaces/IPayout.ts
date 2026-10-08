@@ -40,6 +40,8 @@ export type PayoutStatement = {
   /** Cash bookings with a discount the platform bears. */
   discountsReimbursed: number;
   referralRewards: number;
+  /** Organizations: plan fees (net of credits) in the period. */
+  subscriptionFees: number;
   otherDeductions: number;
   adjustments: number;
   net: number;

@@ -102,12 +102,12 @@ export default class MarketingController implements IBaseController {
       const rows = await this.packages.listAvailable({ serviceId: q.service_id, areaId: q.area_id });
       return HttpResponse.ok(
         res,
-        rows.map(({ pkg, service }) => presentPackage(pkg, service, lang)),
+        rows.map(({ pkg, service, organization }) => presentPackage(pkg, service, lang, organization)),
       );
     });
     this.mount(r.package, [UserRole.PATIENT], async (req, res) => {
-      const { pkg, service } = await this.packages.getAvailable(req.params.id);
-      return HttpResponse.ok(res, presentPackage(pkg, service, resolveLanguage(req)));
+      const { pkg, service, organization } = await this.packages.getAvailable(req.params.id);
+      return HttpResponse.ok(res, presentPackage(pkg, service, resolveLanguage(req), organization));
     });
     this.router.post(
       r.subscribe.path,

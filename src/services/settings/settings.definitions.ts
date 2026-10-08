@@ -37,6 +37,10 @@ export interface Settings {
   travel_fee_on_no_show: boolean;
   /** Referral credit for each side, piastres. */
   referral_reward: number;
+  /** Organizations: tell the owner a plan fee is still unpaid this many days after it was charged. */
+  plan_fee_notice_days: number;
+  /** Organizations: still unpaid this many days after it was charged → moved to the free default plan. */
+  plan_fee_downgrade_days: number;
   /** Tell patients this many days before their package expires. */
   package_expiry_notice_days: number;
   /** Weekly payout batch day. */
@@ -68,6 +72,8 @@ export const SETTING_DEFAULTS: Settings = {
   travel_fee_on_no_show: true,
   referral_reward: 5000,
   package_expiry_notice_days: 3,
+  plan_fee_notice_days: 14,
+  plan_fee_downgrade_days: 21,
   payout_day: 'thursday',
   payout_min_amount: 10000,
   max_commission_due: 100000,
@@ -114,6 +120,8 @@ export const SETTING_VALIDATORS: { [K in SettingKey]: Validator<Settings[K]> } =
   travel_fee_on_no_show: isBoolean,
   referral_reward: intBetween(0, 10_000_000),
   package_expiry_notice_days: intBetween(0, 60),
+  plan_fee_notice_days: intBetween(1, 90),
+  plan_fee_downgrade_days: intBetween(1, 120),
   payout_day: (v): v is Weekday => WEEKDAYS.includes(v as Weekday),
   payout_min_amount: intBetween(0, 100_000_00),
   max_commission_due: intBetween(0, 100_000_00),

@@ -22,6 +22,7 @@ type PackageModelType = Model<IPackage, object, SoftDeleteMethods>;
 
 const packageSchema = new Schema<IPackage, PackageModelType, SoftDeleteMethods>(
   {
+    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', default: null },
     nameAr: { type: String, required: true, trim: true },
     nameEn: { type: String, trim: true, default: null },
     descriptionAr: { type: String, default: null },
@@ -37,6 +38,7 @@ const packageSchema = new Schema<IPackage, PackageModelType, SoftDeleteMethods>(
 );
 packageSchema.plugin(softDeletePlugin);
 packageSchema.index({ isActive: 1, serviceId: 1, sortOrder: 1 });
+packageSchema.index({ organizationId: 1 });
 
 export const PackageModel = model<IPackage, PackageModelType>('Package', packageSchema);
 
@@ -49,6 +51,7 @@ const packageSubscriptionSchema = new Schema<IPackageSubscription>(
     package: {
       nameAr: { type: String, required: true },
       nameEn: { type: String, default: null },
+      organizationId: { type: Schema.Types.ObjectId, default: null },
       serviceId: { type: Schema.Types.ObjectId, required: true },
       visitsCount: { type: Number, required: true },
       validityDays: { type: Number, required: true },

@@ -38,6 +38,8 @@ const payout = z
         description: 'Promo / package / credit discounts on cash visits — the platform bears them',
       }),
       referral_rewards: z.number(),
+      /** Organizations: plan fees net of credits, taken from this payout. */
+      subscription_fees: z.number(),
       other_deductions: z.number().openapi({ description: 'e.g. dispute refunds you bore' }),
       adjustments: z.number(),
       net: z.number(),
@@ -107,7 +109,11 @@ export const FinanceSchemas = {
   adminPayout: z
     .object({
       ...payout.shape,
+      owner_type: z.enum(LedgerOwnerType),
+      /** Set for a provider's payout. */
       provider: z.object({ id: objectId, name: z.string(), phone: z.string() }).nullable(),
+      /** Set for an organization's payout. */
+      organization: z.object({ id: objectId, name: z.string(), phone: z.string() }).nullable(),
       /** Full details, to make the transfer. */
       destination_details: z.record(z.string(), z.string().nullable()),
     })
@@ -119,7 +125,9 @@ export const FinanceSchemas = {
   cancelBody: z.strictObject({ reason: z.string().trim().min(3).max(500) }),
   commissionDue: z
     .object({
+      owner_type: z.enum(LedgerOwnerType),
       provider: z.object({ id: objectId, name: z.string(), phone: z.string() }).nullable(),
+      organization: z.object({ id: objectId, name: z.string(), phone: z.string() }).nullable(),
       amount_due: z.number(),
       /** Above max_commission_due: no new cash bookings until paid down. Listed first. */
       over_limit: z.boolean(),

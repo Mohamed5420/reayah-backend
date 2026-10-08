@@ -38,6 +38,7 @@ import { ProviderCoverageService } from '../provider/provider-coverage.service';
 import { SmsService } from '../sms/sms.service';
 import type { OrganizationDoc } from './organization.service';
 import { OrgBookingService } from './org-booking.service';
+import { SubscriptionService } from './subscription.service';
 
 /** Invites per organization per day (SMS costs money and can be abused). */
 const INVITES_PER_DAY = 30;
@@ -77,6 +78,8 @@ export class StaffService {
     }
     const existing = await UserModel.findOne({ phone: input.phone }).lean();
     if (existing) await this.assertCanJoin(existing, org._id);
+    // Plan limit (decision M3.4): members + open invites; existing staff are never affected.
+    await Container.get(SubscriptionService).assertCanAddStaff(org._id);
     if (await isOverLimit(`staff-invite:${String(org._id)}`, INVITES_PER_DAY, 24 * 3600)) {
       throw new TooManyRequestsError();
     }
@@ -217,6 +220,7 @@ export class StaffService {
    */
   async joinAtSignup(session: ClientSession, user: { _id: Types.ObjectId; phone: string }, inviteId: string) {
     const invite = await this.claim(session, inviteId, user.phone, user._id);
+    await Container.get(SubscriptionService).assertCanAddStaff(invite.organizationId, false);
     await ProviderProfileModel.create(
       [{ userId: user._id, organizationId: invite.organizationId, type: invite.type }],
       { session },
@@ -233,6 +237,7 @@ export class StaffService {
     const invite = await withTransaction(async (session) => {
       const claimed = await this.claim(session, inviteId, user.phone, user._id);
       await this.assertCanJoin(user, claimed.organizationId, session);
+      await Container.get(SubscriptionService).assertCanAddStaff(claimed.organizationId, false);
       await UserModel.updateOne({ _id: userId }, { role: UserRole.PROVIDER_STAFF }, { session });
       // Areas, services and prices now come from the organization (the owner sets them).
       await ProviderProfileModel.updateOne(

@@ -25,6 +25,10 @@ export enum LedgerEntryType {
   CREDIT_USED = 'credit_used',
   /** Credit given back when that booking ended without a visit. */
   CREDIT_RESTORED = 'credit_restored',
+  /** Organizations: a month of their plan (negative; netted from earnings — decision M3.4). */
+  SUBSCRIPTION_FEE = 'subscription_fee',
+  /** Organizations: the unused part of a paid month given back when changing plan. */
+  SUBSCRIPTION_CREDIT = 'subscription_credit',
 }
 
 /**

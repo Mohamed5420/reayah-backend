@@ -28,6 +28,7 @@ import OrganizationController from './organization/organization.controller';
 import AdminOrganizationController from './admin/admin-organization.controller';
 import OrgStaffController from './organization/org-staff.controller';
 import OrgBookingController from './organization/org-booking.controller';
+import OrgFinanceController from './organization/org-finance.controller';
 
 /**
  * Register every controller here. Each one is instantiated once at boot
@@ -63,6 +64,7 @@ const controllerClasses: Array<new () => IBaseController> = [
   AdminOrganizationController,
   OrgStaffController,
   OrgBookingController,
+  OrgFinanceController,
 ];
 
 export const getGlobalControllers = (): IBaseController[] => controllerClasses.map((C) => new C());

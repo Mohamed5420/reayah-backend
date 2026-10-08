@@ -1,8 +1,13 @@
 import type { Types } from 'mongoose';
 
-/** Spec §4.7 `packages`. Platform packages only until organizations arrive (Phase 3). */
+/**
+ * Spec §4.7 `packages`: a platform package (`organizationId` null) or an organization's own (M3.4). An
+ * organization's package is booked with that organization only; it earns the per-visit value minus its
+ * commission on each completed visit (decision M3.4).
+ */
 export interface IPackage {
   _id: Types.ObjectId;
+  organizationId: Types.ObjectId | null;
   nameAr: string;
   nameEn: string | null;
   descriptionAr: string | null;
@@ -45,6 +50,8 @@ export interface IPackageSubscription {
   package: {
     nameAr: string;
     nameEn: string | null;
+    /** An organization's package: book that organization (the visit is priced at perVisitValue). */
+    organizationId: Types.ObjectId | null;
     serviceId: Types.ObjectId;
     visitsCount: number;
     validityDays: number;

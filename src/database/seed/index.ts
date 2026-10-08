@@ -1,6 +1,7 @@
 import { logger } from '../../utils/logger/winston';
 import { seedLocations } from './locations.seed';
 import { seedCatalog } from './catalog.seed';
+import { seedPlans } from './plans.seed';
 
 type Seed = { name: string; run: () => Promise<void> };
 
@@ -11,6 +12,7 @@ type Seed = { name: string; run: () => Promise<void> };
 const seeds: Seed[] = [
   { name: 'locations', run: seedLocations },
   { name: 'catalog', run: seedCatalog },
+  { name: 'subscription plans', run: seedPlans },
 ];
 
 export const runSeeds = async () => {

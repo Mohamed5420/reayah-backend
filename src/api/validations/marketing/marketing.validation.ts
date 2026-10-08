@@ -17,6 +17,8 @@ const packageView = z
     /** price ÷ visits: only providers at or below this price can be booked with the package. */
     per_visit_value: z.number(),
     currency: z.literal('EGP'),
+    /** An organization's package (book that organization with it); null for a platform package. */
+    organization: z.object({ id: objectId, name: z.string() }).nullable(),
     /** Always false: the travel fee is paid with each visit. Show travel_fee_note with the price. */
     travel_fee_included: z.literal(false),
     travel_fee_note: z.string(),

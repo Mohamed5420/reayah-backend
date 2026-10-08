@@ -95,7 +95,7 @@ const r = {
     method: 'post',
     path: '/admin/payouts/generate',
     summary:
-      'Generate a payout batch now (also runs automatically on payout_day): every provider at or above payout_min_amount with a payout method and no open payout',
+      'Generate a payout batch now (also runs automatically on payout_day): every provider and organization at or above payout_min_amount with a payout method and no open payout',
     tags: adminTags,
     auth,
     response: { schema: FinanceSchemas.generated },
@@ -130,7 +130,7 @@ const r = {
   commissionDues: defineRoute({
     method: 'get',
     path: '/admin/commission-dues',
-    summary: 'Providers owing commission (cash bookings), most owed first',
+    summary: 'Providers and organizations owing the platform (cash commission, plan fees), most owed first',
     tags: adminTags,
     auth,
     request: { query: FinanceSchemas.pageQuery },
@@ -259,7 +259,9 @@ export default class FinanceController implements IBaseController {
         res,
         data.map((row) => ({
           ...presentPayout(row.payout),
+          owner_type: row.ownerType,
           provider: row.provider,
+          organization: row.organization,
           destination_details: row.destination,
         })),
         pagination,
@@ -299,7 +301,9 @@ export default class FinanceController implements IBaseController {
         res,
         // Most owed first, so providers over the limit are at the top.
         data.map((row) => ({
+          owner_type: row.ownerType,
           provider: row.provider,
+          organization: row.organization,
           amount_due: -row.wallet.balance,
           over_limit: -row.wallet.balance > limit,
           updated_at: row.wallet.updatedAt.toISOString(),

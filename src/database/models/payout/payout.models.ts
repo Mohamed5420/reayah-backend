@@ -41,6 +41,7 @@ const payoutSchema = new Schema<IPayout>(
       commissionPaid: { type: Number, default: 0 },
       discountsReimbursed: { type: Number, default: 0 },
       referralRewards: { type: Number, default: 0 },
+      subscriptionFees: { type: Number, default: 0 },
       otherDeductions: { type: Number, default: 0 },
       adjustments: { type: Number, default: 0 },
       net: { type: Number, default: 0 },

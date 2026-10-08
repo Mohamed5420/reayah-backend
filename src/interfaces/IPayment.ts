@@ -8,6 +8,8 @@ export enum PaymentPurpose {
   PACKAGE = 'package',
   /** A provider paying the commission they owe on cash bookings. */
   COMMISSION = 'commission',
+  /** An organization paying its unpaid plan fees. */
+  PLAN_FEE = 'plan_fee',
 }
 
 /** One checkout attempt. A booking can have several (a failed card, then a retry). */
@@ -39,8 +41,10 @@ export interface IPayment {
   purpose: PaymentPurpose;
   /** Booking payments only. */
   bookingId: Types.ObjectId | null;
-  /** Commission payments only: whose ledger is credited. */
+  /** Commission payments only: whose ledger is credited (a provider, or `organizationId`). */
   providerProfileId: Types.ObjectId | null;
+  /** An organization paying what it owes (cash commission, plan fees). */
+  organizationId: Types.ObjectId | null;
   /** Package purchases only. */
   packageSubscriptionId: Types.ObjectId | null;
   userId: Types.ObjectId;

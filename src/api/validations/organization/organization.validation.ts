@@ -353,3 +353,144 @@ export const OrgBookingSchemas = {
     reason_text: z.string().trim().max(500).nullable().optional(),
   }),
 };
+
+const planView = z
+  .object({
+    id: objectId,
+    key: z.string(),
+    name: z.string(),
+    /** Piastres a month; 0 = free. */
+    monthly_price: z.number(),
+    max_staff: z.number(),
+    features: z.array(z.string()),
+    is_default: z.boolean(),
+  })
+  .openapi('SubscriptionPlan');
+
+const adminPlan = z
+  .object({
+    id: objectId,
+    key: z.string(),
+    name_ar: z.string(),
+    name_en: z.string().nullable(),
+    monthly_price: z.number(),
+    max_staff: z.number(),
+    features: z.array(z.object({ ar: z.string(), en: z.string().nullable() })),
+    is_active: z.boolean(),
+    is_default: z.boolean(),
+    sort_order: z.number(),
+  })
+  .openapi('AdminSubscriptionPlan');
+
+const planBody = z.strictObject({
+  key: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9_]{2,30}$/),
+  name_ar: z.string().trim().min(2).max(60),
+  name_en: z.string().trim().min(2).max(60).nullable().optional(),
+  monthly_price: piastres,
+  max_staff: z.number().int().min(1).max(10_000),
+  features: z
+    .array(z.object({ ar: z.string().trim().min(1).max(120), en: z.string().trim().max(120).nullable() }))
+    .max(20)
+    .optional(),
+  is_active: z.boolean().optional(),
+  is_default: z.boolean().optional(),
+  sort_order: z.number().int().optional(),
+});
+
+const reportNumbers = {
+  visits: z.number(),
+  /** What patients paid for completed visits (service + travel fee). */
+  revenue: z.number(),
+};
+
+/** Owner dashboard, reports, statements, finance and plan (spec §7.11, M3.4). */
+export const OrgFinanceSchemas = {
+  idParams: z.object({ id: objectId }),
+  dashboardQuery: z.object({ period: z.enum(['today', 'week', 'month']).default('today') }),
+  dashboard: z
+    .object({
+      period: z.enum(['today', 'week', 'month']),
+      bookings: z.object({
+        total: z.number(),
+        pending: z.number(),
+        /** Waiting for the owner to assign, now. */
+        unassigned: z.number(),
+        in_progress: z.number(),
+        completed: z.number(),
+        cancelled: z.number(),
+      }),
+      staff: z.object({ total: z.number(), active_now: z.number() }),
+      revenue: z.object({ gross: z.number(), commission: z.number(), net: z.number() }),
+      rating_avg: z.number(),
+      alerts: z.array(
+        z.object({
+          type: z.enum(['unassigned_booking', 'offers_available', 'commission_limit']),
+          booking_id: objectId.nullable(),
+          message: z.string(),
+        }),
+      ),
+    })
+    .openapi('OrgDashboard'),
+  reportQuery: z.object({
+    from: z.iso.date(),
+    to: z.iso.date(),
+    group_by: z.enum(['day', 'staff', 'service']).default('day'),
+  }),
+  report: z
+    .object({
+      period: z.object({ from: z.string(), to: z.string() }),
+      summary: z.object({
+        ...reportNumbers,
+        avg_rating: z.number().nullable(),
+        cancellation_rate: z.number().nullable(),
+        on_time_rate: z.number().nullable(),
+      }),
+      rows: z.array(
+        z.object({
+          /** Date, staff id or service id. */
+          key: z.string(),
+          label: z.string(),
+          ...reportNumbers,
+          rating: z.number().nullable(),
+          on_time_rate: z.number().nullable(),
+        }),
+      ),
+    })
+    .openapi('OrgReport'),
+  statement: z
+    .object({
+      id: objectId,
+      period: z.string().openapi({ example: '2026-10' }),
+      number: z.string(),
+      /** A statement of platform charges — not a tax invoice. */
+      kind: z.literal('statement'),
+      visits: z.number(),
+      commission: z.number(),
+      subscription_fees: z.number(),
+      subscription_credits: z.number(),
+      total: z.number(),
+      currency: z.literal('EGP'),
+      created_at: z.string(),
+    })
+    .openapi('OrgStatement'),
+  statementPdf: z.object({ url: z.string(), expires_in: z.number() }).openapi('OrgStatementPdf'),
+  plan: planView,
+  subscription: z
+    .object({
+      plan: planView,
+      /** null on a free plan. */
+      period: z.object({ start: z.string(), end: z.string() }).nullable(),
+      usage: z.object({ staff: z.number(), pending_invites: z.number(), max_staff: z.number() }),
+      /** Plan fees still owed (never counted in the commission limit; never pauses bookings). */
+      unpaid: z.object({ amount: z.number(), since: z.string().nullable() }),
+    })
+    .openapi('OrgSubscription'),
+  payPlanFeesBody: z.strictObject({ method: z.enum(['card', 'wallet']) }).openapi('PayPlanFees'),
+  subscribeBody: z.strictObject({ plan_id: objectId }).openapi('ChangePlan'),
+  adminPlan,
+  createPlanBody: planBody.openapi('CreateSubscriptionPlan'),
+  updatePlanBody: planBody.partial().openapi('UpdateSubscriptionPlan'),
+};

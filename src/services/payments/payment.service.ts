@@ -36,6 +36,7 @@ import { LedgerService } from '../ledger/ledger.service';
 import { CommissionService } from '../payouts/commission.service';
 import { SettingsService } from '../settings/settings.service';
 import { PackageService } from '../marketing/package.service';
+import { SubscriptionService } from '../organization/subscription.service';
 import { PackageSubscriptionStatus } from '../../interfaces/IMarketing';
 import { activeGateway, gatewayByName, InvalidWebhookSignatureError, type WebhookRequest } from './gateways';
 
@@ -324,6 +325,10 @@ export class PaymentService {
       await this.activatePackage(payment, transactionId, instrument);
       return;
     }
+    if (payment.purpose === PaymentPurpose.PLAN_FEE) {
+      await this.settlePlanFees(payment, transactionId, instrument);
+      return;
+    }
     const bookingId = payment.bookingId!;
     const booking = await BookingModel.findById(bookingId).lean();
     const alreadyPaid = await PaymentModel.exists({
@@ -371,7 +376,9 @@ export class PaymentService {
     transactionId: string,
     instrument: IPayment['instrument'],
   ) {
-    const providerProfileId = payment.providerProfileId!;
+    const owner = payment.organizationId
+      ? { ownerType: LedgerOwnerType.ORGANIZATION, ownerId: payment.organizationId }
+      : { ownerType: LedgerOwnerType.PROVIDER, ownerId: payment.providerProfileId! };
     const credited = await withTransaction(async (session) => {
       const updated = await PaymentModel.findOneAndUpdate(
         { _id: payment._id, status: { $ne: PaymentRecordStatus.PAID } },
@@ -387,8 +394,7 @@ export class PaymentService {
       if (!updated) return false;
       await Container.get(LedgerService).record(
         {
-          ownerType: LedgerOwnerType.PROVIDER,
-          ownerId: providerProfileId,
+          ...owner,
           bookingId: null,
           type: LedgerEntryType.COMMISSION_PAYMENT,
           amount: payment.amount,
@@ -483,17 +489,19 @@ export class PaymentService {
   }
 
   /**
-   * POST /provider/commission/pay — a checkout for (part of) the commission the provider owes on cash
-   * bookings. `amount` defaults to everything owed; at least 1 EGP.
+   * POST /provider/commission/pay and /org/commission/pay — a checkout for (part of) what the provider or
+   * organization owes (cash commission; for organizations also plan fees). `amount` defaults to everything
+   * owed; at least 1 EGP.
    */
   async initiateCommissionPayment(
     userId: string,
-    providerProfileId: Types.ObjectId,
+    of: Types.ObjectId | { ownerType: LedgerOwnerType; ownerId: Types.ObjectId },
     input: { amount?: number; method: PaymentMethod.CARD | PaymentMethod.WALLET },
   ) {
+    const owner = of instanceof Types.ObjectId ? { ownerType: LedgerOwnerType.PROVIDER, ownerId: of } : of;
     const gateway = activeGateway();
     if (!gateway) throw new ServiceUnavailableError('errors.payments_unavailable');
-    const { due } = await Container.get(CommissionService).status(providerProfileId);
+    const { due } = await Container.get(CommissionService).status(owner.ownerId, owner.ownerType);
     if (due <= 0) throw new ConflictError('errors.no_commission_due');
     const amount = input.amount ?? due;
     if (amount < 100 || amount > due) throw new ValidationError({ amount: ['validation.commission_amount'] });
@@ -501,7 +509,9 @@ export class PaymentService {
     const expiresAt = new Date(Date.now() + COMMISSION_CHECKOUT_MINUTES * 60_000);
     const payment = await PaymentModel.create({
       purpose: PaymentPurpose.COMMISSION,
-      providerProfileId,
+      ...(owner.ownerType === LedgerOwnerType.ORGANIZATION
+        ? { organizationId: owner.ownerId }
+        : { providerProfileId: owner.ownerId }),
       userId,
       amount,
       method: input.method,
@@ -510,6 +520,76 @@ export class PaymentService {
     });
     await this.startCheckout(payment, 'عمولة رعاية+ المستحقة', userId, expiresAt);
     return payment.toObject();
+  }
+
+  /** POST /org/subscription/pay — a checkout for everything the organization owes in plan fees. */
+  async initiatePlanFeePayment(
+    userId: string,
+    organizationId: Types.ObjectId,
+    method: PaymentMethod.CARD | PaymentMethod.WALLET,
+  ) {
+    const gateway = activeGateway();
+    if (!gateway) throw new ServiceUnavailableError('errors.payments_unavailable');
+    const { amount } = await Container.get(SubscriptionService).unpaid(organizationId);
+    if (amount < 100) throw new ConflictError('errors.no_plan_fee_due');
+    const expiresAt = new Date(Date.now() + COMMISSION_CHECKOUT_MINUTES * 60_000);
+    const payment = await PaymentModel.create({
+      purpose: PaymentPurpose.PLAN_FEE,
+      organizationId,
+      userId,
+      amount,
+      method,
+      gateway: gateway.name,
+      expiresAt,
+    });
+    await this.startCheckout(payment, 'رسوم باقة رعاية+', userId, expiresAt);
+    return payment.toObject();
+  }
+
+  /** A plan-fee payment succeeded: paid once (conditional), charges settled oldest first; any excess → the balance. */
+  private async settlePlanFees(payment: IPayment, transactionId: string, instrument: IPayment['instrument']) {
+    const organizationId = payment.organizationId!;
+    const done = await withTransaction(async (session) => {
+      const updated = await PaymentModel.findOneAndUpdate(
+        { _id: payment._id, status: { $ne: PaymentRecordStatus.PAID } },
+        {
+          status: PaymentRecordStatus.PAID,
+          gatewayTransactionId: transactionId,
+          instrument,
+          paidAt: new Date(),
+          failureReason: null,
+        },
+        { new: true, session },
+      );
+      if (!updated) return false;
+      const settled = await Container.get(SubscriptionService).settleFromPayment(
+        session,
+        organizationId,
+        payment.amount,
+      );
+      // Paid more than was still owed (e.g. a fee was taken from earnings meanwhile): it goes to the balance.
+      if (payment.amount > settled) {
+        await Container.get(LedgerService).record(
+          {
+            ownerType: LedgerOwnerType.ORGANIZATION,
+            ownerId: organizationId,
+            bookingId: null,
+            type: LedgerEntryType.ADJUSTMENT,
+            amount: payment.amount - settled,
+            note: `plan fee overpaid: payment ${String(payment._id)}`,
+          },
+          session,
+        );
+      }
+      return true;
+    });
+    if (!done) return;
+    await this.notifications.notify([payment.userId], {
+      type: NotificationType.PAYOUT,
+      template: 'plan_fee_paid',
+      params: { amount: (payment.amount / 100).toFixed(2) },
+      data: { payment_id: String(payment._id) },
+    });
   }
 
   /** Opens the gateway checkout for a just-created payment; marks it failed if the gateway refuses. */

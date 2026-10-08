@@ -5,7 +5,7 @@ import { objectId, paginationQuery, piastres, z } from '../zod';
 const payment = z
   .object({
     id: objectId,
-    /** null unless purpose = booking. */
+    /** null unless purpose = booking. (Purposes: booking, package, commission, plan_fee.) */
     booking_id: objectId.nullable(),
     /** Set when purpose = package. */
     package_subscription_id: objectId.nullable(),

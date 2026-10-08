@@ -7670,7 +7670,8 @@
             "enum": [
               "booking",
               "package",
-              "commission"
+              "commission",
+              "plan_fee"
             ]
           },
           "amount": {
@@ -7985,7 +7986,9 @@
               "discount_reimbursement",
               "referral_reward",
               "credit_used",
-              "credit_restored"
+              "credit_restored",
+              "subscription_fee",
+              "subscription_credit"
             ]
           },
           "amount": {
@@ -8068,6 +8071,9 @@
               "referral_rewards": {
                 "type": "number"
               },
+              "subscription_fees": {
+                "type": "number"
+              },
               "other_deductions": {
                 "type": "number",
                 "description": "e.g. dispute refunds you bore"
@@ -8085,6 +8091,7 @@
               "commission_paid",
               "discounts_reimbursed",
               "referral_rewards",
+              "subscription_fees",
               "other_deductions",
               "adjustments",
               "net"
@@ -8260,6 +8267,9 @@
               "referral_rewards": {
                 "type": "number"
               },
+              "subscription_fees": {
+                "type": "number"
+              },
               "other_deductions": {
                 "type": "number",
                 "description": "e.g. dispute refunds you bore"
@@ -8277,6 +8287,7 @@
               "commission_paid",
               "discounts_reimbursed",
               "referral_rewards",
+              "subscription_fees",
               "other_deductions",
               "adjustments",
               "net"
@@ -8300,7 +8311,39 @@
           "created_at": {
             "type": "string"
           },
+          "owner_type": {
+            "type": "string",
+            "enum": [
+              "provider",
+              "organization",
+              "patient"
+            ]
+          },
           "provider": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "phone"
+            ]
+          },
+          "organization": {
             "type": [
               "object",
               "null"
@@ -8344,14 +8387,48 @@
           "reference",
           "paid_at",
           "created_at",
+          "owner_type",
           "provider",
+          "organization",
           "destination_details"
         ]
       },
       "CommissionDue": {
         "type": "object",
         "properties": {
+          "owner_type": {
+            "type": "string",
+            "enum": [
+              "provider",
+              "organization",
+              "patient"
+            ]
+          },
           "provider": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "phone"
+            ]
+          },
+          "organization": {
             "type": [
               "object",
               "null"
@@ -8386,7 +8463,9 @@
           }
         },
         "required": [
+          "owner_type",
           "provider",
+          "organization",
           "amount_due",
           "over_limit",
           "updated_at"
@@ -8477,6 +8556,26 @@
               "EGP"
             ]
           },
+          "organization": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
           "travel_fee_included": {
             "type": "boolean",
             "enum": [
@@ -8497,6 +8596,7 @@
           "price",
           "per_visit_value",
           "currency",
+          "organization",
           "travel_fee_included",
           "travel_fee_note"
         ]
@@ -10522,6 +10622,652 @@
         "required": [
           "provider_profile_id"
         ],
+        "additionalProperties": false
+      },
+      "OrgDashboard": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "today",
+              "week",
+              "month"
+            ]
+          },
+          "bookings": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              },
+              "pending": {
+                "type": "number"
+              },
+              "unassigned": {
+                "type": "number"
+              },
+              "in_progress": {
+                "type": "number"
+              },
+              "completed": {
+                "type": "number"
+              },
+              "cancelled": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "total",
+              "pending",
+              "unassigned",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ]
+          },
+          "staff": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              },
+              "active_now": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "total",
+              "active_now"
+            ]
+          },
+          "revenue": {
+            "type": "object",
+            "properties": {
+              "gross": {
+                "type": "number"
+              },
+              "commission": {
+                "type": "number"
+              },
+              "net": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "gross",
+              "commission",
+              "net"
+            ]
+          },
+          "rating_avg": {
+            "type": "number"
+          },
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "unassigned_booking",
+                    "offers_available",
+                    "commission_limit"
+                  ]
+                },
+                "booking_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^[0-9a-f]{24}$/i",
+                  "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "booking_id",
+                "message"
+              ]
+            }
+          }
+        },
+        "required": [
+          "period",
+          "bookings",
+          "staff",
+          "revenue",
+          "rating_avg",
+          "alerts"
+        ]
+      },
+      "OrgReport": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ]
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "visits": {
+                "type": "number"
+              },
+              "revenue": {
+                "type": "number"
+              },
+              "avg_rating": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "cancellation_rate": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "on_time_rate": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "visits",
+              "revenue",
+              "avg_rating",
+              "cancellation_rate",
+              "on_time_rate"
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "visits": {
+                  "type": "number"
+                },
+                "revenue": {
+                  "type": "number"
+                },
+                "rating": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "on_time_rate": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "label",
+                "visits",
+                "revenue",
+                "rating",
+                "on_time_rate"
+              ]
+            }
+          }
+        },
+        "required": [
+          "period",
+          "summary",
+          "rows"
+        ]
+      },
+      "OrgStatement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "period": {
+            "type": "string",
+            "example": "2026-10"
+          },
+          "number": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "statement"
+            ]
+          },
+          "visits": {
+            "type": "number"
+          },
+          "commission": {
+            "type": "number"
+          },
+          "subscription_fees": {
+            "type": "number"
+          },
+          "subscription_credits": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "EGP"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "period",
+          "number",
+          "kind",
+          "visits",
+          "commission",
+          "subscription_fees",
+          "subscription_credits",
+          "total",
+          "currency",
+          "created_at"
+        ]
+      },
+      "OrgStatementPdf": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "url",
+          "expires_in"
+        ]
+      },
+      "OrgSubscription": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/SubscriptionPlan"
+          },
+          "period": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "start",
+              "end"
+            ]
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "staff": {
+                "type": "number"
+              },
+              "pending_invites": {
+                "type": "number"
+              },
+              "max_staff": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "staff",
+              "pending_invites",
+              "max_staff"
+            ]
+          },
+          "unpaid": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number"
+              },
+              "since": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "amount",
+              "since"
+            ]
+          }
+        },
+        "required": [
+          "plan",
+          "period",
+          "usage",
+          "unpaid"
+        ]
+      },
+      "SubscriptionPlan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "monthly_price": {
+            "type": "number"
+          },
+          "max_staff": {
+            "type": "number"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_default": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name",
+          "monthly_price",
+          "max_staff",
+          "features",
+          "is_default"
+        ]
+      },
+      "ChangePlan": {
+        "type": "object",
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          }
+        },
+        "required": [
+          "plan_id"
+        ],
+        "additionalProperties": false
+      },
+      "PayPlanFees": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "wallet"
+            ]
+          }
+        },
+        "required": [
+          "method"
+        ],
+        "additionalProperties": false
+      },
+      "AdminSubscriptionPlan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "key": {
+            "type": "string"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "monthly_price": {
+            "type": "number"
+          },
+          "max_staff": {
+            "type": "number"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ar": {
+                  "type": "string"
+                },
+                "en": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "ar",
+                "en"
+              ]
+            }
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "sort_order": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "name_ar",
+          "name_en",
+          "monthly_price",
+          "max_staff",
+          "features",
+          "is_active",
+          "is_default",
+          "sort_order"
+        ]
+      },
+      "CreateSubscriptionPlan": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{2,30}$"
+          },
+          "name_ar": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "name_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "monthly_price": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 25000
+          },
+          "max_staff": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ar": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "en": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 120
+                }
+              },
+              "required": [
+                "ar",
+                "en"
+              ]
+            },
+            "maxItems": 20
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "sort_order": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "name_ar",
+          "monthly_price",
+          "max_staff"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateSubscriptionPlan": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{2,30}$"
+          },
+          "name_ar": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "name_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "monthly_price": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 25000
+          },
+          "max_staff": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ar": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "en": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 120
+                }
+              },
+              "required": [
+                "ar",
+                "en"
+              ]
+            },
+            "maxItems": 20
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "sort_order": {
+            "type": "integer"
+          }
+        },
         "additionalProperties": false
       }
     },
@@ -21390,7 +22136,7 @@
     },
     "/api/v1/admin/payouts/generate": {
       "post": {
-        "summary": "Generate a payout batch now (also runs automatically on payout_day): every provider at or above payout_min_amount with a payout method and no open payout",
+        "summary": "Generate a payout batch now (also runs automatically on payout_day): every provider and organization at or above payout_min_amount with a payout method and no open payout",
         "tags": [
           "Admin — Finance"
         ],
@@ -21683,7 +22429,7 @@
     },
     "/api/v1/admin/commission-dues": {
       "get": {
-        "summary": "Providers owing commission (cash bookings), most owed first",
+        "summary": "Providers and organizations owing the platform (cash commission, plan fees), most owed first",
         "tags": [
           "Admin — Finance"
         ],
@@ -25079,6 +25825,1201 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/OrganizationBooking"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/dashboard": {
+      "get": {
+        "summary": "KPIs for today / the last 7 days / this month, with alerts (unassigned bookings, offers, commission limit)",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "week",
+                "month"
+              ],
+              "default": "today"
+            },
+            "required": false,
+            "name": "period",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrgDashboard"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/reports": {
+      "get": {
+        "summary": "Performance between two Cairo dates, grouped by day, staff or service",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": true,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": true,
+            "name": "to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "staff",
+                "service"
+              ],
+              "default": "day"
+            },
+            "required": false,
+            "name": "group_by",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrgReport"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/invoices": {
+      "get": {
+        "summary": "Monthly statements of platform charges (commission + plan fees), newest first. Statements, not tax invoices.",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrgStatement"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/invoices/{id}/pdf": {
+      "get": {
+        "summary": "The statement as an Arabic PDF (signed link, 10 minutes)",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrgStatementPdf"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/earnings": {
+      "get": {
+        "summary": "Totals for a period (default: this month) + balance, payout method and commission limit — same shape as the provider’s",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-10-01",
+              "description": "Cairo calendar date"
+            },
+            "required": false,
+            "description": "Cairo calendar date",
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-10-01",
+              "description": "Cairo calendar date"
+            },
+            "required": false,
+            "description": "Cairo calendar date",
+            "name": "to",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ProviderEarnings"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/ledger": {
+      "get": {
+        "summary": "Ledger entries, newest first (earnings, commission, plan fees, payouts, adjustments)",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LedgerEntry"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/payouts": {
+      "get": {
+        "summary": "Payout history with statements",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Payout"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/payout-method": {
+      "get": {
+        "summary": "Where payouts go (masked); null until set",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PayoutMethod"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "The organization’s bank account or wallet for payouts (stored encrypted)",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayoutMethodRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PayoutMethod"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/commission/pay": {
+      "post": {
+        "summary": "Pay commission owed on cash bookings — all or part — by card / wallet; credited when the gateway confirms (plan fees: POST /org/subscription/pay)",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "Idempotency-Key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayCommission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CommissionCheckout"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/subscription": {
+      "get": {
+        "summary": "Current plan, paid period and staff usage",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrgSubscription"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Change plan now. A paid plan is charged monthly, taken from earnings (or paid in the app); the unused part of a paid month comes back.",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrgSubscription"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/subscription/pay": {
+      "post": {
+        "summary": "Pay all unpaid plan fees by card / wallet (otherwise they’re taken from earnings). Unpaid 14 days → notice; 21 days → moved to the free plan.",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "Idempotency-Key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayPlanFees"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CommissionCheckout"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/subscription-plans": {
+      "get": {
+        "summary": "Plans for organizations",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SubscriptionPlan"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/packages": {
+      "get": {
+        "summary": "The organization’s own packages",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminPackage"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a package for a service the organization offers. Each completed visit earns the per-visit value minus commission.",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePackage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminPackage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/packages/{id}": {
+      "patch": {
+        "summary": "Update a package (packages already sold keep their terms)",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePackage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminPackage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Deactivate a package",
+        "tags": [
+          "Owner — Finance & reports"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/subscription-plans": {
+      "get": {
+        "summary": "Organization plans (incl. inactive)",
+        "tags": [
+          "Admin — Organizations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminSubscriptionPlan"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a plan (exactly one is the default free plan new organizations start on)",
+        "tags": [
+          "Admin — Organizations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionPlan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminSubscriptionPlan"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/subscription-plans/{id}": {
+      "patch": {
+        "summary": "Update a plan (price changes apply from the next monthly renewal)",
+        "tags": [
+          "Admin — Organizations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubscriptionPlan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminSubscriptionPlan"
                     }
                   },
                   "required": [

@@ -1,7 +1,7 @@
 # Reaya+ Personal Data Inventory
 
 **Prepared for:** legal review under the Personal Data Protection Law (Law 151 of 2020) and its executive regulations
-**Last updated:** 8 October 2026 (through build milestone M3.3)
+**Last updated:** 8 October 2026 (through build milestone M3.4)
 **Source of truth:** this file (`docs/DATA_INVENTORY.md`), updated with every milestone. The Word copy (`docs/DATA_INVENTORY.docx`) is generated from it.
 
 ## About this document
@@ -15,7 +15,7 @@ It covers what is built so far:
 - **Card and mobile-wallet payments** through Paymob, provider earnings and weekly payouts.
 - **In-app chat** between a patient and the assigned nurse or doctor.
 - **Packages, promo codes, referrals** and in-app credit.
-- **Organizations** (nursing centers, clinics, labs, elderly-care companies): set-up, verification, their teams of nurses and doctors (staff), and bookings made with an organization, which its owner assigns to a staff member.
+- **Organizations** (nursing centers, clinics, labs, elderly-care companies): set-up, verification, their teams of nurses and doctors (staff), bookings made with an organization (its owner assigns a staff member), and their finances: earnings, payouts, plans, monthly statements and their own packages.
 - **The Reaya+ admin team.**
 
 Video consultations are on hold and not covered.
@@ -45,9 +45,10 @@ We collect identity and contact data from everyone, health data about patients, 
 | Staff invites | People an organization invites to join its team | Mobile number and name as entered by the owner, nurse or doctor, invite status; an SMS invitation is sent to that number. The SMS contains only the organization's name and the app link, nothing about the person. | Letting the person join the organization's team | No (but entered by a third party: the owner) |
 | Staff records | Nurses and doctors working for an organization | Which organization, suspended by the owner or not, the services, areas and weekly hours the owner set; performance (visits completed, rating, on-time rate) shown to the owner | Running the organization's team | No |
 | Card and wallet payments | Patients who pay by card or mobile wallet; providers who pay the commission they owe through the app | Amount, status, Paymob order and transaction ids, card brand and last 4 digits, refunds. The full card number never reaches Reaya+; Paymob collects it on its own page. | Taking payment, receipts, refunds, provider earnings, commission settlement | No (financial) |
+| Organization finances | Organizations | Earnings ledger (visit earnings, commission, plan fees and credits), payout details (encrypted account number), payouts with statements, monthly statements of platform charges (PDF), plan and its billing period, dashboard and report figures built from their bookings | Paying organizations, billing their plan, showing their performance | Financial (account number encrypted) |
 | Earnings records | Nurses and doctors | Running balance and its entries: earnings from card visits, commission owed on cash visits, commission paid, discounts reimbursed, referral rewards, dispute deductions, adjustments; each payout with its statement | Paying providers and settling commission | No (financial) |
 | Payout details | Nurses and doctors | Account holder name; bank name and IBAN / account number, or mobile-wallet provider and number | Paying out earnings | Financial (account number encrypted) |
-| Package purchases | Patients (for themselves or a family profile) | Package bought, which patient profile, visits left, start and end dates, the card payment | Delivering prepaid visits | Health-related (the service implies a care need) |
+| Package purchases | Patients (for themselves or a family profile) | Package bought (the platform's or an organization's), which patient profile, visits left, start and end dates, the card payment | Delivering prepaid visits | Health-related (the service implies a care need) |
 | Promo code use | Patients | Which code, on which booking, the discount | Applying limits (per user, in total) | No |
 | Referrals | Patients and providers | Who invited whom, a one-way keyed hash of the invited phone number, reward status | Paying referral rewards once per phone number | No (the phone is stored only as a hash) |
 | In-app credit | Patients | Credit earned from referrals, used on and given back from bookings | Applying credit to bookings | No (financial) |
@@ -65,7 +66,7 @@ All personal data lives in one database and one private file store, both at a ho
 | System | What it holds | Who runs it | Location |
 | --- | --- | --- | --- |
 | Main database (MongoDB) | Everything in the table above except files | Hosting provider (TBD) | TBD; recommended: Egypt |
-| Private file storage | Medical documents, visit-report attachments, dispute attachments, chat attachments, provider ID and license photos, organization documents and logos, profile photos, banner images | Hosting provider (TBD) | Same as the database |
+| Private file storage | Medical documents, visit-report attachments, dispute attachments, chat attachments, provider ID and license photos, organization documents and logos, organizations' monthly statement PDFs, profile photos, banner images | Hosting provider (TBD) | Same as the database |
 | Temporary store (Redis) | For up to 24 hours: copies of booking-creation responses (to stop double bookings on retries), queued push messages (kept 1 day, failed ones 7 days), rate-limit counters, cached public lists | Hosting provider (TBD) | Same as the database |
 | Database backups | A full copy of the main database, made daily | Hosting provider (TBD) | Kept 14 days on the server; long-term copies off-server (location TBD) |
 | SMS provider | Mobile number and the one-time sign-in code; for staff invites, the number, the organization's name and the app link (nothing else about the person) | Not yet chosen | TBD |
@@ -101,11 +102,11 @@ Each person sees only their own data, providers see a patient's details only for
 | Provider (during the visit and 7 days after) | The patient's medical summary: conditions, medications, allergies | Each view is logged; access ends 7 days after the visit |
 | Provider (own money) | Their earnings, ledger, payouts with statements, payout method (account number masked) | Only their own |
 | Provider after an admin reassigns a booking | The new provider starts a fresh, empty conversation | Neither the previous nor the new provider can open the earlier conversation; the patient can still read it; it stays stored for admins (disputes) |
-| Organization owner | Their organization's details, documents, areas, services and prices; their staff's name, phone, gender, photo, verification status, services, areas, weekly hours and performance; their pending invites; their organization's bookings: service, time, area, preferred gender, price and status, plus — once a staff member is assigned — the patient's name, phone and full address | Only their own organization; never booking notes, the medical profile or visit reports (only the assigned staff member, under the provider rules); no access to staff's identity documents or earnings |
+| Organization owner | Their organization's earnings, ledger, payouts, plan, monthly statements, dashboard and reports (built from their bookings: counts, revenue, ratings, on-time and cancellation rates — no patient names); their organization's details, documents, areas, services and prices; their staff's name, phone, gender, photo, verification status, services, areas, weekly hours and performance; their pending invites; their organization's bookings: service, time, area, preferred gender, price and status, plus — once a staff member is assigned — the patient's name, phone and full address | Only their own organization; never booking notes, the medical profile or visit reports (only the assigned staff member, under the provider rules); no access to staff's identity documents or earnings |
 | Owner of another organization (fallback) | A request offered to them after the original organization's deadline: service, time, area, preferred gender and price | No patient details unless they take it by assigning a staff member; then as above |
 | Staff member (nurse / doctor of an organization) | As a provider, for bookings assigned to them by their owner (or accepted from the owner's "send to all") | Can't set their own areas, services or prices; no payouts screen (earnings go to the organization); loses access to a booking and its chat as soon as they're reassigned or removed |
 | Other users | A provider's public profile: name, photo, experience, rating, reviews (first name + initial) | No personal data of patients |
-| Reaya+ admin | All accounts, bookings, chats, disputes, provider and organization documents, payments, payouts (with the full payout account number in the payout queue), each patient's cancellation record, package sales and promo use counts, organizations' commission rates | Every action logged; viewing booking notes, dispute descriptions or a booking's chats (including closed ones) is logged; admin roles with narrower access are planned but not yet defined |
+| Reaya+ admin | All accounts, bookings, chats, disputes, provider and organization documents, payments, payouts of providers and organizations (with the full payout account number in the payout queue), plans, each patient's cancellation record, package sales and promo use counts, organizations' commission rates | Every action logged; viewing booking notes, dispute descriptions or a booking's chats (including closed ones) is logged; admin roles with narrower access are planned but not yet defined |
 | Automated jobs | Bookings, payments, packages and documents: reminders, expiring requests and unpaid checkouts, weekly payouts, package expiry notices, expiring licenses | No human access |
 | Service providers | What the "Where the data is stored" table lists | Bound by their terms; data processing agreements still to be signed |
 | Engineers running the servers | Database and backups (encrypted fields stay unreadable without the separate key) | To be restricted to named people; access policy TBD |
@@ -131,6 +132,7 @@ Short-lived security data is deleted automatically. Most personal and medical da
 | Referrals | Kept for the life of the referring account; the phone hash stays so a number can't be referred twice | Period after the accounts close |
 | Provider verification documents | Kept while the provider account exists | Period after the provider leaves |
 | Organization details and documents | Kept while the organization's account exists | Period after the organization leaves |
+| Organization statements, plan fees, organization payouts | Kept; never deleted (financial records) | Retention period required by tax / financial rules |
 | Staff invites | Invites are valid 7 days. One never accepted (expired, declined or revoked) is deleted — number and name — 30 days after it expired, by a daily job; the organization keeps only an anonymous count. Accepted invites are kept with the staff member's account. | Default pending counsel's answer to question 11 |
 | Audit log | Kept indefinitely; cannot be edited | Retention period |
 | Backups | Daily; 14 days on the server, long-term copies off-server | Retention and erasure of long-term backups |
@@ -166,4 +168,6 @@ We need these answers before launch; the first two decide where we host.
 | 8 Oct 2026 | M3.2 | Staff invites (number and name entered by the owner, SMS invitation) and staff records; what owners see about their staff; removal cuts access at once. |
 | 8 Oct 2026 | M3.2 | Default for staff invites until question 11 is answered: SMS limited to the organization's name and the app link; never-accepted invites deleted 30 days after expiry, count only. |
 | 8 Oct 2026 | M3.3 | Organization bookings: what owners see (operational details; patient name, phone and address after assignment; never notes or medical data); fallback offers to other organizations; staff lose access when reassigned or removed. |
+| 8 Oct 2026 | M3.4 | Organization finances: earnings, payouts (encrypted account details), plans billed from earnings, monthly statement PDFs, dashboard and reports (aggregates, no patient names), organizations' own packages. |
+| 8 Oct 2026 | M3.4 | Unpaid plan fees are tracked per month (no personal data); an organization unpaid for 21 days is moved to the free plan. |
 | 8 Oct 2026 | — | This file became the source of truth (previously a shared online document); a Word copy is generated from it. |

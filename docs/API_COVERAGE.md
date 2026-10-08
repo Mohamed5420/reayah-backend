@@ -4,7 +4,7 @@
 
 Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi.json` (Swagger UI at `/docs` outside production).
 
-**Implemented:** 206 · **Deferred:** 16 (each to a named Phase 2 / 3 milestone)
+**Implemented:** 220 · **Deferred:** 2 (each to a named Phase 2 / 3 milestone)
 
 ## 7.2 Me / Account (all roles)
 
@@ -157,7 +157,7 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `POST` | `/org/submit-verification` | ✅ Built |
 | `GET` | `/org/service-areas` | ✅ Built |
 | `PUT` | `/org/service-areas` | ✅ Built |
-| `GET` | `/org/dashboard` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `GET` | `/org/dashboard` | ✅ Built |
 | `GET` | `/org/staff` | ✅ Built |
 | `POST` | `/org/staff/invite` | ✅ Built |
 | `GET` | `/org/staff/invites` | ✅ Built |
@@ -177,17 +177,17 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `POST` | `/org/bookings/{id}/cancel` | ✅ Built |
 | `GET` | `/org/services` | ✅ Built |
 | `PUT` | `/org/services` | ✅ Built |
-| `GET` | `/org/packages` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `POST` | `/org/packages` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `PATCH` | `/org/packages/{id}` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `DELETE` | `/org/packages/{id}` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `GET` | `/org/reports` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `GET` | `/org/invoices` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `GET` | `/org/invoices/{id}/pdf` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `PUT` | `/org/payout-method` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `GET` | `/org/subscription` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `GET` | `/subscription-plans` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `POST` | `/org/subscription` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `GET` | `/org/packages` | ✅ Built |
+| `POST` | `/org/packages` | ✅ Built |
+| `PATCH` | `/org/packages/{id}` | ✅ Built |
+| `DELETE` | `/org/packages/{id}` | ✅ Built |
+| `GET` | `/org/reports` | ✅ Built |
+| `GET` | `/org/invoices` | ✅ Built |
+| `GET` | `/org/invoices/{id}/pdf` | ✅ Built |
+| `PUT` | `/org/payout-method` | ✅ Built |
+| `GET` | `/org/subscription` | ✅ Built |
+| `GET` | `/subscription-plans` | ✅ Built |
+| `POST` | `/org/subscription` | ✅ Built |
 
 ## 7.12 Chat (patient ↔ provider, per booking)
 
@@ -276,8 +276,8 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `POST` | `/admin/notifications/broadcast` | ⏳ M3.5 — Advanced admin |
 | `GET` | `/admin/packages` | ✅ Built |
 | `POST` | `/admin/packages` | ✅ Built |
-| `GET` | `/admin/subscription-plans` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `POST` | `/admin/subscription-plans` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `GET` | `/admin/subscription-plans` | ✅ Built |
+| `POST` | `/admin/subscription-plans` | ✅ Built |
 | `GET` | `/admin/payments` | ✅ Built |
 | `GET` | `/admin/payouts` | ✅ Built |
 | `POST` | `/admin/payouts/generate` | ✅ Built |

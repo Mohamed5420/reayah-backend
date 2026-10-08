@@ -5,6 +5,8 @@ import { BookingModel } from '../../database/models/booking/booking.model';
 import { WalletBalanceModel, WalletLedgerModel } from '../../database/models/ledger/wallet.model';
 import { PayoutMethodModel, PayoutModel } from '../../database/models/payout/payout.models';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
+import { OrganizationModel } from '../../database/models/organization/organization.models';
+import { SubscriptionService } from '../organization/subscription.service';
 import { UserModel } from '../../database/models/user/user.model';
 import { getRedis } from '../../config/redis.config';
 import { BookingStatus } from '../../interfaces/IBooking';
@@ -28,6 +30,12 @@ import { SettingsService } from '../settings/settings.service';
 import { WEEKDAYS } from '../settings/settings.definitions';
 
 const PROVIDER = LedgerOwnerType.PROVIDER;
+const ORGANIZATION = LedgerOwnerType.ORGANIZATION;
+
+/** Whose money: a provider profile (independent) or an organization. A bare id means a provider. */
+export type EarningsOwner = { ownerType: LedgerOwnerType; ownerId: Types.ObjectId };
+const asOwner = (owner: Types.ObjectId | EarningsOwner): EarningsOwner =>
+  owner instanceof Types.ObjectId ? { ownerType: PROVIDER, ownerId: owner } : owner;
 
 export type PayoutMethodInput = {
   type: PayoutMethodType;
@@ -48,7 +56,7 @@ export const maskedLabel = (
  * the append-only ledger: card bookings credit the provider's share, cash bookings debit the platform's
  * commission, and a payout takes the positive balance out the moment it's generated (a `payout` entry),
  * so later earnings start a new balance. A cancelled payout puts the money back (an `adjustment`).
- * Organizations get the same flow in Phase 3 (owner type `organization`).
+ * Organizations get the same flow (owner type `organization`, M3.4); a bare id means a provider.
  */
 @Service()
 export class PayoutService {
@@ -59,12 +67,13 @@ export class PayoutService {
 
   // ── Provider ──
 
-  async getMethod(ownerId: Types.ObjectId) {
-    const method = await PayoutMethodModel.findOne({ ownerType: PROVIDER, ownerId });
+  async getMethod(of: Types.ObjectId | EarningsOwner) {
+    const method = await PayoutMethodModel.findOne(asOwner(of));
     return method ? (method.toObject() as IPayoutMethod) : null;
   }
 
-  async setMethod(ownerId: Types.ObjectId, input: PayoutMethodInput) {
+  async setMethod(of: Types.ObjectId | EarningsOwner, input: PayoutMethodInput) {
+    const owner = asOwner(of);
     const fields =
       input.type === PayoutMethodType.BANK
         ? { bankName: input.bankName ?? null, walletProvider: null }
@@ -75,9 +84,7 @@ export class PayoutService {
     if (input.type === PayoutMethodType.WALLET && !fields.walletProvider) {
       throw new ValidationError({ wallet_provider: ['validation.required'] });
     }
-    const method =
-      (await PayoutMethodModel.findOne({ ownerType: PROVIDER, ownerId })) ??
-      new PayoutMethodModel({ ownerType: PROVIDER, ownerId });
+    const method = (await PayoutMethodModel.findOne(owner)) ?? new PayoutMethodModel(owner);
     method.set({
       type: input.type,
       accountHolder: input.accountHolder,
@@ -89,7 +96,8 @@ export class PayoutService {
   }
 
   /** GET /provider/earnings — completed visits in [from, to] (Cairo dates) + the current balance. */
-  async earnings(ownerId: Types.ObjectId, from: string, to: string) {
+  async earnings(of: Types.ObjectId | EarningsOwner, from: string, to: string) {
+    const owner = asOwner(of);
     const [totals] = await BookingModel.aggregate<{
       visits: number;
       gross: number;
@@ -98,7 +106,10 @@ export class PayoutService {
     }>([
       {
         $match: {
-          providerProfileId: ownerId,
+          // An organization earns every visit its staff completed; a provider their own (not as staff).
+          ...(owner.ownerType === ORGANIZATION
+            ? { organizationId: owner.ownerId }
+            : { providerProfileId: owner.ownerId, organizationId: null }),
           status: { $in: [BookingStatus.COMPLETED, BookingStatus.DISPUTED] },
           completedAt: { $gte: cairoToUtc(from, '00:00'), $lt: cairoToUtc(addDays(to, 1), '00:00') },
         },
@@ -113,7 +124,7 @@ export class PayoutService {
         },
       },
     ]);
-    const balance = await this.balance(ownerId);
+    const balance = await this.balance(owner);
     return {
       from,
       to,
@@ -127,8 +138,8 @@ export class PayoutService {
     };
   }
 
-  async ledgerEntries(ownerId: Types.ObjectId, pagination: Pagination) {
-    const query = { ownerType: PROVIDER, ownerId };
+  async ledgerEntries(of: Types.ObjectId | EarningsOwner, pagination: Pagination) {
+    const query = asOwner(of);
     const [data, total] = await Promise.all([
       WalletLedgerModel.find(query)
         .sort({ createdAt: -1, _id: -1 })
@@ -140,8 +151,8 @@ export class PayoutService {
     return { data, total };
   }
 
-  async payoutsOf(ownerId: Types.ObjectId, pagination: Pagination) {
-    const query = { ownerType: PROVIDER, ownerId };
+  async payoutsOf(of: Types.ObjectId | EarningsOwner, pagination: Pagination) {
+    const query = asOwner(of);
     const [data, total] = await Promise.all([
       PayoutModel.find(query).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.perPage).lean(),
       PayoutModel.countDocuments(query),
@@ -174,36 +185,33 @@ export class PayoutService {
     const minimum = Math.max(1, await this.settings.get('payout_min_amount'));
     const batchDate = cairoDate(now);
     const candidates = await WalletBalanceModel.find({
-      ownerType: PROVIDER,
+      ownerType: { $in: [PROVIDER, ORGANIZATION] },
       balance: { $gte: minimum },
     }).lean();
     const created: IPayout[] = [];
     for (const wallet of candidates) {
-      const method = await PayoutMethodModel.findOne({ ownerType: PROVIDER, ownerId: wallet.ownerId });
+      const owner = { ownerType: wallet.ownerType, ownerId: wallet.ownerId };
+      const method = await PayoutMethodModel.findOne(owner);
       if (!method) continue;
       const open = await PayoutModel.exists({
-        ownerType: PROVIDER,
-        ownerId: wallet.ownerId,
+        ...owner,
         status: { $in: [PayoutStatus.PENDING, PayoutStatus.APPROVED] },
       });
       if (open) continue;
       const plain = method.toObject() as IPayoutMethod;
       const payout = await withTransaction(async (session) => {
         // Re-read inside the transaction: the balance may have moved since the scan.
-        const current = await WalletBalanceModel.findOne(
-          { ownerType: PROVIDER, ownerId: wallet.ownerId },
-          null,
-          {
-            session,
-          },
-        ).lean();
+        // Organizations: unpaid plan fees come out of the earnings first (netting, decision M3.4).
+        if (owner.ownerType === ORGANIZATION) {
+          await Container.get(SubscriptionService).settle(session, owner.ownerId, now);
+        }
+        const current = await WalletBalanceModel.findOne(owner, null, { session }).lean();
         if (!current || current.balance < minimum) return null;
-        const statement = await this.statementSinceLastPayout(wallet.ownerId, current.balance, session);
+        const statement = await this.statementSinceLastPayout(owner, current.balance, session);
         const [doc] = await PayoutModel.create(
           [
             {
-              ownerType: PROVIDER,
-              ownerId: wallet.ownerId,
+              ...owner,
               amount: current.balance,
               destination: JSON.stringify({
                 type: plain.type,
@@ -221,8 +229,7 @@ export class PayoutService {
         );
         await this.ledger.record(
           {
-            ownerType: PROVIDER,
-            ownerId: wallet.ownerId,
+            ...owner,
             bookingId: null,
             type: LedgerEntryType.PAYOUT,
             amount: -current.balance,
@@ -251,12 +258,12 @@ export class PayoutService {
       PayoutModel.find(query).sort({ createdAt: 1 }).skip(pagination.skip).limit(pagination.perPage).lean(),
       PayoutModel.countDocuments(query),
     ]);
-    const names = await this.providerNames(data.map((p) => p.ownerId));
+    const names = await this.ownerNames(data);
     return {
       total,
       data: data.map((payout) => ({
         payout,
-        provider: names.get(String(payout.ownerId)) ?? null,
+        ...names(payout),
         // Whoever pays needs the full account number; it's decrypted only here, for admins.
         destination: JSON.parse(decryptNullable(payout.destination) ?? '{}') as Record<string, string | null>,
       })),
@@ -299,9 +306,9 @@ export class PayoutService {
       entityId: id,
       metadata: { reference },
     });
-    const profile = await ProviderProfileModel.findById(payout.ownerId).select('userId').lean();
-    if (profile) {
-      await this.notifications.notify([profile.userId], {
+    const userId = await this.ownerUserId(payout);
+    if (userId) {
+      await this.notifications.notify([userId], {
         type: NotificationType.PAYOUT,
         template: 'payout_paid',
         params: {
@@ -355,9 +362,12 @@ export class PayoutService {
     return payout;
   }
 
-  /** GET /admin/commission-dues — providers owing the platform (cash commission), most owed first. */
+  /**
+   * GET /admin/commission-dues — providers and organizations owing the platform (cash commission,
+   * subscription fees), most owed first.
+   */
   async commissionDues(pagination: Pagination) {
-    const query = { ownerType: PROVIDER, balance: { $lt: 0 } };
+    const query = { ownerType: { $in: [PROVIDER, ORGANIZATION] }, balance: { $lt: 0 } };
     const [wallets, total] = await Promise.all([
       WalletBalanceModel.find(query)
         .sort({ balance: 1 })
@@ -366,11 +376,8 @@ export class PayoutService {
         .lean(),
       WalletBalanceModel.countDocuments(query),
     ]);
-    const names = await this.providerNames(wallets.map((w) => w.ownerId));
-    return {
-      total,
-      data: wallets.map((w) => ({ wallet: w, provider: names.get(String(w.ownerId)) ?? null })),
-    };
+    const names = await this.ownerNames(wallets);
+    return { total, data: wallets.map((w) => ({ wallet: w, ...names(w) })) };
   }
 
   /** POST /admin/ledger/adjustment — a manual credit (+) or debit (−). Audited. */
@@ -378,16 +385,16 @@ export class PayoutService {
     input: { ownerType: LedgerOwnerType; ownerId: string; amount: number; reason: string },
     context: AuditContext,
   ) {
-    if (input.ownerType !== PROVIDER)
-      throw new ValidationError({ owner_type: ['validation.organizations_not_available'] });
-    const owner = Types.ObjectId.isValid(input.ownerId)
-      ? await ProviderProfileModel.exists({ _id: input.ownerId })
-      : null;
+    const owner = !Types.ObjectId.isValid(input.ownerId)
+      ? null
+      : input.ownerType === ORGANIZATION
+        ? await OrganizationModel.exists({ _id: input.ownerId })
+        : await ProviderProfileModel.exists({ _id: input.ownerId });
     if (!owner) throw new ValidationError({ owner_id: ['validation.not_found'] });
     const entry = await withTransaction((session) =>
       this.ledger.record(
         {
-          ownerType: PROVIDER,
+          ownerType: input.ownerType,
           ownerId: new Types.ObjectId(input.ownerId),
           bookingId: null,
           type: LedgerEntryType.ADJUSTMENT,
@@ -399,7 +406,7 @@ export class PayoutService {
     );
     await this.audit.log(context, {
       action: 'ledger.adjustment',
-      entityType: 'provider_profile',
+      entityType: input.ownerType === ORGANIZATION ? 'organization' : 'provider_profile',
       entityId: input.ownerId,
       metadata: { amount: input.amount, reason: input.reason, entryId: String(entry._id) },
     });
@@ -412,18 +419,14 @@ export class PayoutService {
    * deductions (dispute refunds), adjustments. They add up to the amount paid; any rounding gap from
    * older history lands in adjustments so the statement always balances.
    */
-  async statementSinceLastPayout(ownerId: Types.ObjectId, amount: number, session: ClientSession) {
-    const lastPayout = await WalletLedgerModel.findOne({
-      ownerType: PROVIDER,
-      ownerId,
-      type: LedgerEntryType.PAYOUT,
-    })
+  async statementSinceLastPayout(of: Types.ObjectId | EarningsOwner, amount: number, session: ClientSession) {
+    const owner = asOwner(of);
+    const lastPayout = await WalletLedgerModel.findOne({ ...owner, type: LedgerEntryType.PAYOUT })
       .sort({ createdAt: -1, _id: -1 })
       .session(session)
       .lean();
     const entries = await WalletLedgerModel.find({
-      ownerType: PROVIDER,
-      ownerId,
+      ...owner,
       type: { $ne: LedgerEntryType.PAYOUT },
       ...(lastPayout ? { _id: { $gt: lastPayout._id } } : {}),
     })
@@ -437,27 +440,33 @@ export class PayoutService {
     const otherDeductions = -sum(LedgerEntryType.DEBIT);
     const discountsReimbursed = sum(LedgerEntryType.DISCOUNT_REIMBURSEMENT);
     const referralRewards = sum(LedgerEntryType.REFERRAL_REWARD);
+    // Organizations: plan fees net of credits for unused time when changing plan.
+    const subscriptionFees = -(
+      sum(LedgerEntryType.SUBSCRIPTION_FEE) + sum(LedgerEntryType.SUBSCRIPTION_CREDIT)
+    );
     const known =
       cardEarnings -
       commissionDeducted +
       commissionPaid +
       discountsReimbursed +
       referralRewards -
-      otherDeductions;
+      otherDeductions -
+      subscriptionFees;
     return {
       cardEarnings,
       commissionDeducted,
       commissionPaid,
       discountsReimbursed,
       referralRewards,
+      subscriptionFees,
       otherDeductions,
       adjustments: amount - known,
       net: amount,
     };
   }
 
-  async balance(ownerId: Types.ObjectId) {
-    return (await WalletBalanceModel.findOne({ ownerType: PROVIDER, ownerId }).lean())?.balance ?? 0;
+  async balance(of: Types.ObjectId | EarningsOwner) {
+    return (await WalletBalanceModel.findOne(asOwner(of)).lean())?.balance ?? 0;
   }
 
   private async statusError(id: string) {
@@ -467,17 +476,34 @@ export class PayoutService {
       : new NotFoundError('errors.payout_not_found');
   }
 
-  private async providerNames(profileIds: Types.ObjectId[]) {
-    const profiles = await ProviderProfileModel.find({ _id: { $in: profileIds } })
-      .select('userId')
-      .setOptions({ withDeleted: true })
-      .lean();
-    const users = await UserModel.find({ _id: { $in: profiles.map((p) => p.userId) } })
+  /** Who the user to notify is: the provider, or the organization's owner. */
+  private async ownerUserId(owner: EarningsOwner) {
+    return owner.ownerType === ORGANIZATION
+      ? (await OrganizationModel.findById(owner.ownerId).select('ownerUserId').lean())?.ownerUserId
+      : (await ProviderProfileModel.findById(owner.ownerId).select('userId').lean())?.userId;
+  }
+
+  /** For admin lists: `provider` for a provider's row, `organization` for an organization's (the other null). */
+  private async ownerNames(rows: EarningsOwner[]) {
+    const ids = (type: LedgerOwnerType) => rows.filter((r) => r.ownerType === type).map((r) => r.ownerId);
+    const [profiles, orgs] = await Promise.all([
+      ProviderProfileModel.find({ _id: { $in: ids(PROVIDER) } })
+        .select('userId')
+        .setOptions({ withDeleted: true })
+        .lean(),
+      OrganizationModel.find({ _id: { $in: ids(ORGANIZATION) } })
+        .select('name ownerUserId phone')
+        .setOptions({ withDeleted: true })
+        .lean(),
+    ]);
+    const users = await UserModel.find({
+      _id: { $in: [...profiles.map((p) => p.userId), ...orgs.map((o) => o.ownerUserId)] },
+    })
       .select('fullName phone')
       .setOptions({ withDeleted: true })
       .lean();
     const userById = new Map(users.map((u) => [String(u._id), u]));
-    return new Map(
+    const providers = new Map(
       profiles.map((p) => {
         const user = userById.get(String(p.userId));
         return [
@@ -486,5 +512,19 @@ export class PayoutService {
         ] as const;
       }),
     );
+    const organizations = new Map(
+      orgs.map((o) => {
+        const ownerUser = userById.get(String(o.ownerUserId));
+        return [
+          String(o._id),
+          { id: String(o._id), name: o.name, phone: o.phone ?? ownerUser?.phone ?? '' },
+        ] as const;
+      }),
+    );
+    return (row: EarningsOwner) => ({
+      ownerType: row.ownerType,
+      provider: row.ownerType === PROVIDER ? (providers.get(String(row.ownerId)) ?? null) : null,
+      organization: row.ownerType === ORGANIZATION ? (organizations.get(String(row.ownerId)) ?? null) : null,
+    });
   }
 }

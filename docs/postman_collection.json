@@ -6008,10 +6008,10 @@
           }
         },
         {
-          "name": "Generate a payout batch now (also runs automatically on payout_day): every provider at or above payout_min_amount with a payout method and no open payout",
+          "name": "Generate a payout batch now (also runs automatically on payout_day): every provider and organization at or above payout_min_amount with a payout method and no open payout",
           "request": {
             "method": "POST",
-            "description": "Generate a payout batch now (also runs automatically on payout_day): every provider at or above payout_min_amount with a payout method and no open payout",
+            "description": "Generate a payout batch now (also runs automatically on payout_day): every provider and organization at or above payout_min_amount with a payout method and no open payout",
             "header": [
               {
                 "key": "Accept-Language",
@@ -6151,10 +6151,10 @@
           }
         },
         {
-          "name": "Providers owing commission (cash bookings), most owed first",
+          "name": "Providers and organizations owing the platform (cash commission, plan fees), most owed first",
           "request": {
             "method": "GET",
-            "description": "Providers owing commission (cash bookings), most owed first",
+            "description": "Providers and organizations owing the platform (cash commission, plan fees), most owed first",
             "header": [
               {
                 "key": "Accept-Language",
@@ -7547,6 +7547,105 @@
               }
             }
           }
+        },
+        {
+          "name": "Organization plans (incl. inactive)",
+          "request": {
+            "method": "GET",
+            "description": "Organization plans (incl. inactive)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/subscription-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "subscription-plans"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Create a plan (exactly one is the default free plan new organizations start on)",
+          "request": {
+            "method": "POST",
+            "description": "Create a plan (exactly one is the default free plan new organizations start on)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/subscription-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "subscription-plans"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"string\",\n  \"name_ar\": \"string\",\n  \"name_en\": \"string\",\n  \"monthly_price\": 25000,\n  \"max_staff\": 1,\n  \"features\": [\n    {\n      \"ar\": \"string\",\n      \"en\": \"string\"\n    }\n  ],\n  \"is_active\": true,\n  \"is_default\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update a plan (price changes apply from the next monthly renewal)",
+          "request": {
+            "method": "PATCH",
+            "description": "Update a plan (price changes apply from the next monthly renewal)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/subscription-plans/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "subscription-plans",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"string\",\n  \"name_ar\": \"string\",\n  \"name_en\": \"string\",\n  \"monthly_price\": 25000,\n  \"max_staff\": 1,\n  \"features\": [\n    {\n      \"ar\": \"string\",\n      \"en\": \"string\"\n    }\n  ],\n  \"is_active\": true,\n  \"is_default\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -8308,6 +8407,611 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner — Finance & reports",
+      "item": [
+        {
+          "name": "KPIs for today / the last 7 days / this month, with alerts (unassigned bookings, offers, commission limit)",
+          "request": {
+            "method": "GET",
+            "description": "KPIs for today / the last 7 days / this month, with alerts (unassigned bookings, offers, commission limit)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "today",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Performance between two Cairo dates, grouped by day, staff or service",
+          "request": {
+            "method": "GET",
+            "description": "Performance between two Cairo dates, grouped by day, staff or service",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-05",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-05",
+                  "disabled": false
+                },
+                {
+                  "key": "group_by",
+                  "value": "day",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Monthly statements of platform charges (commission + plan fees), newest first. Statements, not tax invoices.",
+          "request": {
+            "method": "GET",
+            "description": "Monthly statements of platform charges (commission + plan fees), newest first. Statements, not tax invoices.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/invoices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "invoices"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "The statement as an Arabic PDF (signed link, 10 minutes)",
+          "request": {
+            "method": "GET",
+            "description": "The statement as an Arabic PDF (signed link, 10 minutes)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/invoices/:id/pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "invoices",
+                ":id",
+                "pdf"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Totals for a period (default: this month) + balance, payout method and commission limit — same shape as the provider’s",
+          "request": {
+            "method": "GET",
+            "description": "Totals for a period (default: this month) + balance, payout method and commission limit — same shape as the provider’s",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/earnings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "earnings"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Cairo calendar date"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Cairo calendar date"
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Ledger entries, newest first (earnings, commission, plan fees, payouts, adjustments)",
+          "request": {
+            "method": "GET",
+            "description": "Ledger entries, newest first (earnings, commission, plan fees, payouts, adjustments)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/ledger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "ledger"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Payout history with statements",
+          "request": {
+            "method": "GET",
+            "description": "Payout history with statements",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/payouts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "payouts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Where payouts go (masked); null until set",
+          "request": {
+            "method": "GET",
+            "description": "Where payouts go (masked); null until set",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/payout-method",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "payout-method"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "The organization’s bank account or wallet for payouts (stored encrypted)",
+          "request": {
+            "method": "PUT",
+            "description": "The organization’s bank account or wallet for payouts (stored encrypted)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/payout-method",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "payout-method"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"bank\",\n  \"account_holder\": \"string\",\n  \"bank_name\": \"string\",\n  \"wallet_provider\": \"vodafone_cash\",\n  \"account_number\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Pay commission owed on cash bookings — all or part — by card / wallet; credited when the gateway confirms (plan fees: POST /org/subscription/pay)",
+          "request": {
+            "method": "POST",
+            "description": "Pay commission owed on cash bookings — all or part — by card / wallet; credited when the gateway confirms (plan fees: POST /org/subscription/pay)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/commission/pay",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "commission",
+                "pay"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100,\n  \"method\": \"card\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Current plan, paid period and staff usage",
+          "request": {
+            "method": "GET",
+            "description": "Current plan, paid period and staff usage",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/subscription",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "subscription"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Change plan now. A paid plan is charged monthly, taken from earnings (or paid in the app); the unused part of a paid month comes back.",
+          "request": {
+            "method": "POST",
+            "description": "Change plan now. A paid plan is charged monthly, taken from earnings (or paid in the app); the unused part of a paid month comes back.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/subscription",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "subscription"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_id\": \"665f1c2b9e1d2a4c3b9e8f1a\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Pay all unpaid plan fees by card / wallet (otherwise they’re taken from earnings). Unpaid 14 days → notice; 21 days → moved to the free plan.",
+          "request": {
+            "method": "POST",
+            "description": "Pay all unpaid plan fees by card / wallet (otherwise they’re taken from earnings). Unpaid 14 days → notice; 21 days → moved to the free plan.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/subscription/pay",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "subscription",
+                "pay"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"card\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Plans for organizations",
+          "request": {
+            "method": "GET",
+            "description": "Plans for organizations",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/subscription-plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "subscription-plans"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "The organization’s own packages",
+          "request": {
+            "method": "GET",
+            "description": "The organization’s own packages",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "packages"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Create a package for a service the organization offers. Each completed visit earns the per-visit value minus commission.",
+          "request": {
+            "method": "POST",
+            "description": "Create a package for a service the organization offers. Each completed visit earns the per-visit value minus commission.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "packages"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update a package (packages already sold keep their terms)",
+          "request": {
+            "method": "PATCH",
+            "description": "Update a package (packages already sold keep their terms)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/packages/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "packages",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Deactivate a package",
+          "request": {
+            "method": "DELETE",
+            "description": "Deactivate a package",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/packages/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "packages",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
             }
           }
         }

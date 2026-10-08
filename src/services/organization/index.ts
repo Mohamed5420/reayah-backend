@@ -4,3 +4,6 @@ export * from './organization-admin.service';
 export * from './staff.service';
 export * from './org-discovery.service';
 export * from './org-booking.service';
+export * from './subscription.service';
+export * from './statement.service';
+export * from './org-report.service';

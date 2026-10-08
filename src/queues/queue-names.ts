@@ -21,4 +21,11 @@ export enum MaintenanceJob {
   PACKAGE_EXPIRY = 'package-expiry',
   /** Deletes staff invites never accepted, 30 days after they expired (M3.2 default pending counsel). */
   STAFF_INVITE_PURGE = 'staff-invite-purge',
+  /**
+   * Renews paid organization plans when the period ends, settles plan fees from earnings, warns about
+   * unpaid ones and moves organizations still unpaid to the free plan (M3.4).
+   */
+  SUBSCRIPTION_BILLING = 'subscription-billing',
+  /** Last month's statements for organizations (M3.4); a no-op once made. */
+  ORG_STATEMENTS = 'org-statements',
 }

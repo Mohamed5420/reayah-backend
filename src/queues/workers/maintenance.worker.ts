@@ -8,6 +8,8 @@ import { PaymentService } from '../../services/payments/payment.service';
 import { PayoutService } from '../../services/payouts/payout.service';
 import { PackageService } from '../../services/marketing/package.service';
 import { StaffService } from '../../services/organization/staff.service';
+import { SubscriptionService } from '../../services/organization/subscription.service';
+import { StatementService } from '../../services/organization/statement.service';
 import { redisConnection } from '../../config/redis.config';
 import { MaintenanceJob, QueueName } from '../queue-names';
 import { recordHeartbeat } from '../heartbeat';
@@ -34,6 +36,13 @@ export const runMaintenanceJob = async (name: string) => {
       break;
     case MaintenanceJob.PAYOUT_BATCH:
       await Container.get(PayoutService).runScheduled();
+      break;
+    case MaintenanceJob.SUBSCRIPTION_BILLING:
+      await Container.get(SubscriptionService).billDue();
+      await Container.get(SubscriptionService).processUnpaid();
+      break;
+    case MaintenanceJob.ORG_STATEMENTS:
+      await Container.get(StatementService).runDaily();
       break;
     case MaintenanceJob.STAFF_INVITE_PURGE:
       await Container.get(StaffService).purgeLapsed();

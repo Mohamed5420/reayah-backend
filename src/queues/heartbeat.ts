@@ -17,6 +17,8 @@ export const MAX_SILENCE_SECONDS: Record<MaintenanceJob, number> = {
   [MaintenanceJob.DOCUMENT_EXPIRY]: 26 * 3600, // daily
   [MaintenanceJob.PACKAGE_EXPIRY]: 3 * 3600, // hourly
   [MaintenanceJob.STAFF_INVITE_PURGE]: 26 * 3600, // daily
+  [MaintenanceJob.SUBSCRIPTION_BILLING]: 26 * 3600, // daily
+  [MaintenanceJob.ORG_STATEMENTS]: 26 * 3600, // daily
 };
 
 const lastRunKey = (job: MaintenanceJob) => `heartbeat:${job}`;

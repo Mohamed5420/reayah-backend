@@ -52,8 +52,10 @@ export interface IOrganization {
   services: Array<{ serviceId: Types.ObjectId; price: number; isActive: boolean }>;
   /** Admin override of `commission_rate` for this organization (percent); null = the platform rate. */
   commissionRate: number | null;
-  /** Spec §4.4; plans arrive in M3.4. */
+  /** Spec §4.4: the chosen plan (null = the default free plan). */
   subscriptionPlanId: Types.ObjectId | null;
+  /** Current paid period; null on a free plan. */
+  subscriptionPeriod: { start: Date; end: Date } | null;
   /** Invites never accepted and since deleted (number and name gone): only this count is kept. */
   lapsedInvitesCount: number;
   createdAt: Date;
@@ -116,6 +118,86 @@ export interface IStaffInvite {
   respondedAt: Date | null;
   /** Who accepted it. */
   userId: Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Spec §4.7 `subscription_plans` (for organizations). Prices in piastres a month. */
+export interface ISubscriptionPlan {
+  _id: Types.ObjectId;
+  /** Stable key, e.g. "starter" (the free plan new organizations start on). */
+  key: string;
+  nameAr: string;
+  nameEn: string | null;
+  monthlyPrice: number;
+  maxStaff: number;
+  /** Feature labels shown on the plan card (free text, both languages). */
+  features: Array<{ ar: string; en: string | null }>;
+  isActive: boolean;
+  /** The plan organizations are on until they choose one. Exactly one. */
+  isDefault: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** The organization's current plan period (paid plans are billed per month from its ledger). */
+export type OrganizationSubscription = {
+  planId: Types.ObjectId;
+  /** null for a free plan. */
+  periodStart: Date | null;
+  periodEnd: Date | null;
+};
+
+/**
+ * Monthly statement for an organization (spec §7.11 `/org/invoices`; decision M3.4: a statement of
+ * platform charges, not a tax invoice — ETA e-invoices come later). Piastres.
+ */
+export interface IOrgStatement {
+  _id: Types.ObjectId;
+  organizationId: Types.ObjectId;
+  /** Cairo month, "YYYY-MM". */
+  period: string;
+  /** e.g. "RY-ST-202610-4F2A9C". */
+  number: string;
+  /** Visits completed in the month and the platform's commission on them (cash and card). */
+  visits: number;
+  commission: number;
+  /** Plan fees charged in the month, and credits for unused paid time. */
+  subscriptionFees: number;
+  subscriptionCredits: number;
+  /** commission + subscriptionFees − subscriptionCredits. */
+  total: number;
+  /** Private storage key of the PDF. */
+  pdfKey: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * One month of a paid plan (decision after M3.4). Kept apart from the earnings balance so plan fees never
+ * count toward the cash-commission limit: it is settled by taking it from the organization's available
+ * earnings (daily and at each payout batch — only then does it appear on the ledger) or by paying it in
+ * the app. Still unpaid after `plan_fee_notice_days` → the owner is told; after `plan_fee_downgrade_days`
+ * → the organization moves to the free default plan (the fee stays owed).
+ */
+export interface IPlanCharge {
+  _id: Types.ObjectId;
+  organizationId: Types.ObjectId;
+  planId: Types.ObjectId;
+  planKey: string;
+  amount: number;
+  /** Given back when changing plan before the month ended (taken off what's left to pay). */
+  credited: number;
+  creditedAt: Date | null;
+  /** Still to pay. */
+  remaining: number;
+  periodStart: Date;
+  periodEnd: Date;
+  chargedAt: Date;
+  settledAt: Date | null;
+  overdueNoticeAt: Date | null;
+  downgradedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -16,6 +16,7 @@ const paymentSchema = new Schema<IPayment>(
     purpose: { type: String, enum: Object.values(PaymentPurpose), required: true },
     bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', default: null },
     providerProfileId: { type: Schema.Types.ObjectId, ref: 'ProviderProfile', default: null },
+    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', default: null },
     packageSubscriptionId: { type: Schema.Types.ObjectId, ref: 'PackageSubscription', default: null },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     amount: { type: Number, required: true, validate: piastresValidator },

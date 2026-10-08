@@ -38,6 +38,7 @@ export const presentPayout = (p: IPayout) => ({
     commission_paid: p.statement?.commissionPaid ?? 0,
     discounts_reimbursed: p.statement?.discountsReimbursed ?? 0,
     referral_rewards: p.statement?.referralRewards ?? 0,
+    subscription_fees: p.statement?.subscriptionFees ?? 0,
     other_deductions: p.statement?.otherDeductions ?? 0,
     adjustments: p.statement?.adjustments ?? 0,
     net: p.statement?.net ?? p.amount,

@@ -138,9 +138,14 @@ export class QuoteService {
           quantity: input.quantity,
           scheduledStart: input.scheduledStart,
           providerPrice: unitPrice,
+          organizationId: input.organizationId,
         },
         rescheduling,
       );
+      // An organization's own package: the visit is priced at its per-visit value (decision M3.4) —
+      // the organization earns that minus its commission.
+      if (packageSubscription.package.organizationId)
+        base.unitPrice = packageSubscription.package.perVisitValue;
     }
     const promo =
       input.promoCode && !rescheduling

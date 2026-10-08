@@ -2,6 +2,8 @@ import { Container, Service } from 'typedi';
 import { Types, type ClientSession, type FilterQuery } from 'mongoose';
 import { PackageModel, PackageSubscriptionModel } from '../../database/models/marketing/marketing.models';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
+import { OrganizationModel } from '../../database/models/organization/organization.models';
+import { OrgDiscoveryService } from '../organization/org-discovery.service';
 import { PaymentModel } from '../../database/models/payment/payment.models';
 import { VerificationStatus } from '../../interfaces/enums';
 import {
@@ -58,12 +60,16 @@ export class PackageService {
     })
       .sort({ sortOrder: 1, price: 1 })
       .lean();
+    const orgs = await this.approvedOrgs(packages);
     const rows = [];
     for (const pkg of packages) {
       const service = services.get(String(pkg.serviceId));
       if (!service) continue;
+      // An organization's package shows only while the organization is approved.
+      const organization = pkg.organizationId ? orgs.get(String(pkg.organizationId)) : null;
+      if (pkg.organizationId && !organization) continue;
       if (filters.areaId && !(await this.servedIn(pkg, filters.areaId))) continue;
-      rows.push({ pkg, service });
+      rows.push({ pkg, service, organization: organization ?? null });
     }
     return rows;
   }
@@ -76,8 +82,26 @@ export class PackageService {
     const service = pkg
       ? (await this.catalog.activeServices()).find((s) => s.id === String(pkg.serviceId))
       : undefined;
-    if (!pkg || !service) throw new NotFoundError('errors.package_not_found');
-    return { pkg, service };
+    const organization = pkg?.organizationId
+      ? (await this.approvedOrgs([pkg])).get(String(pkg.organizationId))
+      : null;
+    if (!pkg || !service || (pkg.organizationId && !organization)) {
+      throw new NotFoundError('errors.package_not_found');
+    }
+    return { pkg, service, organization: organization ?? null };
+  }
+
+  /** Names of the approved organizations among these packages' owners. */
+  private async approvedOrgs(packages: Array<Pick<IPackage, 'organizationId'>>) {
+    const ids = packages.flatMap((p) => (p.organizationId ? [p.organizationId] : []));
+    if (!ids.length) return new Map<string, { id: string; name: string }>();
+    const orgs = await OrganizationModel.find({
+      _id: { $in: ids },
+      verificationStatus: VerificationStatus.APPROVED,
+    })
+      .select('name')
+      .lean();
+    return new Map(orgs.map((o) => [String(o._id), { id: String(o._id), name: o.name }]));
   }
 
   /** POST /packages/{id}/subscribe — creates the unpaid subscription; the caller starts the checkout. */
@@ -92,6 +116,7 @@ export class PackageService {
       package: {
         nameAr: pkg.nameAr,
         nameEn: pkg.nameEn,
+        organizationId: pkg.organizationId ?? null,
         serviceId: pkg.serviceId,
         visitsCount: pkg.visitsCount,
         validityDays: pkg.validityDays,
@@ -149,6 +174,8 @@ export class PackageService {
       quantity: number;
       scheduledStart: Date;
       providerPrice: number;
+      /** The organization being booked, if any. */
+      organizationId?: string | null;
     },
     rescheduling = false,
   ) {
@@ -177,6 +204,13 @@ export class PackageService {
       throw new ValidationError({ package_subscription_id: ['validation.package_other_service'] });
     }
     if (booking.quantity !== 1) throw new ValidationError({ quantity: ['validation.package_one_visit'] });
+    if (sub.package.organizationId) {
+      // An organization's package: that organization only; the visit is priced at the per-visit value.
+      if (String(sub.package.organizationId) !== String(booking.organizationId ?? '')) {
+        throw new ValidationError({ package_subscription_id: ['validation.package_other_organization'] });
+      }
+      return sub;
+    }
     if (booking.providerPrice > sub.package.perVisitValue) {
       throw new ValidationError({ provider_id: ['validation.provider_above_package_price'] });
     }
@@ -353,16 +387,40 @@ export class PackageService {
   /** At least one approved, accepting provider covers the area and offers the service at ≤ the per-visit value. */
   private async servedIn(pkg: IPackage, areaId: string) {
     if (!Types.ObjectId.isValid(areaId)) return false;
-    return Boolean(
-      await ProviderProfileModel.exists({
-        verificationStatus: VerificationStatus.APPROVED,
-        isAcceptingBookings: true,
-        'serviceAreas.areaId': new Types.ObjectId(areaId),
-        services: {
-          $elemMatch: { serviceId: pkg.serviceId, isActive: true, price: { $lte: perVisitValue(pkg) } },
-        },
-      }),
-    );
+    const orgs = Container.get(OrgDiscoveryService);
+    // An organization's package: that organization has a staff member for the area and service.
+    if (pkg.organizationId) {
+      return (
+        (await orgs.eligibleStaff(pkg.organizationId, { serviceId: String(pkg.serviceId), areaId })).length >
+        0
+      );
+    }
+    const area = new Types.ObjectId(areaId);
+    const independent = await ProviderProfileModel.exists({
+      verificationStatus: VerificationStatus.APPROVED,
+      isAcceptingBookings: true,
+      organizationId: null,
+      'serviceAreas.areaId': area,
+      services: {
+        $elemMatch: { serviceId: pkg.serviceId, isActive: true, price: { $lte: perVisitValue(pkg) } },
+      },
+    });
+    if (independent) return true;
+    // Or an organization in the area at or below the per-visit value, with someone to send.
+    const candidates = await OrganizationModel.find({
+      verificationStatus: VerificationStatus.APPROVED,
+      serviceAreas: { $elemMatch: { areaId: area, isActive: true } },
+      services: {
+        $elemMatch: { serviceId: pkg.serviceId, isActive: true, price: { $lte: perVisitValue(pkg) } },
+      },
+    })
+      .select('_id')
+      .lean();
+    for (const org of candidates) {
+      if ((await orgs.eligibleStaff(org._id, { serviceId: String(pkg.serviceId), areaId })).length)
+        return true;
+    }
+    return false;
   }
 }
 
@@ -385,7 +443,10 @@ export class PackageAdminService {
   private readonly audit = Container.get(AuditService);
 
   async list(filters: { isActive?: boolean }, { skip, perPage }: Pagination) {
-    const query: FilterQuery<IPackage> = filters.isActive !== undefined ? { isActive: filters.isActive } : {};
+    const query: FilterQuery<IPackage> = {
+      organizationId: null,
+      ...(filters.isActive !== undefined ? { isActive: filters.isActive } : {}),
+    };
     const [data, total] = await Promise.all([
       PackageModel.find(query).sort({ sortOrder: 1, createdAt: -1 }).skip(skip).limit(perPage).lean(),
       PackageModel.countDocuments(query),
@@ -405,7 +466,7 @@ export class PackageAdminService {
 
   async create(input: PackageInput, context: AuditContext) {
     await this.assertService(input.serviceId);
-    const pkg = await PackageModel.create(input);
+    const pkg = await PackageModel.create({ ...input, organizationId: null });
     await this.audit.log(context, {
       action: 'package.create',
       entityType: 'package',
@@ -416,7 +477,9 @@ export class PackageAdminService {
   }
 
   async update(id: string, patch: Partial<PackageInput>, context: AuditContext) {
-    const pkg = Types.ObjectId.isValid(id) ? await PackageModel.findById(id) : null;
+    const pkg = Types.ObjectId.isValid(id)
+      ? await PackageModel.findOne({ _id: id, organizationId: null })
+      : null;
     if (!pkg) throw new NotFoundError('errors.package_not_found');
     if (patch.serviceId) await this.assertService(patch.serviceId);
     const changes = applyPatch(pkg, patch);
@@ -439,5 +502,58 @@ export class PackageAdminService {
   private async assertService(serviceId: string) {
     const exists = (await Container.get(CatalogService).activeServices()).some((s) => s.id === serviceId);
     if (!exists) throw new ValidationError({ service_id: ['validation.invalid_value'] });
+  }
+}
+
+/**
+ * An organization's own packages (spec §7.11 `/org/packages`; M3.4): for services it offers. Sold like
+ * platform packages (card / wallet upfront to the platform); each completed visit earns the organization
+ * the per-visit value minus its commission (decision M3.4).
+ */
+@Service()
+export class OrgPackageService {
+  list(orgId: Types.ObjectId) {
+    return PackageModel.find({ organizationId: orgId }).sort({ sortOrder: 1, createdAt: -1 }).lean();
+  }
+
+  async create(
+    org: { _id: Types.ObjectId; services: Array<{ serviceId: Types.ObjectId; isActive: boolean }> },
+    input: PackageInput,
+  ) {
+    this.assertOffered(org, input.serviceId);
+    const pkg = await PackageModel.create({ ...input, organizationId: org._id });
+    return pkg.toObject();
+  }
+
+  async update(
+    org: { _id: Types.ObjectId; services: Array<{ serviceId: Types.ObjectId; isActive: boolean }> },
+    id: string,
+    patch: Partial<PackageInput>,
+  ) {
+    const pkg = Types.ObjectId.isValid(id)
+      ? await PackageModel.findOne({ _id: id, organizationId: org._id })
+      : null;
+    if (!pkg) throw new NotFoundError('errors.package_not_found');
+    if (patch.serviceId) this.assertOffered(org, patch.serviceId);
+    applyPatch(pkg, patch);
+    await pkg.save();
+    return pkg.toObject();
+  }
+
+  /** Spec: DELETE deactivates (packages already sold keep working). */
+  deactivate(
+    org: { _id: Types.ObjectId; services: Array<{ serviceId: Types.ObjectId; isActive: boolean }> },
+    id: string,
+  ) {
+    return this.update(org, id, { isActive: false });
+  }
+
+  private assertOffered(
+    org: { services: Array<{ serviceId: Types.ObjectId; isActive: boolean }> },
+    serviceId: string,
+  ) {
+    if (!org.services.some((s) => s.isActive && String(s.serviceId) === serviceId)) {
+      throw new ValidationError({ service_id: ['validation.service_not_offered_by_org'] });
+    }
   }
 }

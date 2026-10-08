@@ -116,7 +116,12 @@
     "staff_join_active_bookings": "أنهِ حجوزاتك الحالية أولاً قبل الانضمام لمؤسسة",
     "staff_join_balance": "يجب تسوية رصيدك وصرف المستحقات أولاً قبل الانضمام لمؤسسة",
     "staff_already_assigned": "هذا العضو معيّن على الحجز بالفعل",
-    "no_eligible_staff": "لا يوجد عضو متاح في الفريق لهذا الحجز"
+    "no_eligible_staff": "لا يوجد عضو متاح في الفريق لهذا الحجز",
+    "plan_not_found": "الباقة غير موجودة",
+    "plan_staff_limit": "وصلت إلى الحد الأقصى لفريقك في باقتك ({{max}} أفراد). رقِّ الباقة أو أزل أحد الأفراد",
+    "plan_already_current": "هذه باقتك الحالية بالفعل",
+    "statement_not_found": "الكشف غير موجود",
+    "no_plan_fee_due": "لا توجد رسوم باقة مستحقة"
   },
   "validation": {
     "invalid_value": "قيمة غير صالحة",
@@ -150,7 +155,6 @@
     "date_out_of_range": "اختر تاريخاً من اليوم وحتى 60 يوماً قادمة",
     "quantity_out_of_range": "الكمية غير مسموحة لهذه الخدمة",
     "time_requires_date": "حدد التاريخ مع الوقت",
-    "organizations_not_available": "الحجز من خلال المراكز سيتاح قريباً",
     "video_not_available": "الاستشارات بالفيديو ستتاح قريباً",
     "provider_gender_mismatch": "مقدم الخدمة لا يطابق النوع المفضل الذي اخترته",
     "quote_invalid": "انتهت صلاحية عرض السعر، اطلب عرض سعر جديد",
@@ -178,7 +182,9 @@
     "service_not_offered_by_org": "المؤسسة لا تقدم هذه الخدمة",
     "service_wrong_type": "الخدمة لا تناسب تخصص عضو الفريق",
     "area_not_served_by_org": "المؤسسة لا تغطي هذه المنطقة",
-    "provider_or_organization": "اختر مقدم خدمة أو مؤسسة، وليس الاثنين"
+    "provider_or_organization": "اختر مقدم خدمة أو مؤسسة، وليس الاثنين",
+    "plan_default_required": "يجب أن تبقى باقة افتراضية واحدة على الأقل",
+    "package_other_organization": "الباقة خاصة بمؤسسة أخرى"
   },
   "address": {
     "floor": "الدور {{floor}}",
@@ -424,9 +430,39 @@
     "org_booking_time_changed": {
       "title": "تغيّر موعد حجز",
       "body": "{{service}} أصبح {{time}} مع {{provider}}"
+    },
+    "plan_fee_overdue": {
+      "title": "رسوم الباقة لم تُسدَّد",
+      "body": "متبقي {{amount}} جنيه من رسوم باقتك. سدّدها خلال {{days}} أيام وإلا ستنتقل مؤسستك للباقة الأساسية"
+    },
+    "plan_downgraded": {
+      "title": "تم تحويلك للباقة الأساسية",
+      "body": "لعدم سداد رسوم الباقة انتقلت مؤسستك إلى باقة {{plan}}. فريقك الحالي يستمر في العمل"
+    },
+    "plan_fee_paid": {
+      "title": "تم سداد رسوم الباقة",
+      "body": "تم استلام {{amount}} جنيه، شكراً لك"
     }
   },
   "packages": {
     "travel_fee_note": "سعر الباقة لا يشمل رسوم الانتقال، وتُدفع مع كل زيارة حسب منطقتك ومقدم الخدمة"
+  },
+  "org": {
+    "alert_unassigned": "حجز بدون تعيين منذ {{minutes}} دقيقة",
+    "alert_offers": "{{count}} طلبات متاحة لمؤسستك من مقدمي خدمة آخرين",
+    "alert_commission_limit": "تجاوزت المؤسسة الحد المسموح للمبالغ المستحقة؛ الحجوزات النقدية متوقفة حتى السداد"
+  },
+  "statement": {
+    "title": "كشف حساب شهري",
+    "not_tax_invoice": "هذا كشف حساب وليس فاتورة ضريبية",
+    "organization": "المؤسسة: {{name}}",
+    "commercial_register": "السجل التجاري: {{number}}",
+    "period": "الفترة: {{period}}",
+    "number": "رقم الكشف: {{number}}",
+    "commission": "عمولة المنصة على {{visits}} زيارة مكتملة: {{amount}} جنيه",
+    "subscription": "اشتراك الباقة: {{amount}} جنيه",
+    "subscription_credit": "رصيد مسترد عن تغيير الباقة: {{amount}} جنيه",
+    "total": "الإجمالي: {{amount}} جنيه",
+    "settlement": "تُخصم هذه المبالغ من أرباح المؤسسة عند صرفها، أو تُسدَّد من التطبيق."
   }
 }
