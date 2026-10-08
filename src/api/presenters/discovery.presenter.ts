@@ -8,6 +8,8 @@ import type { Slot } from '../../services/discovery';
 import type { Language } from '../../utils/i18n';
 import { localized } from './localize';
 import { presentSpecialty } from '../../services/catalog/specialties';
+import type { PublicClinic } from '../../services/discovery/clinic-discovery.service';
+import type { AreaDescription } from '../../services/location/location.service';
 
 /** Maps discovery results to the API shapes in discovery.validation.ts. */
 
@@ -17,9 +19,10 @@ export const presentSearchCard = (
   service: ServiceRow,
   imageUrl: string | null,
   lang: Language = 'ar',
+  places?: Map<string, AreaDescription>,
 ) =>
   card.kind === 'provider'
-    ? presentProviderCard(card, service, imageUrl, lang)
+    ? presentProviderCard(card, service, imageUrl, lang, places)
     : {
         kind: 'organization' as const,
         id: String(card.org._id),
@@ -40,6 +43,8 @@ export const presentSearchCard = (
         organization: { id: String(card.org._id), name: card.org.name },
         team_size: card.teamSize,
         next_available: card.nextAvailable ? new Date(card.nextAvailable).toISOString() : null,
+        visit_type: 'home_visit' as const,
+        clinic: null,
       };
 
 export const presentProviderCard = (
@@ -47,6 +52,7 @@ export const presentProviderCard = (
   service: ServiceRow,
   avatarUrl: string | null,
   lang: Language = 'ar',
+  places?: Map<string, AreaDescription>,
 ) => ({
   kind: 'provider' as const,
   id: String(card.profile._id),
@@ -67,6 +73,54 @@ export const presentProviderCard = (
   organization: null,
   team_size: null,
   next_available: card.nextAvailable ? new Date(card.nextAvailable).toISOString() : null,
+  visit_type: card.clinic ? ('clinic_visit' as const) : ('home_visit' as const),
+  clinic: card.clinic
+    ? {
+        id: card.clinic.id,
+        name: card.clinic.name,
+        area: areaRef(card.clinic.areaId, places, lang),
+      }
+    : null,
+});
+
+const areaRef = (areaId: string, places: Map<string, AreaDescription> | undefined, lang: Language) => {
+  const place = places?.get(areaId);
+  return { id: areaId, name: place ? localized(place.area.nameAr, place.area.nameEn, lang) : '' };
+};
+
+/** A doctor's clinic on their public profile (no phone: it is shown after booking). */
+export const presentPublicClinic = (
+  input: PublicClinic,
+  services: Array<{ service: ServiceRow; price: number }>,
+  lang: Language,
+) => ({
+  id: String(input.clinic._id),
+  name: input.clinic.name,
+  governorate: input.place
+    ? {
+        id: input.place.governorate.id,
+        name: localized(input.place.governorate.nameAr, input.place.governorate.nameEn, lang),
+      }
+    : null,
+  area: input.place
+    ? { id: input.place.area.id, name: localized(input.place.area.nameAr, input.place.area.nameEn, lang) }
+    : null,
+  street: input.clinic.street,
+  building: input.clinic.building,
+  floor: input.clinic.floor,
+  landmark: input.clinic.landmark,
+  hours: input.link.hours.map((h) => ({
+    day_of_week: h.dayOfWeek,
+    start_time: h.startTime,
+    end_time: h.endTime,
+  })),
+  appointment_minutes: input.link.slotMinutes,
+  services: services.map(({ service, price }) => ({
+    service_id: service.id,
+    name: localized(service.nameAr, service.nameEn, lang),
+    price,
+    pricing_unit: service.pricingUnit,
+  })),
 });
 
 export const presentPublicProfile = (input: {
@@ -75,6 +129,7 @@ export const presentPublicProfile = (input: {
   avatarUrl: string | null;
   areas: Array<{ id: string; nameAr: string; nameEn: string | null }>;
   services: Array<{ service: ServiceRow; price: number }>;
+  clinics?: Array<{ clinic: PublicClinic; services: Array<{ service: ServiceRow; price: number }> }>;
   recentReviews: Array<{ rating: number; comment: string | null; patient_name: string; date: string }>;
   lang: Language;
 }) => ({
@@ -100,6 +155,11 @@ export const presentPublicProfile = (input: {
     price,
     pricing_unit: service.pricingUnit,
   })),
+  visit_types: [
+    ...(input.services.length && input.areas.length ? ['home_visit' as const] : []),
+    ...(input.clinics?.length ? ['clinic_visit' as const] : []),
+  ],
+  clinics: (input.clinics ?? []).map((c) => presentPublicClinic(c.clinic, c.services, input.lang)),
   organization: null,
   recent_reviews: input.recentReviews,
 });

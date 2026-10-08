@@ -1,0 +1,247 @@
+import { Container, Service } from 'typedi';
+import { Types } from 'mongoose';
+import { ClinicModel } from '../../database/models/clinic/clinic.model';
+import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
+import { UserModel } from '../../database/models/user/user.model';
+import { UserStatus, VerificationStatus } from '../../interfaces/enums';
+import { ClinicStatus, type IClinic, type IProviderClinic } from '../../interfaces/IClinic';
+import type { IProviderProfile } from '../../interfaces/IProfiles';
+import { AreaNotCoveredError, NotFoundError, ValidationError } from '../../utils/types-errors';
+import { addDays, cairoDate, cairoToUtc } from '../../utils/time/cairo';
+import type { Pagination } from '../../utils/response/pagination';
+import { CatalogService, type ServiceRow } from '../catalog/catalog.service';
+import { CLINIC_VISIT, offeredEntry, visitTypeMatch } from '../catalog/visit-types';
+import { LocationService, type AreaDescription } from '../location/location.service';
+import { SettingsService } from '../settings/settings.service';
+import { sameWorld } from '../auth/test-accounts';
+import { DiscoveryService, compareCards, type ProviderCard, type SearchFilters } from './discovery.service';
+import { slotsForDay, type Slot } from './slot-engine';
+
+/** Next-free-appointment look-ahead on cards (same as home visits). */
+const NEXT_AVAILABLE_DAYS = 7;
+
+/** A bookable place for one doctor: an approved, active clinic with their hours there. */
+type ClinicSeat = { profile: Pick<IProviderProfile, '_id'>; link: IProviderClinic };
+
+export type ClinicCardRef = { id: string; name: string; areaId: string };
+
+/**
+ * Clinic visits, C2: search, profile clinics and appointment slots. A clinic is bookable when it is
+ * approved and active, the feature flag is on, and an approved independent doctor who takes bookings
+ * prices the service as a clinic visit and has hours there. Search is by **the clinic's area** and gives
+ * one card per (doctor, clinic). Appointments are fixed times of the clinic's length (`slotMinutes`, else
+ * the service's duration) inside the doctor's hours there, minus everything on the doctor's one calendar
+ * (`DiscoveryService.busyIntervals`: home and clinic bookings and time off alike).
+ */
+@Service()
+export class ClinicDiscoveryService {
+  private readonly discovery = Container.get(DiscoveryService);
+  private readonly catalog = Container.get(CatalogService);
+  private readonly locations = Container.get(LocationService);
+  private readonly settings = Container.get(SettingsService);
+
+  async assertEnabled() {
+    if (!(await this.settings.get('features')).clinic_visits) {
+      throw new ValidationError({ visit_type: ['validation.clinic_visit_not_available'] });
+    }
+  }
+
+  /** GET /providers?visit_type=clinic_visit — one card per doctor and clinic in the clinic's area. */
+  async search(filters: SearchFilters, pagination: Pagination) {
+    await this.assertEnabled();
+    if (filters.time && !filters.date) throw new ValidationError({ time: ['validation.time_requires_date'] });
+    if (filters.date) this.discovery.assertBookableDate(filters.date);
+    const service = await this.catalog.getActiveService(filters.serviceId);
+    if (!(await this.locations.findBookableArea(filters.areaId))) throw new AreaNotCoveredError();
+    const empty = { data: [] as Array<ProviderCard & { kind: 'provider' }>, total: 0, service };
+    if (!service.visitTypes.includes(CLINIC_VISIT)) return empty;
+    if (filters.providerType && filters.providerType !== service.providerType) return empty;
+    // Organization branches join in C4.
+    if (filters.source === 'organization') return empty;
+
+    const clinics = await ClinicModel.find({
+      areaId: new Types.ObjectId(filters.areaId),
+      status: ClinicStatus.APPROVED,
+      isActive: true,
+      providerProfileId: { $ne: null },
+    }).lean();
+    if (!clinics.length) return empty;
+
+    const priceRange = {
+      ...(filters.minPrice !== undefined ? { $gte: filters.minPrice } : {}),
+      ...(filters.maxPrice !== undefined ? { $lte: filters.maxPrice } : {}),
+    };
+    const profiles = await ProviderProfileModel.find({
+      _id: { $in: clinics.map((c) => c.providerProfileId) },
+      verificationStatus: VerificationStatus.APPROVED,
+      isAcceptingBookings: true,
+      organizationId: null,
+      ...sameWorld(filters.testAccount),
+      services: {
+        $elemMatch: {
+          serviceId: new Types.ObjectId(filters.serviceId),
+          isActive: true,
+          ...visitTypeMatch(CLINIC_VISIT),
+          ...(Object.keys(priceRange).length ? { price: priceRange } : {}),
+        },
+      },
+      ...(filters.specialty ? { specialty: filters.specialty } : {}),
+      ...(filters.minRating !== undefined ? { ratingAvg: { $gte: filters.minRating } } : {}),
+    })
+      // Card fields only: identity fields (licence numbers…) never leave here.
+      .select(
+        'userId type specialty yearsOfExperience ratingAvg ratingCount completedVisitsCount organizationId availability services clinics',
+      )
+      .lean();
+    const users = await UserModel.find({
+      _id: { $in: profiles.map((p) => p.userId) },
+      status: UserStatus.ACTIVE,
+      ...(filters.gender ? { gender: filters.gender } : {}),
+    })
+      .select('fullName gender avatarKey')
+      .lean();
+    const userById = new Map(users.map((u) => [String(u._id), u]));
+    const profileById = new Map(profiles.map((p) => [String(p._id), p]));
+
+    const rows: Array<ProviderCard & { kind: 'provider'; clinic: ClinicCardRef; seat: ClinicSeat }> = [];
+    for (const clinic of clinics) {
+      const profile = profileById.get(String(clinic.providerProfileId));
+      const user = profile && userById.get(String(profile.userId));
+      const link = profile?.clinics?.find((l) => l.clinicId.equals(clinic._id) && l.hours.length);
+      const entry = profile && offeredEntry(profile.services, filters.serviceId, CLINIC_VISIT);
+      if (!profile || !user || !link || !entry) continue;
+      rows.push({
+        kind: 'provider',
+        profile,
+        user,
+        price: entry.price,
+        travelFee: 0,
+        nextAvailable: null,
+        clinic: { id: String(clinic._id), name: clinic.name, areaId: String(clinic.areaId) },
+        seat: { profile, link },
+      });
+    }
+
+    // Next free appointment (on `date`, or within a week); with `date` / `time`, only seats free then.
+    const days = filters.date
+      ? [filters.date]
+      : Array.from({ length: NEXT_AVAILABLE_DAYS }, (_, i) => addDays(cairoDate(), i));
+    const slotsByDay = await this.slotsForSeats(
+      rows.map((r) => r.seat),
+      service,
+      days,
+    );
+    const wanted = filters.date && filters.time ? cairoToUtc(filters.date, filters.time).getTime() : null;
+    const visible = rows.flatMap((row) => {
+      const slots = days.flatMap((d) => slotsByDay.get(seatKey(row.seat))?.get(d) ?? []);
+      const free = slots.filter((s) => s.available && (wanted === null || s.start.getTime() === wanted));
+      if (filters.date && !free.length) return [];
+      return [{ ...row, nextAvailable: free[0]?.start ?? null }];
+    });
+    visible.sort(compareCards(filters.sort));
+    return {
+      data: visible.slice(pagination.skip, pagination.skip + pagination.perPage),
+      total: visible.length,
+      service,
+    };
+  }
+
+  /** GET /providers/{id}/slots?visit_type=clinic_visit&clinic_id= — one Cairo date at one clinic. */
+  async slots(
+    providerId: string,
+    input: { serviceId: string; clinicId: string; date: string },
+    excludeBookingId?: string,
+  ): Promise<Slot[]> {
+    await this.assertEnabled();
+    this.discovery.assertBookableDate(input.date);
+    const { seat, service } = await this.bookableSeat(providerId, input.serviceId, input.clinicId);
+    const slots = await this.slotsForSeats([seat], service, [input.date], excludeBookingId);
+    return slots.get(seatKey(seat))?.get(input.date) ?? [];
+  }
+
+  /**
+   * The single eligibility check for a clinic appointment (also for quotes, C3): the clinic is approved,
+   * active and the doctor's; the doctor is approved, independent, takes bookings, prices the service as a
+   * clinic visit and has hours there.
+   */
+  async bookableSeat(providerId: string, serviceId: string, clinicId: string) {
+    const service = await this.catalog.getActiveService(serviceId);
+    const { profile } = await this.discovery.approvedProvider(providerId);
+    const clinic = Types.ObjectId.isValid(clinicId)
+      ? await ClinicModel.findOne({
+          _id: clinicId,
+          providerProfileId: profile._id,
+          status: ClinicStatus.APPROVED,
+          isActive: true,
+        }).lean()
+      : null;
+    const link = clinic && profile.clinics?.find((l) => l.clinicId.equals(clinic._id) && l.hours.length);
+    if (!clinic || !link) throw new NotFoundError('errors.clinic_not_found');
+    const entry = offeredEntry(profile.services, serviceId, CLINIC_VISIT);
+    if (!entry || !service.visitTypes.includes(CLINIC_VISIT))
+      throw new NotFoundError('errors.service_not_offered');
+    return { profile, clinic, link, entry, service, seat: { profile, link } as ClinicSeat };
+  }
+
+  /** The doctor's approved, active clinics with their hours there, for the public profile. */
+  async publicClinics(profile: Pick<IProviderProfile, '_id' | 'clinics' | 'services'>) {
+    if (!(await this.settings.get('features')).clinic_visits) return [];
+    const withHours = (profile.clinics ?? []).filter((l) => l.hours.length);
+    if (!withHours.length || !profile.services.some((s) => s.isActive && s.visitType === CLINIC_VISIT))
+      return [];
+    const clinics = await ClinicModel.find({
+      _id: { $in: withHours.map((l) => l.clinicId) },
+      providerProfileId: profile._id,
+      status: ClinicStatus.APPROVED,
+      isActive: true,
+    }).lean();
+    const places = await this.locations.describeAreas(clinics.map((c) => String(c.areaId)));
+    return clinics.map((clinic) => ({
+      clinic,
+      link: withHours.find((l) => l.clinicId.equals(clinic._id))!,
+      place: places.get(String(clinic.areaId)) ?? null,
+    }));
+  }
+
+  /** Slots per seat and day, with one busy-time query for all of them. */
+  private async slotsForSeats(
+    seats: ClinicSeat[],
+    service: ServiceRow,
+    days: string[],
+    excludeBookingId?: string,
+  ): Promise<Map<string, Map<string, Slot[]>>> {
+    const result = new Map<string, Map<string, Slot[]>>();
+    if (!seats.length) return result;
+    const busy = await this.discovery.busyIntervals(
+      seats.map((s) => s.profile._id),
+      cairoToUtc(days[0], '00:00'),
+      cairoToUtc(addDays(days[days.length - 1], 1), '00:00'),
+      excludeBookingId,
+    );
+    const now = new Date();
+    for (const seat of seats) {
+      const perDay = new Map<string, Slot[]>();
+      for (const day of days) {
+        perDay.set(
+          day,
+          slotsForDay({
+            availability: seat.link.hours,
+            date: day,
+            pricingUnit: service.pricingUnit,
+            defaultDurationMinutes: service.defaultDurationMinutes,
+            quantity: 1,
+            busy: busy.get(String(seat.profile._id)) ?? [],
+            now,
+            appointmentMinutes: seat.link.slotMinutes ?? service.defaultDurationMinutes,
+          }),
+        );
+      }
+      result.set(seatKey(seat), perDay);
+    }
+    return result;
+  }
+}
+
+const seatKey = (seat: ClinicSeat) => `${String(seat.profile._id)}:${String(seat.link.clinicId)}`;
+
+export type PublicClinic = { clinic: IClinic; link: IProviderClinic; place: AreaDescription | null };

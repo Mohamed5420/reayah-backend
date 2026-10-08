@@ -32,6 +32,9 @@ import { ProviderProfileModel } from '../../../database/models/provider/provider
 import type { Types } from 'mongoose';
 import { perVisitValue } from '../../../interfaces/IMarketing';
 import { ValidationError } from '../../../utils/types-errors';
+import { ClinicDiscoveryService } from '../../../services/discovery/clinic-discovery.service';
+import { BookingType } from '../../../interfaces/IBooking';
+import { LocationService } from '../../../services/location';
 
 const tags = ['Patient — Discovery'];
 const auth = true;
@@ -98,6 +101,8 @@ export default class DiscoveryController implements IBaseController {
   private users = Container.get(UserService);
   private bookings = Container.get(BookingService);
   private orgDiscovery = Container.get(OrgDiscoveryService);
+  private clinicDiscovery = Container.get(ClinicDiscoveryService);
+  private locations = Container.get(LocationService);
   private packages = Container.get(PackageService);
   private banners = Container.get(BannerService);
 
@@ -169,6 +174,10 @@ export default class DiscoveryController implements IBaseController {
     try {
       const q = req.query as unknown as z.infer<typeof DiscoverySchemas.searchQuery>;
       const pagination = parsePagination(req.query);
+      // Packages cover home visits only (until C5); clinic search is one card per doctor and clinic (C2).
+      if (q.visit_type === BookingType.CLINIC_VISIT && q.package_id) {
+        throw new ValidationError({ package_id: ['validation.package_home_only'] });
+      }
       if (q.package_id) {
         // Booking with a package: only providers at or below its per-visit value (product decision).
         const { pkg } = await this.packages.getAvailable(q.package_id);
@@ -177,23 +186,27 @@ export default class DiscoveryController implements IBaseController {
         }
         q.max_price = Math.min(q.max_price ?? Infinity, perVisitValue(pkg));
       }
-      const { data, total, service } = await this.discovery.searchWithOrganizations(
-        {
-          serviceId: q.service_id,
-          areaId: q.area_id,
-          date: q.date,
-          time: q.time,
-          gender: q.gender,
-          providerType: q.provider_type,
-          specialty: q.specialty,
-          minPrice: q.min_price,
-          maxPrice: q.max_price,
-          minRating: q.min_rating,
-          source: q.source,
-          sort: q.sort,
-          testAccount: req.user?.isTestAccount,
-        },
-        pagination,
+      const filters = {
+        serviceId: q.service_id,
+        areaId: q.area_id,
+        date: q.date,
+        time: q.time,
+        gender: q.gender,
+        providerType: q.provider_type,
+        specialty: q.specialty,
+        minPrice: q.min_price,
+        maxPrice: q.max_price,
+        minRating: q.min_rating,
+        source: q.source,
+        sort: q.sort,
+        testAccount: req.user?.isTestAccount,
+      };
+      const { data, total, service } =
+        q.visit_type === BookingType.CLINIC_VISIT
+          ? await this.clinicDiscovery.search(filters, pagination)
+          : await this.discovery.searchWithOrganizations(filters, pagination);
+      const places = await this.locations.describeAreas(
+        data.flatMap((c) => (c.kind === 'provider' && c.clinic ? [c.clinic.areaId] : [])),
       );
       const cards = await Promise.all(
         data.map(async (card) =>
@@ -202,6 +215,7 @@ export default class DiscoveryController implements IBaseController {
             service,
             await this.avatarUrl(card.kind === 'provider' ? card.user.avatarKey : card.org.logoKey),
             resolveLanguage(req),
+            places,
           ),
         ),
       );
@@ -227,10 +241,26 @@ export default class DiscoveryController implements IBaseController {
         );
       }
       const result = await this.discovery.getPublicProfile(req.params.id);
+      const catalog = new Map(
+        (await this.catalog.activeServices({ providerType: result.profile.type ?? undefined })).map((s) => [
+          s.id,
+          s,
+        ]),
+      );
+      const clinics = (await this.clinicDiscovery.publicClinics(result.profile)).map((clinic) => ({
+        clinic,
+        services: result.profile.services.flatMap((s) => {
+          const row = catalog.get(String(s.serviceId));
+          return s.isActive && row && s.visitType === BookingType.CLINIC_VISIT
+            ? [{ service: row, price: s.price }]
+            : [];
+        }),
+      }));
       return HttpResponse.ok(
         res,
         presentPublicProfile({
           ...result,
+          clinics,
           recentReviews: (await this.reviewService.recentForProvider(result.profile._id)).map(
             presentPublicReview,
           ),
@@ -268,7 +298,13 @@ export default class DiscoveryController implements IBaseController {
             areaId: q.area_id,
             gender: q.gender,
           })
-        : await this.discovery.providerSlots(req.params.id, q.service_id, q.date, q.quantity);
+        : q.visit_type === BookingType.CLINIC_VISIT
+          ? await this.clinicDiscovery.slots(req.params.id, {
+              serviceId: q.service_id,
+              clinicId: q.clinic_id!,
+              date: q.date,
+            })
+          : await this.discovery.providerSlots(req.params.id, q.service_id, q.date, q.quantity);
       return HttpResponse.ok(res, presentSlots(q.date, slots));
     } catch (err) {
       next(err);

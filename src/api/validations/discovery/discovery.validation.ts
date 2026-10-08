@@ -4,6 +4,7 @@ import { OrganizationType } from '../../../interfaces/IOrganization';
 import { ProviderSort } from '../../../services/discovery/discovery.service';
 import { objectId, paginationQuery, specialtyView, z } from '../zod';
 import { SPECIALTY_KEYS } from '../../../services/catalog/specialties';
+import { BookingType } from '../../../interfaces/IBooking';
 
 const date = z.iso.date().openapi({ example: '2026-10-05', description: 'Cairo calendar date' });
 const time = z
@@ -42,8 +43,39 @@ const providerCard = z
     /** Organizations: staff who could take it (area, service, preferred gender). */
     team_size: z.number().nullable(),
     next_available: z.string().nullable(),
+    /** home_visit, or clinic_visit for a clinic card (one per doctor and clinic). */
+    visit_type: z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]),
+    /** Clinic cards: where to go (the full address is on the profile; the phone after booking). */
+    clinic: z
+      .object({ id: objectId, name: z.string(), area: z.object({ id: objectId, name: z.string() }) })
+      .nullable(),
   })
   .openapi('ProviderCard');
+
+/** A clinic on a doctor's public profile — text address only, no phone (shown after booking). */
+const publicClinic = z
+  .object({
+    id: objectId,
+    name: z.string(),
+    governorate: z.object({ id: objectId, name: z.string() }).nullable(),
+    area: z.object({ id: objectId, name: z.string() }).nullable(),
+    street: z.string(),
+    building: z.string().nullable(),
+    floor: z.string().nullable(),
+    landmark: z.string().nullable(),
+    /** Weekly clinic hours (Cairo). */
+    hours: z.array(z.object({ day_of_week: z.number(), start_time: z.string(), end_time: z.string() })),
+    appointment_minutes: z.number().nullable(),
+    services: z.array(
+      z.object({
+        service_id: objectId,
+        name: z.string(),
+        price: z.number(),
+        pricing_unit: z.enum(PricingUnit),
+      }),
+    ),
+  })
+  .openapi('PublicClinic');
 
 const organizationProfile = z
   .object({
@@ -100,6 +132,8 @@ export const DiscoverySchemas = {
     min_rating: z.coerce.number().min(1).max(5).optional(),
     source: z.enum(['independent', 'organization']).optional(),
     sort: z.enum(ProviderSort).default(ProviderSort.RATING),
+    /** clinic_visit (when enabled): clinics in `area_id` — the clinic's area, not the doctor's service areas. */
+    visit_type: z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]).default(BookingType.HOME_VISIT),
   }),
   providerCard,
 
@@ -122,6 +156,7 @@ export const DiscoverySchemas = {
       completed_visits: z.number(),
       languages: z.array(z.string()),
       service_areas: z.array(z.object({ id: objectId, name: z.string() })),
+      /** Home-visit services and prices. */
       services: z.array(
         z.object({
           service_id: objectId,
@@ -130,6 +165,10 @@ export const DiscoverySchemas = {
           pricing_unit: z.enum(PricingUnit),
         }),
       ),
+      /** What can be booked: home_visit and / or clinic_visit. */
+      visit_types: z.array(z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT])),
+      /** The doctor's clinics (clinic visits), with clinic prices. */
+      clinics: z.array(publicClinic),
       organization: organizationRef.nullable(),
       recent_reviews: z.array(
         z.object({
@@ -151,15 +190,23 @@ export const DiscoverySchemas = {
     })
     .openapi('ProviderReview'),
 
-  slotsQuery: z.object({
-    service_id: objectId,
-    date,
-    quantity: z.coerce.number().int().min(1).default(1),
-    /** Organizations: only staff covering this area (the address's area). */
-    area_id: objectId.optional(),
-    /** Organizations: only staff of this gender (the preferred gender). */
-    gender: z.enum(Gender).optional(),
-  }),
+  slotsQuery: z
+    .object({
+      service_id: objectId,
+      date,
+      quantity: z.coerce.number().int().min(1).default(1),
+      visit_type: z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]).default(BookingType.HOME_VISIT),
+      /** Required for clinic_visit: appointments at this clinic. */
+      clinic_id: objectId.optional(),
+      /** Organizations: only staff covering this area (the address's area). */
+      area_id: objectId.optional(),
+      /** Organizations: only staff of this gender (the preferred gender). */
+      gender: z.enum(Gender).optional(),
+    })
+    .refine((q) => q.visit_type !== BookingType.CLINIC_VISIT || Boolean(q.clinic_id), {
+      error: 'validation.required',
+      path: ['clinic_id'],
+    }),
   slots: z
     .object({
       date: z.string(),

@@ -64,12 +64,14 @@ export type ProviderCard = {
   price: number;
   travelFee: number;
   nextAvailable: Date | null;
+  /** Clinic-visit cards (C2): the clinic this card books. */
+  clinic?: { id: string; name: string; areaId: string } | null;
 };
 
 export type SearchCard = (ProviderCard & { kind: 'provider' }) | OrgCard;
 
 /** Same order as the database sort, across provider and organization cards. */
-const compareCards =
+export const compareCards =
   (sort: ProviderSort) =>
   (a: SearchCard, b: SearchCard): number => {
     const rating = (c: SearchCard) => (c.kind === 'provider' ? c.profile.ratingAvg : c.ratingAvg);
@@ -452,7 +454,8 @@ export class DiscoveryService {
     ];
   }
 
-  private async approvedProvider(providerId: string) {
+  /** An approved independent provider with an active account (404 otherwise). */
+  async approvedProvider(providerId: string) {
     const profile = Types.ObjectId.isValid(providerId)
       ? await ProviderProfileModel.findOne({
           _id: providerId,

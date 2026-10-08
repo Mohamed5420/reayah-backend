@@ -3456,6 +3456,11 @@
                   "key": "sort",
                   "value": "rating",
                   "disabled": true
+                },
+                {
+                  "key": "visit_type",
+                  "value": "home_visit",
+                  "disabled": true
                 }
               ],
               "variable": []
@@ -3570,6 +3575,16 @@
                 {
                   "key": "quantity",
                   "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "visit_type",
+                  "value": "home_visit",
+                  "disabled": true
+                },
+                {
+                  "key": "clinic_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
                   "disabled": true
                 },
                 {

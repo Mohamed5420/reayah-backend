@@ -33,6 +33,8 @@ export const overlaps = (a: Interval, b: Interval) => a.start < b.end && b.start
  * - per-visit / per-hour: a start every 30 min such that the visit ends inside the working window.
  * - per-day: one slot per working window, starting at the window's start (the stay runs past the window).
  * - Starts sooner than MIN_LEAD_MINUTES from `now` are left out; slots clashing with `busy` are `available: false`.
+ * - Clinic appointments (clinic visits): `appointmentMinutes` sets both the length and the step, so
+ *   appointments follow each other at fixed times (e.g. 18:00, 18:20, 18:40).
  */
 export const slotsForDay = (input: {
   availability: IAvailabilitySlot[];
@@ -42,8 +44,12 @@ export const slotsForDay = (input: {
   quantity: number;
   busy: Interval[];
   now: Date;
+  appointmentMinutes?: number;
 }): Slot[] => {
-  const duration = durationMinutes(input.pricingUnit, input.defaultDurationMinutes, input.quantity);
+  const duration =
+    input.appointmentMinutes ??
+    durationMinutes(input.pricingUnit, input.defaultDurationMinutes, input.quantity);
+  const step = input.appointmentMinutes ?? SLOT_STEP_MINUTES;
   const earliest = input.now.getTime() + MIN_LEAD_MINUTES * MINUTE;
   const weekday = dayOfWeek(input.date);
   const starts = new Set<number>();
@@ -51,11 +57,11 @@ export const slotsForDay = (input: {
   for (const window of input.availability.filter((w) => w.dayOfWeek === weekday)) {
     const from = toMinutes(window.startTime);
     const to = toMinutes(window.endTime);
-    if (input.pricingUnit === PricingUnit.PER_DAY) {
+    if (input.pricingUnit === PricingUnit.PER_DAY && !input.appointmentMinutes) {
       starts.add(from);
       continue;
     }
-    for (let m = from; m + duration <= to; m += SLOT_STEP_MINUTES) starts.add(m);
+    for (let m = from; m + duration <= to; m += step) starts.add(m);
   }
 
   return [...starts]

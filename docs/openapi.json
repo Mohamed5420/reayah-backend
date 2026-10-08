@@ -3926,6 +3926,51 @@
               "string",
               "null"
             ]
+          },
+          "visit_type": {
+            "type": "string",
+            "enum": [
+              "home_visit",
+              "clinic_visit"
+            ]
+          },
+          "clinic": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              },
+              "area": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{24}$/i",
+                    "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "area"
+            ]
           }
         },
         "required": [
@@ -3947,7 +3992,9 @@
           "pricing_unit",
           "organization",
           "team_size",
-          "next_available"
+          "next_available",
+          "visit_type",
+          "clinic"
         ]
       },
       "ProviderPublicProfile": {
@@ -4083,6 +4130,22 @@
               ]
             }
           },
+          "visit_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "home_visit",
+                "clinic_visit"
+              ]
+            }
+          },
+          "clinics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicClinic"
+            }
+          },
           "organization": {
             "type": [
               "object",
@@ -4151,8 +4214,158 @@
           "languages",
           "service_areas",
           "services",
+          "visit_types",
+          "clinics",
           "organization",
           "recent_reviews"
+        ]
+      },
+      "PublicClinic": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "name": {
+            "type": "string"
+          },
+          "governorate": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "area": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "street": {
+            "type": "string"
+          },
+          "building": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "floor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "landmark": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hours": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "day_of_week": {
+                  "type": "number"
+                },
+                "start_time": {
+                  "type": "string"
+                },
+                "end_time": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "day_of_week",
+                "start_time",
+                "end_time"
+              ]
+            }
+          },
+          "appointment_minutes": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "service_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{24}$/i",
+                  "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "pricing_unit": {
+                  "type": "string",
+                  "enum": [
+                    "per_visit",
+                    "per_hour",
+                    "per_day"
+                  ]
+                }
+              },
+              "required": [
+                "service_id",
+                "name",
+                "price",
+                "pricing_unit"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "governorate",
+          "area",
+          "street",
+          "building",
+          "floor",
+          "landmark",
+          "hours",
+          "appointment_minutes",
+          "services"
         ]
       },
       "OrganizationPublicProfile": {
@@ -17991,6 +18204,19 @@
             "required": false,
             "name": "sort",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home_visit",
+                "clinic_visit"
+              ],
+              "default": "home_visit"
+            },
+            "required": false,
+            "name": "visit_type",
+            "in": "query"
           }
         ],
         "responses": {
@@ -18229,6 +18455,29 @@
             },
             "required": false,
             "name": "quantity",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home_visit",
+                "clinic_visit"
+              ],
+              "default": "home_visit"
+            },
+            "required": false,
+            "name": "visit_type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
+            "name": "clinic_id",
             "in": "query"
           },
           {

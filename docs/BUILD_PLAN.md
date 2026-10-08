@@ -284,7 +284,7 @@ Doctor bookings become a **clinic visit** (patient goes to the clinic) or a **ho
 - [x] `clinic_visit` booking type; catalog `visitTypes` + per-type price limits; per-visit-type service prices; clinics (text address only) with licence and admin verification; clinic hours with overlap rules; settings and feature flag. *(No data migration needed: a service entry without `visitType` counts as a home visit, and every home-visit match goes through `visit-types.ts`. Seeded doctor services renamed to neutral names ("كشف", "متابعة") since one service now covers home and clinic. `features` settings can be updated partially, and older stored values pick up new flags with their defaults. Clinic quotes are refused until C3.)*
 
 ### C2 Search and slots
-- [ ] Search by clinic area, one card per clinic, profile clinic tab, slots per clinic, one calendar across home and clinic.
+- [x] Search by clinic area, one card per clinic, profile clinic tab, slots per clinic, one calendar across home and clinic. *(`GET /providers?visit_type=clinic_visit`: approved, active clinics in `area_id` with an approved independent doctor who takes bookings, prices the service as a clinic visit and has hours there; card = clinic price, no travel fee, clinic name + area (never the phone or street). Slots: `?visit_type=clinic_visit&clinic_id=` — fixed appointments of the clinic's length (default: the service's duration). Profile: `visit_types` and `clinics` (full text address, hours, clinic prices, no phone). All behind `features.clinic_visits`; packages stay home-only until C5.)*
 
 ### C3 Clinic booking flow
 - [ ] Quote / book with a clinic, instant confirm, visit-code start, no-show and fee settings, cancellations and refunds, clinic notifications and reminders.

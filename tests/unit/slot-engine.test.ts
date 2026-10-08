@@ -60,3 +60,29 @@ describe('durationMinutes', () => {
     expect(durationMinutes(PricingUnit.PER_DAY, 45, 2)).toBe(2880);
   });
 });
+
+describe('clinic appointments (appointmentMinutes)', () => {
+  const evening = [{ dayOfWeek: 0, startTime: '18:00', endTime: '19:00' }];
+  const clinic = { ...base, availability: evening, pricingUnit: PricingUnit.PER_VISIT };
+
+  it('fixed times: the appointment length is also the step', () => {
+    const slots = slotsForDay({ ...clinic, appointmentMinutes: 20 });
+    expect(slots.map((s) => s.start)).toEqual(['18:00', '18:20', '18:40'].map((t) => cairoToUtc(SUNDAY, t)));
+    expect(slots.every((s) => s.end.getTime() - s.start.getTime() === 20 * 60_000)).toBe(true);
+  });
+
+  it('an appointment that would run past closing is not offered', () => {
+    expect(slotsForDay({ ...clinic, appointmentMinutes: 25 }).map((s) => s.start)).toEqual(
+      ['18:00', '18:25'].map((t) => cairoToUtc(SUNDAY, t)),
+    );
+  });
+
+  it('busy time blocks the appointments it overlaps', () => {
+    const busy = [{ start: cairoToUtc(SUNDAY, '18:10'), end: cairoToUtc(SUNDAY, '18:30') }];
+    expect(slotsForDay({ ...clinic, appointmentMinutes: 20, busy }).map((s) => s.available)).toEqual([
+      false,
+      false,
+      true,
+    ]);
+  });
+});
