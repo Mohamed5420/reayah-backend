@@ -22,6 +22,8 @@ export interface IUser {
   lastLoginAt: Date | null;
   /** Referral code entered at sign-up; rewarded after the first completed booking (Phase 2). */
   referredByCode: string | null;
+  /** This user's own code to invite others (created on first GET /me/referral). */
+  referralCode: string | null;
   deletionRequestedAt: Date | null;
   isOnline: boolean;
   notificationSettings: INotificationSettings;

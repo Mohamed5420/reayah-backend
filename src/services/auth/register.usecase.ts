@@ -9,6 +9,7 @@ import type { Language } from '../../utils/i18n';
 import { ConflictError } from '../../utils/types-errors';
 import { TokenService } from './token.service';
 import { verifyRegistrationToken } from './jwt';
+import { ReferralService } from '../marketing/referral.service';
 
 export type RegisterInput = {
   role: UserRole.PATIENT | UserRole.PROVIDER | UserRole.OWNER;
@@ -48,12 +49,14 @@ export class RegisterUseCase {
               dateOfBirth: input.dateOfBirth,
               email: input.email ?? null,
               language: input.language ?? 'ar',
-              referredByCode: input.referralCode ?? null,
+              referredByCode: input.referralCode?.trim().toUpperCase() || null,
               lastLoginAt: new Date(),
             },
           ],
           { session },
         );
+
+        await Container.get(ReferralService).recordAtSignup(session, user, input.referralCode);
 
         if (input.role === UserRole.PATIENT) {
           await PatientProfileModel.create(

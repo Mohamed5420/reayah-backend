@@ -89,12 +89,17 @@ export const loginWithOtp = async (app: Express, phone: string) => {
 };
 
 /** Full sign-up through the API; returns the session (`access_token`, `refresh_token`, `user`). */
-export const signUp = async (app: Express, role: UserRole = UserRole.PATIENT, phone = randomPhone()) => {
+export const signUp = async (
+  app: Express,
+  role: UserRole = UserRole.PATIENT,
+  phone = randomPhone(),
+  extra: Record<string, unknown> = {},
+) => {
   const { registration_token } = await loginWithOtp(app, phone);
   const res = await request(app)
     .post('/api/v1/auth/register')
     .set('Authorization', `Bearer ${registration_token}`)
-    .send({ role, full_name: 'أحمد محمود', gender: 'male', date_of_birth: '1985-03-12' })
+    .send({ role, full_name: 'أحمد محمود', gender: 'male', date_of_birth: '1985-03-12', ...extra })
     .expect(201);
   return { phone, ...res.body.data };
 };

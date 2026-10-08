@@ -16,6 +16,7 @@ const paymentSchema = new Schema<IPayment>(
     purpose: { type: String, enum: Object.values(PaymentPurpose), required: true },
     bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', default: null },
     providerProfileId: { type: Schema.Types.ObjectId, ref: 'ProviderProfile', default: null },
+    packageSubscriptionId: { type: Schema.Types.ObjectId, ref: 'PackageSubscription', default: null },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     amount: { type: Number, required: true, validate: piastresValidator },
     currency: { type: String, enum: ['EGP'], default: 'EGP' },
@@ -38,6 +39,7 @@ const paymentSchema = new Schema<IPayment>(
 );
 paymentSchema.index({ bookingId: 1, createdAt: -1 });
 paymentSchema.index({ userId: 1, createdAt: -1 });
+paymentSchema.index({ packageSubscriptionId: 1 }, { sparse: true });
 paymentSchema.index({ gateway: 1, gatewayOrderId: 1 });
 paymentSchema.index({ status: 1, expiresAt: 1 });
 // At most one paid payment per booking (commission payments have no booking).
@@ -54,7 +56,7 @@ export const PaymentModel = model<IPayment>('Payment', paymentSchema);
 const refundSchema = new Schema<IRefund>(
   {
     paymentId: { type: Schema.Types.ObjectId, ref: 'Payment', required: true, index: true },
-    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', required: true, index: true },
+    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', default: null, index: true },
     amount: { type: Number, required: true, validate: piastresValidator },
     reason: { type: String, required: true },
     status: { type: String, enum: Object.values(RefundStatus), default: RefundStatus.PENDING },

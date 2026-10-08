@@ -5,8 +5,10 @@ import { objectId, paginationQuery, piastres, z } from '../zod';
 const payment = z
   .object({
     id: objectId,
-    /** null for a provider's commission payment. */
+    /** null unless purpose = booking. */
     booking_id: objectId.nullable(),
+    /** Set when purpose = package. */
+    package_subscription_id: objectId.nullable(),
     purpose: z.enum(PaymentPurpose),
     amount: z.number(),
     currency: z.literal('EGP'),
@@ -30,7 +32,8 @@ export const PaymentSchemas = {
   gatewayParams: z.object({ gateway: z.string().min(1).max(20) }),
   initiateBody: z
     .strictObject({
-      purpose: z.enum(PaymentPurpose),
+      purpose: z.enum([PaymentPurpose.BOOKING, PaymentPurpose.PACKAGE]),
+      /** Booking id, or package subscription id (an unpaid purchase). */
       reference_id: objectId,
       /** Switch between card and wallet before paying (optional). */
       method: z.enum([PaymentMethod.CARD, PaymentMethod.WALLET]).optional(),

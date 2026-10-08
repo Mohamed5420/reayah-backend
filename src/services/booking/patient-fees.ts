@@ -1,5 +1,5 @@
 import { Container } from 'typedi';
-import { PaymentStatus, type IBooking } from '../../interfaces/IBooking';
+import { GATEWAY_PAYMENT_METHODS, PaymentStatus, type IBooking } from '../../interfaces/IBooking';
 import { SettingsService } from '../settings/settings.service';
 
 /**
@@ -9,12 +9,17 @@ import { SettingsService } from '../settings/settings.service';
  * the refund (`collected: true`); a cash booking records it without collecting (`collected: false`).
  */
 export const patientFeeFor = async (
-  booking: Pick<IBooking, 'price' | 'paymentStatus'>,
+  booking: Pick<IBooking, 'price' | 'paymentStatus' | 'paymentMethod'>,
   reason: 'late_cancellation' | 'no_show',
 ): Promise<IBooking['patientFee']> => {
   const enabled = await Container.get(SettingsService).get(
     reason === 'late_cancellation' ? 'travel_fee_on_late_cancellation' : 'travel_fee_on_no_show',
   );
   if (!enabled || booking.price.travelFee <= 0) return null;
-  return { amount: booking.price.travelFee, reason, collected: booking.paymentStatus === PaymentStatus.PAID };
+  return {
+    amount: booking.price.travelFee,
+    reason,
+    collected:
+      booking.paymentStatus === PaymentStatus.PAID && GATEWAY_PAYMENT_METHODS.includes(booking.paymentMethod),
+  };
 };

@@ -11,6 +11,8 @@ import { PaymentService } from '../../../services/payments/payment.service';
 import { auditContextFrom } from '../../../services/audit';
 import { env } from '../../../config/env.config';
 import { UserRole } from '../../../interfaces/enums';
+import { PaymentMethod } from '../../../interfaces/IBooking';
+import { PaymentPurpose } from '../../../interfaces/IPayment';
 import { HttpResponse } from '../../../utils/response/http-response';
 import { parsePagination } from '../../../utils/response/pagination';
 
@@ -23,7 +25,7 @@ const r = {
     method: 'post',
     path: '/payments/initiate',
     summary:
-      'Start a card / wallet checkout for my unpaid booking (also returned by POST /bookings). Open checkout_url; the result arrives by webhook.',
+      'Start a card / wallet checkout for my unpaid booking or package purchase (also returned by POST /bookings and POST /packages/{id}/subscribe). Open checkout_url; the result arrives by webhook.',
     tags,
     auth,
     idempotent: true,
@@ -105,7 +107,14 @@ export default class PaymentController implements IBaseController {
       IdempotencyMiddleware,
       this.handle(async (req, res) => {
         const body = req.body as z.infer<typeof PaymentSchemas.initiateBody>;
-        const payment = await this.payments.initiateForBooking(req.user!.id, body.reference_id, body.method);
+        const payment =
+          body.purpose === PaymentPurpose.PACKAGE
+            ? await this.payments.initiateForPackage(
+                req.user!.id,
+                body.reference_id,
+                body.method ?? PaymentMethod.CARD,
+              )
+            : await this.payments.initiateForBooking(req.user!.id, body.reference_id, body.method);
         return HttpResponse.ok(res, {
           payment_id: String(payment._id),
           checkout_url: payment.checkoutUrl,

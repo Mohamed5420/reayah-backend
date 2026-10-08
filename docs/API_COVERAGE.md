@@ -4,7 +4,7 @@
 
 Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi.json` (Swagger UI at `/docs` outside production).
 
-**Implemented:** 159 · **Deferred:** 63 (each to a named Phase 2 / 3 milestone)
+**Implemented:** 175 · **Deferred:** 47 (each to a named Phase 2 / 3 milestone)
 
 ## 7.2 Me / Account (all roles)
 
@@ -15,7 +15,7 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `POST` | `/me/avatar` | ✅ Built |
 | `POST` | `/me/devices` | ✅ Built |
 | `DELETE` | `/me/devices/{fcm_token}` | ✅ Built |
-| `GET` | `/me/referral` | ⏳ M2.5 — Packages, promos, referrals |
+| `GET` | `/me/referral` | ✅ Built |
 | `DELETE` | `/me` | ✅ Built |
 
 ## 7.3 Lookups (public, cacheable)
@@ -95,11 +95,11 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 
 | Method | Path | Status |
 |---|---|---|
-| `GET` | `/packages` | ⏳ M2.5 — Packages, promos, referrals |
-| `GET` | `/packages/{id}` | ⏳ M2.5 — Packages, promos, referrals |
-| `POST` | `/packages/{id}/subscribe` | ⏳ M2.5 — Packages, promos, referrals |
-| `GET` | `/me/package-subscriptions` | ⏳ M2.5 — Packages, promos, referrals |
-| `POST` | `/promo-codes/validate` | ⏳ M2.5 — Packages, promos, referrals |
+| `GET` | `/packages` | ✅ Built |
+| `GET` | `/packages/{id}` | ✅ Built |
+| `POST` | `/packages/{id}/subscribe` | ✅ Built |
+| `GET` | `/me/package-subscriptions` | ✅ Built |
+| `POST` | `/promo-codes/validate` | ✅ Built |
 
 ## 7.10 Provider (roles: provider, provider_staff)
 
@@ -265,17 +265,17 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `GET` | `/admin/areas` | ✅ Built |
 | `POST` | `/admin/areas` | ✅ Built |
 | `PATCH` | `/admin/areas/{id}` | ✅ Built |
-| `GET` | `/admin/promo-codes` | ⏳ M2.5 — Packages, promos, referrals |
-| `POST` | `/admin/promo-codes` | ⏳ M2.5 — Packages, promos, referrals |
-| `PATCH` | `/admin/promo-codes/{id}` | ⏳ M2.5 — Packages, promos, referrals |
-| `DELETE` | `/admin/promo-codes/{id}` | ⏳ M2.5 — Packages, promos, referrals |
-| `GET` | `/admin/banners` | ⏳ M2.5 — Packages, promos, referrals |
-| `POST` | `/admin/banners` | ⏳ M2.5 — Packages, promos, referrals |
-| `PATCH` | `/admin/banners/{id}` | ⏳ M2.5 — Packages, promos, referrals |
-| `DELETE` | `/admin/banners/{id}` | ⏳ M2.5 — Packages, promos, referrals |
+| `GET` | `/admin/promo-codes` | ✅ Built |
+| `POST` | `/admin/promo-codes` | ✅ Built |
+| `PATCH` | `/admin/promo-codes/{id}` | ✅ Built |
+| `DELETE` | `/admin/promo-codes/{id}` | ✅ Built |
+| `GET` | `/admin/banners` | ✅ Built |
+| `POST` | `/admin/banners` | ✅ Built |
+| `PATCH` | `/admin/banners/{id}` | ✅ Built |
+| `DELETE` | `/admin/banners/{id}` | ✅ Built |
 | `POST` | `/admin/notifications/broadcast` | ⏳ M3.5 — Advanced admin |
-| `GET` | `/admin/packages` | ⏳ M2.5 — Packages, promos, referrals |
-| `POST` | `/admin/packages` | ⏳ M2.5 — Packages, promos, referrals |
+| `GET` | `/admin/packages` | ✅ Built |
+| `POST` | `/admin/packages` | ✅ Built |
 | `GET` | `/admin/subscription-plans` | ⏳ M3 — Organizations |
 | `POST` | `/admin/subscription-plans` | ⏳ M3 — Organizations |
 | `GET` | `/admin/payments` | ✅ Built |

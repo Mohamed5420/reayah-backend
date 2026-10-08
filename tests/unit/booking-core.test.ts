@@ -19,11 +19,40 @@ describe('computePrice', () => {
       subtotal: 25000,
       travelFee: 3000,
       discount: 0,
+      discounts: { promo: 0, package: 0, credit: 0 },
       platformFee: 0,
       total: 28000,
       commissionRate: 15,
       commissionAmount: 3750,
       providerPayout: 24250,
+    });
+  });
+
+  it('discounts: promo on the subtotal, package covers it, credit covers what is left; payout unchanged', () => {
+    const base = {
+      unitPrice: 25000,
+      quantity: 1,
+      pricingUnit: PricingUnit.PER_VISIT,
+      travelFee: 3000,
+      commissionRate: 15,
+    };
+    expect(computePrice({ ...base, promoDiscount: 5000, availableCredit: 2000 })).toMatchObject({
+      discount: 7000,
+      discounts: { promo: 5000, package: 0, credit: 2000 },
+      total: 21000,
+      commissionAmount: 3750,
+      providerPayout: 24250,
+    });
+    expect(computePrice({ ...base, coveredByPackage: true, availableCredit: 100000 })).toMatchObject({
+      discounts: { promo: 0, package: 25000, credit: 3000 },
+      total: 0,
+      providerPayout: 24250,
+    });
+    // A promo never exceeds the subtotal.
+    expect(computePrice({ ...base, promoDiscount: 99999 }).discounts).toEqual({
+      promo: 25000,
+      package: 0,
+      credit: 0,
     });
   });
 

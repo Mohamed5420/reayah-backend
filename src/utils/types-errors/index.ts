@@ -148,8 +148,8 @@ export class AreaNotCoveredError extends HttpError {
 }
 
 export class PromoInvalidError extends HttpError {
-  constructor() {
-    super(422, ErrorCode.PROMO_INVALID);
+  constructor(messageKey?: TranslationKey) {
+    super(422, ErrorCode.PROMO_INVALID, { messageKey });
   }
 }
 

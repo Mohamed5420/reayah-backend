@@ -37,6 +37,9 @@ export type PayoutStatement = {
   cardEarnings: number;
   commissionDeducted: number;
   commissionPaid: number;
+  /** Cash bookings with a discount the platform bears. */
+  discountsReimbursed: number;
+  referralRewards: number;
   otherDeductions: number;
   adjustments: number;
   net: number;

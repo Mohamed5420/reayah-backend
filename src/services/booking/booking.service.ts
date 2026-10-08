@@ -11,6 +11,7 @@ import { UserModel } from '../../database/models/user/user.model';
 import {
   ACTIVE_BOOKING_STATUSES,
   AssignmentMode,
+  GATEWAY_PAYMENT_METHODS,
   BookingActor,
   BookingStatus,
   OfferStatus,
@@ -40,6 +41,10 @@ import { QuoteService, type BookingDraft } from './quote.service';
 import { PaymentService } from '../payments/payment.service';
 import { patientFeeFor } from './patient-fees';
 import { CommissionService } from '../payouts/commission.service';
+import { CreditService } from '../marketing/credit.service';
+import { PackageService } from '../marketing/package.service';
+import { PromoService } from '../marketing/promo.service';
+import { discountsOf } from './pricing';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I
 
@@ -63,17 +68,24 @@ export class BookingService {
     userId: string,
     input: { quoteToken: string; paymentMethod: PaymentMethod; patientNotes?: string | null },
   ) {
+    const draft = this.quotes.verifyToken(input.quoteToken, userId);
+    // Fully covered (package / credit): nothing to pay or collect — its own method, so cash reports and
+    // commission dues stay accurate. Whatever the client chose is ignored.
+    const covered = draft.price.total === 0;
+    const paymentMethod = covered ? PaymentMethod.COVERED : input.paymentMethod;
+    if (paymentMethod === PaymentMethod.COVERED && !covered) {
+      throw new ValidationError({ payment_method: ['validation.invalid_value'] });
+    }
     // Card / wallet (M2.3): only with the card_payment flag on and a gateway configured. The patient then
     // pays through the checkout returned with the booking, within card_payment_window_minutes.
     if (
-      input.paymentMethod !== PaymentMethod.CASH &&
+      GATEWAY_PAYMENT_METHODS.includes(paymentMethod) &&
       !(await Container.get(PaymentService).cardPaymentsEnabled())
     ) {
       throw new ValidationError({ payment_method: ['validation.payment_method_unavailable'] });
     }
-    const draft = this.quotes.verifyToken(input.quoteToken, userId);
     if (
-      input.paymentMethod === PaymentMethod.CASH &&
+      paymentMethod === PaymentMethod.CASH &&
       (await Container.get(CommissionService).overLimit(draft.providerId))
     ) {
       throw new ConflictError('errors.provider_cash_unavailable');
@@ -86,7 +98,8 @@ export class BookingService {
     const start = new Date(draft.scheduledStart);
     const end = new Date(draft.scheduledEnd);
     const responseMinutes = await this.settings.get('direct_request_response_minutes');
-    const awaitingPayment = input.paymentMethod !== PaymentMethod.CASH;
+    const awaitingPayment = GATEWAY_PAYMENT_METHODS.includes(paymentMethod);
+    const discounts = discountsOf(draft.price);
 
     return runBookingTransaction(async (tx) => {
       await lockProviderSchedule(draft.providerId, tx.session);
@@ -120,11 +133,26 @@ export class BookingService {
             allowFallback: draft.allowFallback,
             patientNotes: input.patientNotes ?? null,
             price: draft.price,
-            paymentMethod: input.paymentMethod,
+            paymentMethod,
+            // Covered: nothing to pay, so it is paid in full from the start.
+            ...(covered ? { paymentStatus: PaymentStatus.PAID } : {}),
+            packageSubscriptionId: draft.packageSubscriptionId ?? null,
+            promo:
+              draft.promoCodeId && draft.promoCode
+                ? { promoCodeId: draft.promoCodeId, code: draft.promoCode }
+                : null,
           },
         ],
         { session: tx.session },
       );
+      // Benefits are taken in the same transaction: a package visit, a promo use, credit.
+      if (draft.packageSubscriptionId) {
+        await Container.get(PackageService).reserve(tx.session, draft.packageSubscriptionId, start);
+      }
+      if (draft.promoCodeId) {
+        await Container.get(PromoService).redeem(tx.session, booking, draft.promoCodeId, discounts.promo);
+      }
+      await Container.get(CreditService).use(booking.patientUserId, discounts.credit, booking, tx.session);
       await recordHistory(tx, booking._id, null, booking.status, BookingActor.PATIENT, userId, null);
       if (!awaitingPayment) {
         tx.publish({
@@ -229,7 +257,11 @@ export class BookingService {
     return {
       status: BookingStatus.CANCELLED,
       cancellationFee: fee,
-      refundAmount: booking.paymentStatus === PaymentStatus.PAID ? booking.price.total - fee : 0,
+      refundAmount:
+        booking.paymentStatus === PaymentStatus.PAID &&
+        GATEWAY_PAYMENT_METHODS.includes(booking.paymentMethod)
+          ? booking.price.total - fee
+          : 0,
     };
   }
 
@@ -313,7 +345,12 @@ export class BookingService {
   async rebook(userId: string, bookingId: string, scheduledStart: Date, lang: Language) {
     const booking = await this.getOwned(userId, bookingId);
     if (!booking.providerProfileId) throw new ValidationError({ booking: ['validation.not_rebookable'] });
-    return this.quotes.quote(userId, { ...this.inputFrom(booking), scheduledStart }, lang);
+    // A fresh booking: no package visit or promo carried over (the patient can add them to the quote).
+    return this.quotes.quote(
+      userId,
+      { ...this.inputFrom(booking), packageSubscriptionId: null, scheduledStart },
+      lang,
+    );
   }
 
   /** The patient's next active booking, for the home screen. */
@@ -365,6 +402,8 @@ export class BookingService {
       preferredGender: booking.preferredGender,
       allowFallback: booking.allowFallback,
       quantity: booking.quantity,
+      promoCode: null,
+      packageSubscriptionId: booking.packageSubscriptionId ? String(booking.packageSubscriptionId) : null,
     };
   }
 }

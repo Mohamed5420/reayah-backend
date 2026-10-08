@@ -37,6 +37,8 @@ export interface Settings {
   travel_fee_on_no_show: boolean;
   /** Referral credit for each side, piastres. */
   referral_reward: number;
+  /** Tell patients this many days before their package expires. */
+  package_expiry_notice_days: number;
   /** Weekly payout batch day. */
   payout_day: Weekday;
   /** Smallest balance paid out in a batch (piastres); smaller balances roll over to the next week. */
@@ -65,6 +67,7 @@ export const SETTING_DEFAULTS: Settings = {
   travel_fee_on_late_cancellation: true,
   travel_fee_on_no_show: true,
   referral_reward: 5000,
+  package_expiry_notice_days: 3,
   payout_day: 'thursday',
   payout_min_amount: 10000,
   max_commission_due: 100000,
@@ -110,6 +113,7 @@ export const SETTING_VALIDATORS: { [K in SettingKey]: Validator<Settings[K]> } =
   travel_fee_on_late_cancellation: isBoolean,
   travel_fee_on_no_show: isBoolean,
   referral_reward: intBetween(0, 10_000_000),
+  package_expiry_notice_days: intBetween(0, 60),
   payout_day: (v): v is Weekday => WEEKDAYS.includes(v as Weekday),
   payout_min_amount: intBetween(0, 100_000_00),
   max_commission_due: intBetween(0, 100_000_00),

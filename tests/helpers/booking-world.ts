@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Express } from 'express';
 import request from 'supertest';
 import { Container } from 'typedi';
-import { createBookableProvider, signUp } from './fixtures';
+import { createBookableProvider, randomPhone, signUp } from './fixtures';
 import { signTestToken } from './app';
 import { runSeeds } from '../../src/database/seed';
 import { AreaModel } from '../../src/database/models/location/area.model';
@@ -34,8 +34,11 @@ export const createBookingWorld = async (app: Express) => {
   const maadi = String((await AreaModel.findOne({ nameAr: 'المعادي' }))!._id);
   const wound = String((await CatalogServiceModel.findOne({ nameAr: 'غيار على جرح' }))!._id);
 
-  const newPatient = async (areaId = nasrCity): Promise<TestPatient> => {
-    const session = await signUp(app, UserRole.PATIENT);
+  const newPatient = async (
+    areaId = nasrCity,
+    signUpExtra: Record<string, unknown> = {},
+  ): Promise<TestPatient> => {
+    const session = await signUp(app, UserRole.PATIENT, randomPhone(), signUpExtra);
     const auth = `Bearer ${session.access_token}`;
     const profiles = await request(app).get('/api/v1/patient-profiles').set('Authorization', auth);
     const address = await request(app).post('/api/v1/addresses').set('Authorization', auth).send({

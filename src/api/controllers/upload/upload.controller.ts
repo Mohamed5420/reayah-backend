@@ -34,7 +34,7 @@ const routes = {
   }),
 };
 
-const IMAGE_ONLY_PURPOSES: UploadPurpose[] = ['avatar'];
+const IMAGE_ONLY_PURPOSES: UploadPurpose[] = ['avatar', 'banner'];
 
 /** Generic private upload (spec §7.4). Any signed-in role; the attach endpoint checks owner + purpose. */
 export default class UploadController implements IBaseController {

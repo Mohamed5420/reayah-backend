@@ -1,9 +1,11 @@
 import type { Types } from 'mongoose';
 import type { PaymentMethod } from './IBooking';
 
-/** Spec §7.14 `purpose`. Packages arrive in M2.5. */
+/** Spec §7.14 `purpose`. */
 export enum PaymentPurpose {
   BOOKING = 'booking',
+  /** Buying a package (spec §7.9). */
+  PACKAGE = 'package',
   /** A provider paying the commission they owe on cash bookings. */
   COMMISSION = 'commission',
 }
@@ -39,6 +41,8 @@ export interface IPayment {
   bookingId: Types.ObjectId | null;
   /** Commission payments only: whose ledger is credited. */
   providerProfileId: Types.ObjectId | null;
+  /** Package purchases only. */
+  packageSubscriptionId: Types.ObjectId | null;
   userId: Types.ObjectId;
   /** Piastres. */
   amount: number;
@@ -65,7 +69,8 @@ export interface IPayment {
 export interface IRefund {
   _id: Types.ObjectId;
   paymentId: Types.ObjectId;
-  bookingId: Types.ObjectId;
+  /** null for package purchases. */
+  bookingId: Types.ObjectId | null;
   amount: number;
   reason: string;
   status: RefundStatus;

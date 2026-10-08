@@ -42,6 +42,7 @@ export class LedgerService {
   async recordCompletion(booking: IBooking, session: ClientSession) {
     if (!booking.providerProfileId) return;
     if (booking.paymentMethod !== PaymentMethod.CASH) {
+      // Card / wallet once paid; covered (package / credit) always — the platform holds that money.
       if (booking.paymentStatus !== PaymentStatus.PAID || booking.price.providerPayout === 0) return;
       await this.record(
         {
@@ -56,17 +57,32 @@ export class LedgerService {
       );
       return;
     }
-    if (booking.price.commissionAmount === 0) return;
-    await this.record(
-      {
-        ownerType: LedgerOwnerType.PROVIDER,
-        ownerId: booking.providerProfileId,
-        bookingId: booking._id,
-        type: LedgerEntryType.COMMISSION_DUE,
-        amount: -booking.price.commissionAmount,
-        note: booking.referenceCode,
-      },
-      session,
-    );
+    if (booking.price.commissionAmount > 0) {
+      await this.record(
+        {
+          ownerType: LedgerOwnerType.PROVIDER,
+          ownerId: booking.providerProfileId,
+          bookingId: booking._id,
+          type: LedgerEntryType.COMMISSION_DUE,
+          amount: -booking.price.commissionAmount,
+          note: booking.referenceCode,
+        },
+        session,
+      );
+    }
+    // The platform bears discounts (promo, package, credit): the provider collected that much less.
+    if (booking.price.discount > 0) {
+      await this.record(
+        {
+          ownerType: LedgerOwnerType.PROVIDER,
+          ownerId: booking.providerProfileId,
+          bookingId: booking._id,
+          type: LedgerEntryType.DISCOUNT_REIMBURSEMENT,
+          amount: booking.price.discount,
+          note: booking.referenceCode,
+        },
+        session,
+      );
+    }
   }
 }

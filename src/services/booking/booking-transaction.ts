@@ -13,6 +13,7 @@ import {
 } from '../../interfaces/IBooking';
 import { InvalidStatusTransitionError, SlotUnavailableError } from '../../utils/types-errors';
 import { canTransition } from './booking-state';
+import { settleBenefits } from '../marketing/booking-benefits';
 
 export type BookingTx = {
   session: ClientSession;
@@ -94,6 +95,7 @@ export const transitionBooking = async (
     { new: true, session: tx.session },
   );
   if (!updated) throw new InvalidStatusTransitionError();
+  await settleBenefits(tx.session, updated.toObject(), booking.status, to);
   await recordHistory(
     tx,
     updated._id,

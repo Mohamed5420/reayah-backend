@@ -3,7 +3,12 @@ import { Types } from 'mongoose';
 import { BookingModel } from '../../database/models/booking/booking.model';
 import { DisputeModel } from '../../database/models/aftercare/aftercare.models';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
-import { BookingActor, BookingStatus, PaymentStatus } from '../../interfaces/IBooking';
+import {
+  BookingActor,
+  BookingStatus,
+  GATEWAY_PAYMENT_METHODS,
+  PaymentStatus,
+} from '../../interfaces/IBooking';
 import { PaymentService } from '../payments/payment.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { withTransaction } from '../../database/transaction';
@@ -187,7 +192,11 @@ export class DisputeService {
     if (!updated) throw new ConflictError('errors.dispute_resolved');
 
     // Card / wallet bookings: the refund goes back through the gateway. Cash: recorded only (settled offline).
-    if (refundAmount > 0 && booking.paymentStatus === PaymentStatus.PAID) {
+    if (
+      refundAmount > 0 &&
+      booking.paymentStatus === PaymentStatus.PAID &&
+      GATEWAY_PAYMENT_METHODS.includes(booking.paymentMethod)
+    ) {
       await Container.get(PaymentService).refundBooking(
         booking._id,
         { amount: refundAmount, reason: `dispute:${disputeId}` },

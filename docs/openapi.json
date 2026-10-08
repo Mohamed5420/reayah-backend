@@ -3177,25 +3177,76 @@
             ]
           },
           "active_package": {
-            "type": "null",
-            "description": "Packages: Phase 2"
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              },
+              "visits_remaining": {
+                "type": "number"
+              },
+              "expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "visits_remaining",
+              "expires_at"
+            ]
           },
           "banners": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{24}$/i",
+                  "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                "title": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "image_url": {
                   "type": "string"
                 },
                 "action": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "promo",
+                    "service",
+                    "category",
+                    "package",
+                    "url"
+                  ]
                 },
                 "value": {
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               },
               "required": [
+                "id",
+                "title",
                 "image_url",
                 "action",
                 "value"
@@ -3586,6 +3637,40 @@
               "EGP"
             ]
           },
+          "discounts": {
+            "type": "object",
+            "properties": {
+              "promo": {
+                "type": "number"
+              },
+              "package": {
+                "type": "number"
+              },
+              "credit": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "promo",
+              "package",
+              "credit"
+            ],
+            "description": "What makes up `discount`. Credit (referral rewards) is applied automatically."
+          },
+          "promo_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "package_subscription_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
           "lines": {
             "type": "array",
             "items": {
@@ -3607,6 +3692,9 @@
           "cancellation_policy": {
             "type": "string"
           },
+          "payment_required": {
+            "type": "boolean"
+          },
           "quote_token": {
             "type": "string"
           },
@@ -3621,8 +3709,12 @@
           "platform_fee",
           "total",
           "currency",
+          "discounts",
+          "promo_code",
+          "package_subscription_id",
           "lines",
           "cancellation_policy",
+          "payment_required",
           "quote_token",
           "expires_at"
         ]
@@ -3691,6 +3783,22 @@
             "type": "integer",
             "minimum": 1,
             "default": 1
+          },
+          "promo_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "package_subscription_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
           }
         },
         "required": [
@@ -3733,7 +3841,8 @@
             "enum": [
               "cash",
               "card",
-              "wallet"
+              "wallet",
+              "covered"
             ]
           },
           "payment_status": {
@@ -3794,7 +3903,7 @@
               "card",
               "wallet"
             ],
-            "description": "Only `cash` in Phase 1"
+            "description": "card / wallet need the card_payment flag. When the quote has payment_required false (total 0, fully covered by a package and / or credit) this is ignored and the booking gets payment_method \"covered\"."
           },
           "patient_notes": {
             "type": [
@@ -4023,6 +4132,26 @@
               "discount": {
                 "type": "number"
               },
+              "discounts": {
+                "type": "object",
+                "properties": {
+                  "promo": {
+                    "type": "number"
+                  },
+                  "package": {
+                    "type": "number"
+                  },
+                  "credit": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "promo",
+                  "package",
+                  "credit"
+                ],
+                "description": "What makes up `discount`. Credit (referral rewards) is applied automatically."
+              },
               "total": {
                 "type": "number"
               },
@@ -4037,16 +4166,32 @@
               "subtotal",
               "travel_fee",
               "discount",
+              "discounts",
               "total",
               "currency"
             ]
+          },
+          "promo_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "package_subscription_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
           },
           "payment_method": {
             "type": "string",
             "enum": [
               "cash",
               "card",
-              "wallet"
+              "wallet",
+              "covered"
             ]
           },
           "payment_status": {
@@ -4131,6 +4276,8 @@
           "scheduled_end",
           "provider",
           "price",
+          "promo_code",
+          "package_subscription_id",
           "payment_method",
           "payment_status",
           "timeline",
@@ -4383,7 +4530,8 @@
             "enum": [
               "cash",
               "card",
-              "wallet"
+              "wallet",
+              "covered"
             ]
           }
         },
@@ -4590,7 +4738,8 @@
             "enum": [
               "cash",
               "card",
-              "wallet"
+              "wallet",
+              "covered"
             ]
           },
           "payment_status": {
@@ -5192,7 +5341,8 @@
             "enum": [
               "cash",
               "card",
-              "wallet"
+              "wallet",
+              "covered"
             ]
           },
           "payment_status": {
@@ -6795,7 +6945,7 @@
             "type": "string",
             "enum": [
               "booking",
-              "commission"
+              "package"
             ]
           },
           "reference_id": {
@@ -6833,10 +6983,19 @@
             "pattern": "^[0-9a-f]{24}$/i",
             "example": "665f1c2b9e1d2a4c3b9e8f1a"
           },
+          "package_subscription_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
           "purpose": {
             "type": "string",
             "enum": [
               "booking",
+              "package",
               "commission"
             ]
           },
@@ -6922,6 +7081,7 @@
         "required": [
           "id",
           "booking_id",
+          "package_subscription_id",
           "purpose",
           "amount",
           "currency",
@@ -7147,7 +7307,11 @@
               "payout",
               "adjustment",
               "commission_due",
-              "commission_payment"
+              "commission_payment",
+              "discount_reimbursement",
+              "referral_reward",
+              "credit_used",
+              "credit_restored"
             ]
           },
           "amount": {
@@ -7223,6 +7387,13 @@
                 "type": "number",
                 "description": "Commission you paid from the app in this period"
               },
+              "discounts_reimbursed": {
+                "type": "number",
+                "description": "Promo / package / credit discounts on cash visits — the platform bears them"
+              },
+              "referral_rewards": {
+                "type": "number"
+              },
               "other_deductions": {
                 "type": "number",
                 "description": "e.g. dispute refunds you bore"
@@ -7238,6 +7409,8 @@
               "card_earnings",
               "commission_deducted",
               "commission_paid",
+              "discounts_reimbursed",
+              "referral_rewards",
               "other_deductions",
               "adjustments",
               "net"
@@ -7406,6 +7579,13 @@
                 "type": "number",
                 "description": "Commission you paid from the app in this period"
               },
+              "discounts_reimbursed": {
+                "type": "number",
+                "description": "Promo / package / credit discounts on cash visits — the platform bears them"
+              },
+              "referral_rewards": {
+                "type": "number"
+              },
               "other_deductions": {
                 "type": "number",
                 "description": "e.g. dispute refunds you bore"
@@ -7421,6 +7601,8 @@
               "card_earnings",
               "commission_deducted",
               "commission_paid",
+              "discounts_reimbursed",
+              "referral_rewards",
               "other_deductions",
               "adjustments",
               "net"
@@ -7543,7 +7725,8 @@
             "type": "string",
             "enum": [
               "provider",
-              "organization"
+              "organization",
+              "patient"
             ]
           },
           "owner_id": {
@@ -7566,6 +7749,1037 @@
           "amount",
           "reason"
         ],
+        "additionalProperties": false
+      },
+      "Package": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "service": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "visits_count": {
+            "type": "number"
+          },
+          "validity_days": {
+            "type": "number"
+          },
+          "price": {
+            "type": "number"
+          },
+          "per_visit_value": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "EGP"
+            ]
+          },
+          "travel_fee_included": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "travel_fee_note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "service",
+          "visits_count",
+          "validity_days",
+          "price",
+          "per_visit_value",
+          "currency",
+          "travel_fee_included",
+          "travel_fee_note"
+        ]
+      },
+      "PackageSubscribed": {
+        "type": "object",
+        "properties": {
+          "subscription_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "travel_fee_note": {
+            "type": "string"
+          },
+          "payment_action": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "payment_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "checkout_url": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "payment_id",
+              "checkout_url",
+              "expires_at"
+            ]
+          }
+        },
+        "required": [
+          "subscription_id",
+          "travel_fee_note",
+          "payment_action"
+        ]
+      },
+      "SubscribePackage": {
+        "type": "object",
+        "properties": {
+          "patient_profile_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "payment_method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "wallet"
+            ]
+          }
+        },
+        "required": [
+          "patient_profile_id",
+          "payment_method"
+        ],
+        "additionalProperties": false
+      },
+      "PackageSubscription": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "package": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "service_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "patient_profile_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending_payment",
+              "active",
+              "used_up",
+              "expired",
+              "cancelled"
+            ]
+          },
+          "visits_total": {
+            "type": "number"
+          },
+          "visits_remaining": {
+            "type": "number"
+          },
+          "visits_booked": {
+            "type": "number"
+          },
+          "per_visit_value": {
+            "type": "number"
+          },
+          "starts_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payment_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "package",
+          "service_id",
+          "patient_profile_id",
+          "status",
+          "visits_total",
+          "visits_remaining",
+          "visits_booked",
+          "per_visit_value",
+          "starts_at",
+          "expires_at",
+          "payment_id",
+          "created_at"
+        ]
+      },
+      "PromoValidation": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "discount": {
+            "type": "number"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "valid",
+          "discount",
+          "description"
+        ]
+      },
+      "ValidatePromo": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "service_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "subtotal": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 25000
+          }
+        },
+        "required": [
+          "code",
+          "service_id",
+          "subtotal"
+        ],
+        "additionalProperties": false
+      },
+      "Referral": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "AHMED25"
+          },
+          "share_url": {
+            "type": "string"
+          },
+          "invited_count": {
+            "type": "number"
+          },
+          "rewards_earned": {
+            "type": "number"
+          },
+          "credit_balance": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "code",
+          "share_url",
+          "invited_count",
+          "rewards_earned",
+          "credit_balance"
+        ]
+      },
+      "AdminPromoCode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "code": {
+            "type": "string"
+          },
+          "description_ar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description_en": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "percent",
+              "fixed"
+            ]
+          },
+          "value": {
+            "type": "number"
+          },
+          "max_discount": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "min_subtotal": {
+            "type": "number"
+          },
+          "max_uses": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "per_user_limit": {
+            "type": "number"
+          },
+          "uses_count": {
+            "type": "number"
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "service_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            }
+          },
+          "first_booking_only": {
+            "type": "boolean"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "description_ar",
+          "description_en",
+          "type",
+          "value",
+          "max_discount",
+          "min_subtotal",
+          "max_uses",
+          "per_user_limit",
+          "uses_count",
+          "valid_from",
+          "valid_to",
+          "service_ids",
+          "first_booking_only",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "CreatePromoCode": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{2,32}$"
+          },
+          "description_ar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "description_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "percent",
+              "fixed"
+            ]
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "max_discount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "example": 25000
+          },
+          "min_subtotal": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 25000
+          },
+          "max_uses": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "per_user_limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "example": "2026-10-05T14:00:00Z"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "example": "2026-10-05T14:00:00Z"
+          },
+          "service_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "maxItems": 100
+          },
+          "first_booking_only": {
+            "type": "boolean"
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "type",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "UpdatePromoCode": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{2,32}$"
+          },
+          "description_ar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "description_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "percent",
+              "fixed"
+            ]
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "max_discount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "example": 25000
+          },
+          "min_subtotal": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 25000
+          },
+          "max_uses": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "per_user_limit": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "valid_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "example": "2026-10-05T14:00:00Z"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "example": "2026-10-05T14:00:00Z"
+          },
+          "service_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "maxItems": 100
+          },
+          "first_booking_only": {
+            "type": "boolean"
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminPackage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "name_ar": {
+            "type": "string"
+          },
+          "name_en": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description_ar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description_en": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "service_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "visits_count": {
+            "type": "number"
+          },
+          "validity_days": {
+            "type": "number"
+          },
+          "price": {
+            "type": "number"
+          },
+          "per_visit_value": {
+            "type": "number"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "sort_order": {
+            "type": "number"
+          },
+          "sold_count": {
+            "type": "number"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name_ar",
+          "name_en",
+          "description_ar",
+          "description_en",
+          "service_id",
+          "visits_count",
+          "validity_days",
+          "price",
+          "per_visit_value",
+          "is_active",
+          "sort_order",
+          "sold_count",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "CreatePackage": {
+        "type": "object",
+        "properties": {
+          "name_ar": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "example": "مدينة نصر"
+          },
+          "name_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 2,
+            "maxLength": 100,
+            "example": "Nasr City"
+          },
+          "description_ar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "description_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "service_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "visits_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "validity_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 730
+          },
+          "price": {
+            "type": "integer",
+            "minimum": 100,
+            "example": 25000
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "sort_order": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name_ar",
+          "service_id",
+          "visits_count",
+          "validity_days",
+          "price"
+        ],
+        "additionalProperties": false
+      },
+      "UpdatePackage": {
+        "type": "object",
+        "properties": {
+          "name_ar": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "example": "مدينة نصر"
+          },
+          "name_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 2,
+            "maxLength": 100,
+            "example": "Nasr City"
+          },
+          "description_ar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "description_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "service_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "visits_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "validity_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 730
+          },
+          "price": {
+            "type": "integer",
+            "minimum": 100,
+            "example": 25000
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "sort_order": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminBanner": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "title_ar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title_en": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "image_url": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "none",
+              "promo",
+              "service",
+              "category",
+              "package",
+              "url"
+            ]
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sort_order": {
+            "type": "number"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "starts_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ends_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title_ar",
+          "title_en",
+          "image_url",
+          "action",
+          "value",
+          "sort_order",
+          "is_active",
+          "starts_at",
+          "ends_at",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "CreateBanner": {
+        "type": "object",
+        "properties": {
+          "title_ar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100
+          },
+          "title_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100
+          },
+          "image_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "none",
+              "promo",
+              "service",
+              "category",
+              "package",
+              "url"
+            ]
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "starts_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "example": "2026-10-05T14:00:00Z"
+          },
+          "ends_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "example": "2026-10-05T14:00:00Z"
+          }
+        },
+        "required": [
+          "image_key"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateBanner": {
+        "type": "object",
+        "properties": {
+          "title_ar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100
+          },
+          "title_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100
+          },
+          "image_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "none",
+              "promo",
+              "service",
+              "category",
+              "package",
+              "url"
+            ]
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "sort_order": {
+            "type": "integer"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "starts_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "example": "2026-10-05T14:00:00Z"
+          },
+          "ends_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "example": "2026-10-05T14:00:00Z"
+          }
+        },
         "additionalProperties": false
       }
     },
@@ -9768,7 +10982,8 @@
                       "chat",
                       "visit_report",
                       "avatar",
-                      "dispute"
+                      "dispute",
+                      "banner"
                     ]
                   },
                   "file": {
@@ -12997,6 +14212,16 @@
             },
             "required": false,
             "name": "max_price",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
+            "name": "package_id",
             "in": "query"
           },
           {
@@ -17438,7 +18663,7 @@
     },
     "/api/v1/payments/initiate": {
       "post": {
-        "summary": "Start a card / wallet checkout for my unpaid booking (also returned by POST /bookings). Open checkout_url; the result arrives by webhook.",
+        "summary": "Start a card / wallet checkout for my unpaid booking or package purchase (also returned by POST /bookings and POST /packages/{id}/subscribe). Open checkout_url; the result arrives by webhook.",
         "tags": [
           "Payments"
         ],
@@ -18832,6 +20057,1005 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/packages": {
+      "get": {
+        "summary": "Available packages. With `area_id`, only packages someone in that area can serve (a provider whose own price is at or below the per-visit value).",
+        "tags": [
+          "Patient — Packages & Promos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
+            "name": "service_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
+            "name": "area_id",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Package"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/packages/{id}": {
+      "get": {
+        "summary": "Package details",
+        "tags": [
+          "Patient — Packages & Promos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Package"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/packages/{id}/subscribe": {
+      "post": {
+        "summary": "Buy a package for one of my patient profiles — card / wallet upfront. Pay at payment_action.checkout_url; it starts once the gateway confirms.",
+        "tags": [
+          "Patient — Packages & Promos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "Idempotency-Key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribePackage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PackageSubscribed"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/package-subscriptions": {
+      "get": {
+        "summary": "My packages with remaining visits, newest first. Book a visit with package_subscription_id on the quote.",
+        "tags": [
+          "Patient — Packages & Promos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PackageSubscription"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/promo-codes/validate": {
+      "post": {
+        "summary": "Check a promo code before booking. Invalid → 422 PROMO_INVALID / PROMO_EXPIRED / PROMO_LIMIT_REACHED.",
+        "tags": [
+          "Patient — Packages & Promos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidatePromo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PromoValidation"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/referral": {
+      "get": {
+        "summary": "My referral code and stats. Both sides get referral_reward after the invited patient’s first completed visit.",
+        "tags": [
+          "Me"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Referral"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/promo-codes": {
+      "get": {
+        "summary": "Promo codes, newest first, with uses so far",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "required": false,
+            "name": "is_active",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "required": false,
+            "name": "search",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminPromoCode"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a promo code (percent or fixed; limits; validity). The discount comes out of the platform commission — provider payouts are unchanged.",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePromoCode"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminPromoCode"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/promo-codes/{id}": {
+      "patch": {
+        "summary": "Update a promo code",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePromoCode"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminPromoCode"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Deactivate a promo code",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/packages": {
+      "get": {
+        "summary": "Platform packages, with how many were sold",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "boolean"
+            },
+            "required": false,
+            "name": "is_active",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminPackage"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a platform package. per_visit_value = price ÷ visits; only providers at or below it can be booked with it.",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePackage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminPackage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/packages/{id}": {
+      "patch": {
+        "summary": "Update / deactivate a package (packages already sold keep their terms)",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePackage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminPackage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/banners": {
+      "get": {
+        "summary": "Home banners (incl. inactive and scheduled)",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminBanner"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a home banner from an uploaded image (POST /uploads, purpose `banner`)",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBanner"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminBanner"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/banners/{id}": {
+      "patch": {
+        "summary": "Update a home banner",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBanner"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminBanner"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a home banner",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
           },
           "default": {
             "description": "Error (see `error.code`)",

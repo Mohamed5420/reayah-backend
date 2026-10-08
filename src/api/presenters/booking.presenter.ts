@@ -7,6 +7,7 @@ import type { IAllergy, IMedicalCondition, IMedication } from '../../interfaces/
 import type { Language } from '../../utils/i18n';
 import { localized } from './localize';
 import { ageFrom } from './patient.presenter';
+import { discountsOf } from '../../services/booking/pricing';
 
 /** Maps bookings to the API shapes in booking.validation.ts. */
 
@@ -15,7 +16,11 @@ const serviceName = (b: IBooking, lang: Language) => localized(b.service.nameAr,
 export type ProviderCardInfo = { id: string; name: string; phone: string | null; ratingAvg: number };
 
 export const presentQuote = (q: {
-  draft: { price: IBooking['price'] };
+  draft: {
+    price: IBooking['price'];
+    promoCode?: string | null;
+    packageSubscriptionId?: string | null;
+  };
   lines: Array<{ label: string; amount: number }>;
   cancellationPolicy: string;
   token: string;
@@ -28,8 +33,12 @@ export const presentQuote = (q: {
   platform_fee: q.draft.price.platformFee,
   total: q.draft.price.total,
   currency: 'EGP' as const,
+  discounts: discountsOf(q.draft.price),
+  promo_code: q.draft.promoCode ?? null,
+  package_subscription_id: q.draft.packageSubscriptionId ?? null,
   lines: q.lines,
   cancellation_policy: q.cancellationPolicy,
+  payment_required: q.draft.price.total > 0,
   cash_available: q.cashAvailable,
   quote_token: q.token,
   expires_at: q.expiresAt.toISOString(),
@@ -101,9 +110,12 @@ export const presentDetail = (input: {
       subtotal: b.price.subtotal,
       travel_fee: b.price.travelFee,
       discount: b.price.discount,
+      discounts: discountsOf(b.price),
       total: b.price.total,
       currency: 'EGP' as const,
     },
+    promo_code: b.promo?.code ?? null,
+    package_subscription_id: b.packageSubscriptionId ? String(b.packageSubscriptionId) : null,
     payment_method: b.paymentMethod,
     payment_status: b.paymentStatus,
     // The only "tracking": status changes the provider makes by hand. No location fields (spec §1).

@@ -24,13 +24,20 @@ const payout = z
     amount: z.number(),
     status: z.enum(PayoutStatus),
     destination: z.string().openapi({ description: 'Masked, e.g. "بنك مصر •••• 4821"' }),
-    /** card_earnings − commission_deducted + commission_paid − other_deductions + adjustments = net. */
+    /**
+     * card_earnings − commission_deducted + commission_paid + discounts_reimbursed + referral_rewards
+     * − other_deductions + adjustments = net.
+     */
     statement: z.object({
       card_earnings: z.number(),
       commission_deducted: z
         .number()
         .openapi({ description: 'Commission on cash bookings, taken from this payout' }),
       commission_paid: z.number().openapi({ description: 'Commission you paid from the app in this period' }),
+      discounts_reimbursed: z.number().openapi({
+        description: 'Promo / package / credit discounts on cash visits — the platform bears them',
+      }),
+      referral_rewards: z.number(),
       other_deductions: z.number().openapi({ description: 'e.g. dispute refunds you bore' }),
       adjustments: z.number(),
       net: z.number(),

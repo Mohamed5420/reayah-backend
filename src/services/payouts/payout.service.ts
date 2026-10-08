@@ -435,11 +435,21 @@ export class PayoutService {
     const commissionDeducted = -sum(LedgerEntryType.COMMISSION_DUE);
     const commissionPaid = sum(LedgerEntryType.COMMISSION_PAYMENT);
     const otherDeductions = -sum(LedgerEntryType.DEBIT);
-    const known = cardEarnings - commissionDeducted + commissionPaid - otherDeductions;
+    const discountsReimbursed = sum(LedgerEntryType.DISCOUNT_REIMBURSEMENT);
+    const referralRewards = sum(LedgerEntryType.REFERRAL_REWARD);
+    const known =
+      cardEarnings -
+      commissionDeducted +
+      commissionPaid +
+      discountsReimbursed +
+      referralRewards -
+      otherDeductions;
     return {
       cardEarnings,
       commissionDeducted,
       commissionPaid,
+      discountsReimbursed,
+      referralRewards,
       otherDeductions,
       adjustments: amount - known,
       net: amount,

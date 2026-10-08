@@ -22,7 +22,10 @@ import { LocationService } from '../location/location.service';
 import { PatientProfileService } from '../patient/patient-profile.service';
 import { SettingsService } from '../settings/settings.service';
 import { CommissionService } from '../payouts/commission.service';
-import { computePrice } from './pricing';
+import { computePrice, discountsOf } from './pricing';
+import { CreditService } from '../marketing/credit.service';
+import { PackageService } from '../marketing/package.service';
+import { PromoService } from '../marketing/promo.service';
 
 /** A quote is guaranteed for 10 minutes (spec §7.8). */
 export const QUOTE_TTL_SECONDS = 600;
@@ -38,6 +41,10 @@ export type QuoteInput = {
   allowFallback: boolean;
   scheduledStart: Date;
   quantity: number;
+  /** Optional promo code (not with a package). */
+  promoCode?: string | null;
+  /** Book one visit of this package. */
+  packageSubscriptionId?: string | null;
 };
 
 /** Everything needed to create the booking, as carried inside the signed quote token. */
@@ -46,6 +53,8 @@ export type BookingDraft = Omit<QuoteInput, 'scheduledStart' | 'providerId'> & {
   scheduledStart: string;
   scheduledEnd: string;
   price: IBookingPrice;
+  /** The promo code the price used (redeemed when the booking is created). */
+  promoCodeId?: string | null;
 };
 
 /**
@@ -121,20 +130,56 @@ export class QuoteService {
     // Travel fee: the provider's fee for the area, never above the area's current cap (spec §4.2, §6.12).
     const travelFee =
       input.type === BookingType.VIDEO ? 0 : Math.min(coverage.travelFee, area.maxTravelFee ?? Infinity);
-    const price = computePrice({
+    const base = {
       unitPrice: offered.price,
       quantity: input.quantity,
       pricingUnit: service.pricingUnit,
       travelFee,
       commissionRate: settings.commission_rate,
+    };
+
+    // Discounts (M2.5), all borne by the platform. A reschedule keeps the booking's price, so only the
+    // package's own rules are re-checked there (the booking already holds its visit).
+    const rescheduling = Boolean(excludeBookingId);
+    let packageSubscription = null;
+    if (input.packageSubscriptionId) {
+      if (input.promoCode) throw new ValidationError({ promo_code: ['validation.promo_with_package'] });
+      packageSubscription = await Container.get(PackageService).assertUsable(
+        userId,
+        input.packageSubscriptionId,
+        {
+          patientProfileId: input.patientProfileId,
+          serviceId: service.id,
+          quantity: input.quantity,
+          scheduledStart: input.scheduledStart,
+          providerPrice: offered.price,
+        },
+        rescheduling,
+      );
+    }
+    const promo =
+      input.promoCode && !rescheduling
+        ? await Container.get(PromoService).evaluate(userId, input.promoCode, {
+            serviceId: service.id,
+            subtotal: computePrice(base).subtotal,
+          })
+        : null;
+    const price = computePrice({
+      ...base,
+      promoDiscount: promo?.discount ?? 0,
+      coveredByPackage: Boolean(packageSubscription),
+      availableCredit: rescheduling ? 0 : await Container.get(CreditService).balance(userId),
     });
 
     const draft: BookingDraft = {
       ...input,
+      promoCode: promo ? promo.promo.code : null,
+      packageSubscriptionId: packageSubscription ? String(packageSubscription._id) : null,
       providerId: input.providerId,
       scheduledStart: slot.start.toISOString(),
       scheduledEnd: slot.end.toISOString(),
       price,
+      promoCodeId: promo ? String(promo.promo._id) : null,
     };
     return {
       draft,
@@ -145,13 +190,15 @@ export class QuoteService {
       providerProfile: provider,
       providerUser,
       settings,
+      packageSubscription,
     };
   }
 
   /** POST /bookings/quote — price breakdown + a token that guarantees it for 10 minutes. */
   async quote(userId: string, input: QuoteInput, lang: Language) {
     const prepared = await this.prepare(userId, input);
-    const { draft, service, area, settings } = prepared;
+    const { draft, service, area, settings, packageSubscription } = prepared;
+    const discounts = discountsOf(draft.price);
     const serviceName = lang === 'en' && service.nameEn ? service.nameEn : service.nameAr;
     const areaName = lang === 'en' && area.nameEn ? area.nameEn : area.nameAr;
     const lines = [
@@ -162,6 +209,26 @@ export class QuoteService {
       ...(draft.price.travelFee
         ? [{ label: t('quote.travel_line', { area: areaName }, lang), amount: draft.price.travelFee }]
         : []),
+      ...(discounts.package && packageSubscription
+        ? [
+            {
+              label: t(
+                'quote.package_line',
+                {
+                  name:
+                    (lang === 'en' && packageSubscription.package.nameEn) ||
+                    packageSubscription.package.nameAr,
+                },
+                lang,
+              ),
+              amount: -discounts.package,
+            },
+          ]
+        : []),
+      ...(discounts.promo
+        ? [{ label: t('quote.promo_line', { code: draft.promoCode ?? '' }, lang), amount: -discounts.promo }]
+        : []),
+      ...(discounts.credit ? [{ label: t('quote.credit_line', {}, lang), amount: -discounts.credit }] : []),
     ];
     const expiresAt = new Date(Date.now() + QUOTE_TTL_SECONDS * 1000);
     const token = jwt.sign({ typ: 'quote', sub: userId, draft }, env.jwt.secret, {

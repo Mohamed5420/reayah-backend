@@ -95,7 +95,16 @@
     "payout_wrong_status": "لا يمكن تنفيذ هذا الإجراء في حالة الدفعة الحالية",
     "provider_cash_unavailable": "مقدم الخدمة لا يستقبل حجوزات نقدية حالياً، اختر الدفع بالبطاقة أو المحفظة",
     "commission_limit_reached": "تجاوزت الحد المسموح للعمولة المستحقة، سدّدها لتستقبل حجوزات نقدية جديدة",
-    "no_commission_due": "لا توجد عمولة مستحقة عليك"
+    "no_commission_due": "لا توجد عمولة مستحقة عليك",
+    "promo_not_for_service": "كود الخصم لا ينطبق على هذه الخدمة",
+    "promo_min_subtotal": "قيمة الحجز أقل من الحد الأدنى لاستخدام كود الخصم",
+    "promo_first_booking_only": "كود الخصم متاح لأول حجز فقط",
+    "promo_code_not_found": "كود الخصم غير موجود",
+    "package_not_found": "الباقة غير موجودة",
+    "package_subscription_not_found": "الاشتراك في الباقة غير موجود",
+    "packages_unavailable": "الباقات غير متاحة حالياً",
+    "banner_not_found": "البانر غير موجود",
+    "credit_changed": "تغير رصيدك منذ عرض السعر، اطلب عرض سعر جديد"
   },
   "validation": {
     "invalid_value": "قيمة غير صالحة",
@@ -142,7 +151,16 @@
     "specialty_doctors_only": "التخصص للأطباء فقط",
     "provider_share": "حدد نصيب مقدم الخدمة من الاسترداد، ولا يزيد عن مبلغ الاسترداد",
     "account_number": "رقم الحساب أو المحفظة غير صحيح",
-    "commission_amount": "المبلغ يجب أن يكون جنيهاً على الأقل ولا يزيد عن العمولة المستحقة"
+    "commission_amount": "المبلغ يجب أن يكون جنيهاً على الأقل ولا يزيد عن العمولة المستحقة",
+    "promo_with_package": "لا يمكن استخدام كود خصم مع الباقة",
+    "package_other_profile": "الباقة مخصصة لملف مريض آخر",
+    "package_other_service": "الباقة لا تشمل هذه الخدمة",
+    "package_one_visit": "حجز الباقة يكون لزيارة واحدة",
+    "provider_above_package_price": "سعر مقدم الخدمة أعلى من قيمة الزيارة في الباقة",
+    "percent_value": "النسبة يجب أن تكون بين 1 و 100",
+    "valid_to_after_from": "تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية",
+    "banner_value": "القيمة لا تتوافق مع نوع الإجراء",
+    "promo_code_format": "الكود من 2 إلى 32 حرفاً أو رقماً إنجليزياً"
   },
   "address": {
     "floor": "الدور {{floor}}",
@@ -158,7 +176,10 @@
   },
   "quote": {
     "service_line": "{{service}} × {{quantity}}",
-    "travel_line": "رسوم انتقال ({{area}})"
+    "travel_line": "رسوم انتقال ({{area}})",
+    "promo_line": "خصم {{code}}",
+    "package_line": "مغطاة بالباقة ({{name}})",
+    "credit_line": "رصيد الدعوات"
   },
   "notifications": {
     "booking_request": {
@@ -292,6 +313,33 @@
     "commission_paid": {
       "title": "تم سداد العمولة",
       "body": "تم استلام {{amount}} جنيه، شكراً لك"
+    },
+    "package_activated": {
+      "title": "تم تفعيل الباقة",
+      "body": "باقة {{name}} مفعلة الآن: {{visits}} زيارات حتى {{date}}"
+    },
+    "package_expiring": {
+      "title": "باقتك على وشك الانتهاء",
+      "body": "باقة {{name}} تنتهي في {{date}} ومتبقي {{visits}} زيارات"
+    },
+    "package_expired": {
+      "title": "انتهت الباقة",
+      "body": "انتهت صلاحية باقة {{name}}"
+    },
+    "package_low_visits": {
+      "title": "متبقي زيارة واحدة",
+      "body": "متبقي زيارة واحدة في باقة {{name}}"
+    },
+    "referral_reward_referred": {
+      "title": "حصلت على رصيد",
+      "body": "أضفنا {{amount}} جنيه لرصيدك، يُخصم تلقائياً من حجزك القادم"
+    },
+    "referral_reward_referrer": {
+      "title": "مكافأة دعوة صديق",
+      "body": "أكمل صديقك أول زيارة، وأضفنا لك {{amount}} جنيه"
     }
+  },
+  "packages": {
+    "travel_fee_note": "سعر الباقة لا يشمل رسوم الانتقال، وتُدفع مع كل زيارة حسب منطقتك ومقدم الخدمة"
   }
 }

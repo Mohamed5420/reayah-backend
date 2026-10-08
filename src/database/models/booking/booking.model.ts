@@ -86,6 +86,10 @@ const bookingSchema = new Schema<IBooking>(
       subtotal: money,
       travelFee: money,
       discount: money,
+      discounts: {
+        type: new Schema({ promo: money, package: money, credit: money }, { _id: false }),
+        default: undefined,
+      },
       platformFee: money,
       total: money,
       commissionRate: { type: Number, required: true },
@@ -95,6 +99,17 @@ const bookingSchema = new Schema<IBooking>(
     currency: { type: String, enum: ['EGP'], default: 'EGP' },
     paymentMethod: { type: String, enum: Object.values(PaymentMethod), required: true },
     paymentStatus: { type: String, enum: Object.values(PaymentStatus), default: PaymentStatus.UNPAID },
+    packageSubscriptionId: { type: Schema.Types.ObjectId, ref: 'PackageSubscription', default: null },
+    promo: {
+      type: new Schema(
+        {
+          promoCodeId: { type: Schema.Types.ObjectId, required: true },
+          code: { type: String, required: true },
+        },
+        { _id: false },
+      ),
+      default: null,
+    },
     remindersSent: {
       day: { type: Date, default: null },
       hour: { type: Date, default: null },

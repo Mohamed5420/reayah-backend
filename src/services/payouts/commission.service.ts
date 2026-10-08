@@ -76,11 +76,12 @@ export const alertOnCommission = async (event: BookingEvent) => {
   if (event.type !== 'status_changed' || event.to !== BookingStatus.COMPLETED) return;
   const booking = event.booking;
   if (booking.paymentMethod !== PaymentMethod.CASH || !booking.providerProfileId) return;
-  const commission = booking.price.commissionAmount;
-  if (commission <= 0) return;
+  // What this visit added to the provider's debt: commission minus any discount reimbursed.
+  const added = booking.price.commissionAmount - booking.price.discount;
+  if (added <= 0) return;
   try {
     const now = await Container.get(CommissionService).status(booking.providerProfileId);
-    const before = now.due - commission;
+    const before = now.due - added;
     const percent = await Container.get(SettingsService).get('commission_warning_percent');
     const warnAt = (now.limit * percent) / 100;
     const template =

@@ -17,4 +17,6 @@ export enum MaintenanceJob {
   PAYMENT_EXPIRY = 'payment-expiry',
   /** On payout_day: generates the weekly payout batch (M2.4). Runs daily, acts once on that day. */
   PAYOUT_BATCH = 'payout-batch',
+  /** Package expiry, "about to expire" and "one visit left" notices (M2.5). */
+  PACKAGE_EXPIRY = 'package-expiry',
 }

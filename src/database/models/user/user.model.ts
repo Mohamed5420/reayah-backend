@@ -24,6 +24,7 @@ const userSchema = new Schema<IUser, UserModelType, SoftDeleteMethods>(
     status: { type: String, enum: Object.values(UserStatus), default: UserStatus.ACTIVE },
     lastLoginAt: { type: Date, default: null },
     referredByCode: { type: String, default: null },
+    referralCode: { type: String, default: null },
     deletionRequestedAt: { type: Date, default: null },
     isOnline: { type: Boolean, default: false },
     notificationSettings: {
@@ -39,5 +40,9 @@ userSchema.plugin(softDeletePlugin);
 // A deleted account frees its phone number for a new sign-up.
 userSchema.index({ phone: 1 }, uniqueAmongActive);
 userSchema.index({ role: 1, status: 1 });
+userSchema.index(
+  { referralCode: 1 },
+  { unique: true, partialFilterExpression: { referralCode: { $type: 'string' } } },
+);
 
 export const UserModel = model<IUser, UserModelType>('User', userSchema);

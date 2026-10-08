@@ -566,6 +566,31 @@
               ]
             }
           }
+        },
+        {
+          "name": "My referral code and stats. Both sides get referral_reward after the invited patient’s first completed visit.",
+          "request": {
+            "method": "GET",
+            "description": "My referral code and stats. Both sides get referral_reward after the invited patient’s first completed visit.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/referral",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "referral"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
         }
       ]
     },
@@ -3227,6 +3252,11 @@
                   "disabled": true
                 },
                 {
+                  "key": "package_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
                   "key": "min_rating",
                   "value": "1",
                   "disabled": true
@@ -3396,7 +3426,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"provider_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"organization_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"patient_profile_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"address_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"type\": \"home_visit\",\n  \"preferred_gender\": \"any\",\n  \"allow_fallback\": true,\n  \"scheduled_start\": \"2026-10-05T14:00:00Z\",\n  \"quantity\": 1\n}",
+              "raw": "{\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"provider_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"organization_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"patient_profile_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"address_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"type\": \"home_visit\",\n  \"preferred_gender\": \"any\",\n  \"allow_fallback\": true,\n  \"scheduled_start\": \"2026-10-05T14:00:00Z\",\n  \"quantity\": 1,\n  \"promo_code\": \"string\",\n  \"package_subscription_id\": \"665f1c2b9e1d2a4c3b9e8f1a\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5663,10 +5693,10 @@
       "name": "Payments",
       "item": [
         {
-          "name": "Start a card / wallet checkout for my unpaid booking (also returned by POST /bookings). Open checkout_url; the result arrives by webhook.",
+          "name": "Start a card / wallet checkout for my unpaid booking or package purchase (also returned by POST /bookings and POST /packages/{id}/subscribe). Open checkout_url; the result arrives by webhook.",
           "request": {
             "method": "POST",
-            "description": "Start a card / wallet checkout for my unpaid booking (also returned by POST /bookings). Open checkout_url; the result arrives by webhook.",
+            "description": "Start a card / wallet checkout for my unpaid booking or package purchase (also returned by POST /bookings and POST /packages/{id}/subscribe). Open checkout_url; the result arrives by webhook.",
             "header": [
               {
                 "key": "Accept-Language",
@@ -6435,6 +6465,591 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patient — Packages & Promos",
+      "item": [
+        {
+          "name": "Available packages. With `area_id`, only packages someone in that area can serve (a provider whose own price is at or below the per-visit value).",
+          "request": {
+            "method": "GET",
+            "description": "Available packages. With `area_id`, only packages someone in that area can serve (a provider whose own price is at or below the per-visit value).",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "packages"
+              ],
+              "query": [
+                {
+                  "key": "service_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
+                  "key": "area_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Package details",
+          "request": {
+            "method": "GET",
+            "description": "Package details",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/packages/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "packages",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buy a package for one of my patient profiles — card / wallet upfront. Pay at payment_action.checkout_url; it starts once the gateway confirms.",
+          "request": {
+            "method": "POST",
+            "description": "Buy a package for one of my patient profiles — card / wallet upfront. Pay at payment_action.checkout_url; it starts once the gateway confirms.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/packages/:id/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "packages",
+                ":id",
+                "subscribe"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_profile_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"payment_method\": \"card\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "My packages with remaining visits, newest first. Book a visit with package_subscription_id on the quote.",
+          "request": {
+            "method": "GET",
+            "description": "My packages with remaining visits, newest first. Book a visit with package_subscription_id on the quote.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/package-subscriptions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "package-subscriptions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Check a promo code before booking. Invalid → 422 PROMO_INVALID / PROMO_EXPIRED / PROMO_LIMIT_REACHED.",
+          "request": {
+            "method": "POST",
+            "description": "Check a promo code before booking. Invalid → 422 PROMO_INVALID / PROMO_EXPIRED / PROMO_LIMIT_REACHED.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/promo-codes/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "promo-codes",
+                "validate"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"subtotal\": 25000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Marketing",
+      "item": [
+        {
+          "name": "Promo codes, newest first, with uses so far",
+          "request": {
+            "method": "GET",
+            "description": "Promo codes, newest first, with uses so far",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/promo-codes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "promo-codes"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "string",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Create a promo code (percent or fixed; limits; validity). The discount comes out of the platform commission — provider payouts are unchanged.",
+          "request": {
+            "method": "POST",
+            "description": "Create a promo code (percent or fixed; limits; validity). The discount comes out of the platform commission — provider payouts are unchanged.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/promo-codes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "promo-codes"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"string\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"type\": \"percent\",\n  \"value\": 1,\n  \"max_discount\": 25000,\n  \"min_subtotal\": 25000,\n  \"max_uses\": 1,\n  \"per_user_limit\": 1,\n  \"valid_from\": \"2026-10-05T14:00:00Z\",\n  \"valid_to\": \"2026-10-05T14:00:00Z\",\n  \"service_ids\": [\n    \"665f1c2b9e1d2a4c3b9e8f1a\"\n  ],\n  \"first_booking_only\": true,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update a promo code",
+          "request": {
+            "method": "PATCH",
+            "description": "Update a promo code",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/promo-codes/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "promo-codes",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"string\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"type\": \"percent\",\n  \"value\": 1,\n  \"max_discount\": 25000,\n  \"min_subtotal\": 25000,\n  \"max_uses\": 1,\n  \"per_user_limit\": 1,\n  \"valid_from\": \"2026-10-05T14:00:00Z\",\n  \"valid_to\": \"2026-10-05T14:00:00Z\",\n  \"service_ids\": [\n    \"665f1c2b9e1d2a4c3b9e8f1a\"\n  ],\n  \"first_booking_only\": true,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Deactivate a promo code",
+          "request": {
+            "method": "DELETE",
+            "description": "Deactivate a promo code",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/promo-codes/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "promo-codes",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Platform packages, with how many were sold",
+          "request": {
+            "method": "GET",
+            "description": "Platform packages, with how many were sold",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "packages"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Create a platform package. per_visit_value = price ÷ visits; only providers at or below it can be booked with it.",
+          "request": {
+            "method": "POST",
+            "description": "Create a platform package. per_visit_value = price ÷ visits; only providers at or below it can be booked with it.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/packages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "packages"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update / deactivate a package (packages already sold keep their terms)",
+          "request": {
+            "method": "PATCH",
+            "description": "Update / deactivate a package (packages already sold keep their terms)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/packages/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "packages",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Home banners (incl. inactive and scheduled)",
+          "request": {
+            "method": "GET",
+            "description": "Home banners (incl. inactive and scheduled)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "banners"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Create a home banner from an uploaded image (POST /uploads, purpose `banner`)",
+          "request": {
+            "method": "POST",
+            "description": "Create a home banner from an uploaded image (POST /uploads, purpose `banner`)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "banners"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title_ar\": \"string\",\n  \"title_en\": \"string\",\n  \"image_key\": \"string\",\n  \"action\": \"none\",\n  \"value\": \"string\",\n  \"sort_order\": 1,\n  \"is_active\": true,\n  \"starts_at\": \"2026-10-05T14:00:00Z\",\n  \"ends_at\": \"2026-10-05T14:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update a home banner",
+          "request": {
+            "method": "PATCH",
+            "description": "Update a home banner",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "banners",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title_ar\": \"string\",\n  \"title_en\": \"string\",\n  \"image_key\": \"string\",\n  \"action\": \"none\",\n  \"value\": \"string\",\n  \"sort_order\": 1,\n  \"is_active\": true,\n  \"starts_at\": \"2026-10-05T14:00:00Z\",\n  \"ends_at\": \"2026-10-05T14:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a home banner",
+          "request": {
+            "method": "DELETE",
+            "description": "Delete a home banner",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/banners/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "banners",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
             }
           }
         }

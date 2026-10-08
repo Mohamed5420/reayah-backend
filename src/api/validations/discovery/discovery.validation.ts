@@ -1,3 +1,4 @@
+import { BannerAction } from '../../../interfaces/IMarketing';
 import { Gender, PricingUnit, ProviderType } from '../../../interfaces/enums';
 import { ProviderSort } from '../../../services/discovery/discovery.service';
 import { objectId, paginationQuery, specialtyView, z } from '../zod';
@@ -47,6 +48,8 @@ export const DiscoverySchemas = {
     specialty: z.enum(SPECIALTY_KEYS).optional(),
     min_price: money.optional(),
     max_price: money.optional(),
+    /** Only providers who can be booked with this package (own price ≤ its per-visit value). */
+    package_id: objectId.optional(),
     min_rating: z.coerce.number().min(1).max(5).optional(),
     source: z.enum(['independent', 'organization']).optional(),
     sort: z.enum(ProviderSort).default(ProviderSort.RATING),
@@ -126,8 +129,26 @@ export const DiscoverySchemas = {
           provider_name: z.string().nullable(),
         })
         .nullable(),
-      active_package: z.null().openapi({ description: 'Packages: Phase 2' }),
-      banners: z.array(z.object({ image_url: z.string(), action: z.string(), value: z.string() })),
+      /** The active package that expires first. */
+      active_package: z
+        .object({
+          id: objectId,
+          name: z.string(),
+          visits_remaining: z.number(),
+          expires_at: z.string().nullable(),
+        })
+        .nullable(),
+      banners: z.array(
+        z.object({
+          id: objectId,
+          title: z.string().nullable(),
+          /** Signed, valid 10 minutes. */
+          image_url: z.string(),
+          action: z.enum(BannerAction),
+          /** Promo code, service / category / package id, or https link; null for none. */
+          value: z.string().nullable(),
+        }),
+      ),
     })
     .openapi('Home'),
 };

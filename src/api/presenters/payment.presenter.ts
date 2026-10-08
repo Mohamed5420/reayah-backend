@@ -6,6 +6,7 @@ import { PaymentRecordStatus } from '../../interfaces/IPayment';
 export const presentPayment = (p: IPayment) => ({
   id: String(p._id),
   booking_id: p.bookingId ? String(p.bookingId) : null,
+  package_subscription_id: p.packageSubscriptionId ? String(p.packageSubscriptionId) : null,
   purpose: p.purpose,
   amount: p.amount,
   currency: p.currency,
@@ -23,7 +24,7 @@ export const presentPayment = (p: IPayment) => ({
 export const presentRefund = (r: IRefund) => ({
   id: String(r._id),
   payment_id: String(r.paymentId),
-  booking_id: String(r.bookingId),
+  booking_id: r.bookingId ? String(r.bookingId) : null,
   amount: r.amount,
   reason: r.reason,
   status: r.status,

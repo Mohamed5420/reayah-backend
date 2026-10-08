@@ -33,6 +33,8 @@ import { NotificationService } from '../notification/notification.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { CommissionService } from '../payouts/commission.service';
 import { SettingsService } from '../settings/settings.service';
+import { PackageService } from '../marketing/package.service';
+import { PackageSubscriptionStatus } from '../../interfaces/IMarketing';
 import { activeGateway, gatewayByName, InvalidWebhookSignatureError, type WebhookRequest } from './gateways';
 
 const CARD_METHODS = [PaymentMethod.CARD, PaymentMethod.WALLET];
@@ -264,8 +266,12 @@ export class PaymentService {
     return refund.toObject();
   }
 
-  /** Sweep: card / wallet bookings still in awaiting_payment after the payment window expire (the slot frees up). */
+  /**
+   * Sweep: card / wallet bookings still in awaiting_payment after the payment window expire (the slot
+   * frees up); unpaid package purchases are cancelled.
+   */
   async expireUnpaid(now = new Date()) {
+    await Container.get(PackageService).cancelUnpaid(now);
     const windowMinutes = await this.settings.get('card_payment_window_minutes');
     const cutoff = new Date(now.getTime() - windowMinutes * 60_000);
     const overdue = await BookingModel.find({
@@ -312,6 +318,10 @@ export class PaymentService {
       await this.creditCommissionPayment(payment, transactionId, instrument);
       return;
     }
+    if (payment.purpose === PaymentPurpose.PACKAGE) {
+      await this.activatePackage(payment, transactionId, instrument);
+      return;
+    }
     const bookingId = payment.bookingId!;
     const booking = await BookingModel.findById(bookingId).lean();
     const alreadyPaid = await PaymentModel.exists({
@@ -331,7 +341,7 @@ export class PaymentService {
     );
     if (alreadyPaid) {
       // A second successful charge for the same booking: give it straight back.
-      await this.refundDuplicate(payment, transactionId);
+      await this.refundWhole(payment, transactionId, 'duplicate_payment');
       return;
     }
     const lateForBooking = !booking || !ACTIVE_BOOKING_STATUSES.includes(booking.status);
@@ -393,6 +403,81 @@ export class PaymentService {
       params: { amount: (payment.amount / 100).toFixed(2) },
       data: { payment_id: String(payment._id) },
     });
+  }
+
+  /**
+   * A package purchase was paid: the payment is marked paid and the subscription starts, in one
+   * transaction (a repeat delivery changes nothing). Paid after the purchase was cancelled for
+   * non-payment, or twice: refunded in full.
+   */
+  private async activatePackage(
+    payment: IPayment,
+    transactionId: string,
+    instrument: IPayment['instrument'],
+  ) {
+    const outcome = await withTransaction(async (session) => {
+      const updated = await PaymentModel.findOneAndUpdate(
+        { _id: payment._id, status: { $ne: PaymentRecordStatus.PAID } },
+        {
+          status: PaymentRecordStatus.PAID,
+          gatewayTransactionId: transactionId,
+          instrument,
+          paidAt: new Date(),
+          failureReason: null,
+        },
+        { new: true, session },
+      );
+      if (!updated) return 'repeat' as const;
+      const sub = await Container.get(PackageService).activate(
+        session,
+        payment.packageSubscriptionId!,
+        payment._id,
+      );
+      return sub ?? ('late' as const);
+    });
+    if (outcome === 'repeat') return;
+    if (outcome === 'late') {
+      await this.refundWhole(payment, transactionId, 'paid_after_purchase_closed');
+      return;
+    }
+    await Container.get(PackageService).notifyActivated(outcome);
+  }
+
+  /**
+   * POST /packages/{id}/subscribe (after the subscription is created) and POST /payments/initiate with
+   * purpose `package`: a checkout for an unpaid package purchase, within the payment window.
+   */
+  async initiateForPackage(
+    userId: string,
+    subscriptionId: string,
+    method: PaymentMethod.CARD | PaymentMethod.WALLET,
+  ) {
+    const gateway = activeGateway();
+    if (!gateway) throw new ServiceUnavailableError('errors.payments_unavailable');
+    const packages = Container.get(PackageService);
+    const sub = await packages.getOwned(userId, subscriptionId);
+    if (!sub) throw new NotFoundError('errors.package_subscription_not_found');
+    if (sub.status !== PackageSubscriptionStatus.PENDING_PAYMENT) {
+      throw new ConflictError('errors.payment_not_allowed');
+    }
+    const deadline = await packages.paymentDeadline(sub);
+    if (deadline.getTime() <= Date.now()) throw new ConflictError('errors.payment_window_passed');
+
+    await PaymentModel.updateMany(
+      { packageSubscriptionId: sub._id, status: PaymentRecordStatus.PENDING },
+      { status: PaymentRecordStatus.EXPIRED },
+    );
+    const payment = await PaymentModel.create({
+      purpose: PaymentPurpose.PACKAGE,
+      packageSubscriptionId: sub._id,
+      userId,
+      amount: sub.package.price,
+      method,
+      gateway: gateway.name,
+      expiresAt: deadline,
+    });
+    await this.startCheckout(payment, sub.package.nameAr, userId, deadline);
+    return payment.toObject();
   }
 
   /**
@@ -486,21 +571,30 @@ export class PaymentService {
     });
   }
 
-  private async refundDuplicate(payment: IPayment, transactionId: string) {
+  /** Gives a whole payment back (a duplicate charge, or a payment for something already closed). */
+  private async refundWhole(payment: IPayment, transactionId: string, reason: string) {
     const gateway = gatewayByName(payment.gateway);
-    const result = await gateway?.refund({ transactionId, amount: payment.amount });
+    const result = await gateway
+      ?.refund({ transactionId, amount: payment.amount })
+      .catch((err: unknown) => ({ ok: false, refundId: null, error: String(err) }));
     await RefundModel.create({
       paymentId: payment._id,
       bookingId: payment.bookingId,
       amount: payment.amount,
-      reason: 'duplicate_payment',
+      reason,
       status: result?.ok ? RefundStatus.SUCCEEDED : RefundStatus.FAILED,
       gatewayRefundId: result?.refundId ?? null,
       failureReason: result?.ok ? null : (result?.error ?? 'gateway not configured'),
     });
-    await PaymentModel.updateOne({ _id: payment._id }, { refundedAmount: payment.amount });
+    await PaymentModel.updateOne(
+      { _id: payment._id },
+      {
+        refundedAmount: payment.amount,
+        ...(result?.ok ? { status: PaymentRecordStatus.REFUNDED } : {}),
+      },
+    );
     if (!result?.ok)
-      logger.error(`Duplicate payment ${String(payment._id)} could not be refunded automatically`);
+      logger.error(`Payment ${String(payment._id)} (${reason}) could not be refunded automatically`);
   }
 
   private async markFailed(payment: IPayment, reason: string) {
@@ -508,7 +602,7 @@ export class PaymentService {
       { _id: payment._id, status: PaymentRecordStatus.PENDING },
       { status: PaymentRecordStatus.FAILED, failureReason: reason },
     );
-    if (!updated) return;
+    if (!updated || !payment.bookingId) return;
     await BookingModel.updateOne(
       { _id: payment.bookingId, paymentStatus: PaymentStatus.PENDING },
       { paymentStatus: PaymentStatus.FAILED },

@@ -350,7 +350,7 @@ export class ProviderBookingService {
   // ── Helpers ──
 
   /** Over the commission limit, a provider can't take on a new cash booking until they pay down. */
-  private async assertMayTakeCash(profile: ProviderDoc, booking: Pick<IBooking, 'paymentMethod'>) {
+  private async assertMayTakeCash(profile: ProviderDoc, booking: Pick<IBooking, 'paymentMethod' | 'price'>) {
     if (booking.paymentMethod !== PaymentMethod.CASH) return;
     if (await Container.get(CommissionService).overLimit(profile._id)) {
       throw new ConflictError('errors.commission_limit_reached');

@@ -19,10 +19,6 @@ const DEFERRED: Array<[RegExp, string]> = [
     'M3 — Organizations',
   ],
   [/^\w+ \/admin\/analytics|^POST \/admin\/notifications\/broadcast/, 'M3.5 — Advanced admin'],
-  [
-    /^\w+ \/packages|^GET \/me\/package-subscriptions|^\w+ \/promo-codes|^GET \/me\/referral|^\w+ \/admin\/(promo-codes|banners|packages)/,
-    'M2.5 — Packages, promos, referrals',
-  ],
 ];
 
 type SpecEndpoint = { section: string; method: string; path: string; description: string };

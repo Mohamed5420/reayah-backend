@@ -54,6 +54,9 @@ export const env = {
 
   firebaseServiceAccountPath: optional('FIREBASE_SERVICE_ACCOUNT_PATH'),
 
+  /** Referral share links are `<this><CODE>` (GET /me/referral). */
+  referralLinkBase: optional('REFERRAL_LINK_BASE', 'https://reaya.app/r/'),
+
   /**
    * Card / wallet payments (M2.3). `PAYMENT_GATEWAY` picks the provider for new payments; the `fake`
    * one (development, tests, staging before real keys) is refused in production.

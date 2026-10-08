@@ -24,6 +24,10 @@ import { UserRole } from '../../../interfaces/enums';
 import { HttpResponse } from '../../../utils/response/http-response';
 import { parsePagination } from '../../../utils/response/pagination';
 import { resolveLanguage } from '../../../utils/i18n';
+import { BannerService, PackageService } from '../../../services/marketing';
+import { presentHomeBanner } from '../../presenters/marketing.presenter';
+import { perVisitValue } from '../../../interfaces/IMarketing';
+import { ValidationError } from '../../../utils/types-errors';
 
 const tags = ['Patient — Discovery'];
 const auth = true;
@@ -88,6 +92,8 @@ export default class DiscoveryController implements IBaseController {
   private reviewService = Container.get(ReviewService);
   private users = Container.get(UserService);
   private bookings = Container.get(BookingService);
+  private packages = Container.get(PackageService);
+  private banners = Container.get(BannerService);
 
   constructor() {
     this.initializeRoutes();
@@ -114,10 +120,12 @@ export default class DiscoveryController implements IBaseController {
   private async home(req: Request, res: Response, next: NextFunction) {
     try {
       const lang = resolveLanguage(req);
-      const [{ user }, categories, upcoming] = await Promise.all([
+      const [{ user }, categories, upcoming, activePackage, banners] = await Promise.all([
         this.users.getMe(req.user!.id),
         this.catalog.activeCategories(),
         this.bookings.nextUpcoming(req.user!.id),
+        this.packages.activeForHome(req.user!.id),
+        this.banners.active(),
       ]);
       const provider = upcoming?.providerProfileId
         ? (await this.bookings.providerCards([upcoming])).get(String(upcoming.providerProfileId))
@@ -134,8 +142,17 @@ export default class DiscoveryController implements IBaseController {
               provider_name: provider?.name ?? null,
             }
           : null,
-        active_package: null, // packages: Phase 2
-        banners: [], // banners: Phase 2
+        active_package: activePackage
+          ? {
+              id: String(activePackage._id),
+              name: localized(activePackage.package.nameAr, activePackage.package.nameEn, lang),
+              visits_remaining: activePackage.visitsRemaining,
+              expires_at: activePackage.expiresAt ? activePackage.expiresAt.toISOString() : null,
+            }
+          : null,
+        banners: await Promise.all(
+          banners.map(async (b) => presentHomeBanner(b, await this.banners.imageUrl(b.imageKey), lang)),
+        ),
       });
     } catch (err) {
       next(err);
@@ -146,6 +163,14 @@ export default class DiscoveryController implements IBaseController {
     try {
       const q = req.query as unknown as z.infer<typeof DiscoverySchemas.searchQuery>;
       const pagination = parsePagination(req.query);
+      if (q.package_id) {
+        // Booking with a package: only providers at or below its per-visit value (product decision).
+        const { pkg } = await this.packages.getAvailable(q.package_id);
+        if (String(pkg.serviceId) !== q.service_id) {
+          throw new ValidationError({ package_id: ['validation.package_other_service'] });
+        }
+        q.max_price = Math.min(q.max_price ?? Infinity, perVisitValue(pkg));
+      }
       const { data, total, service } = await this.discovery.search(
         {
           serviceId: q.service_id,

@@ -48,7 +48,15 @@ export enum PaymentMethod {
   CASH = 'cash',
   CARD = 'card',
   WALLET = 'wallet',
+  /**
+   * Nothing left to pay: fully covered by a package and / or credit (M2.5). Set by the server, never
+   * chosen by the client; the platform pays the provider their share, like a card booking.
+   */
+  COVERED = 'covered',
 }
+
+/** Paid through the payment gateway (refunds go back there). */
+export const GATEWAY_PAYMENT_METHODS = [PaymentMethod.CARD, PaymentMethod.WALLET];
 
 export enum PaymentStatus {
   UNPAID = 'unpaid',
@@ -72,7 +80,10 @@ export interface IBookingPrice {
   subtotal: number;
   /** Goes 100% to the provider (decision 10). */
   travelFee: number;
+  /** promo + package + credit; all borne by the platform. */
   discount: number;
+  /** Missing on bookings made before M2.5 (read through `discountsOf`). */
+  discounts?: { promo: number; package: number; credit: number };
   platformFee: number;
   total: number;
   /** Percent of `subtotal` (spec §6.4). */
@@ -142,6 +153,10 @@ export interface IBooking {
   currency: 'EGP';
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
+  /** Booked as one visit of this package (spec §4.6). */
+  packageSubscriptionId: Types.ObjectId | null;
+  /** Promo code used (its use is released if the booking ends without a visit). */
+  promo: { promoCodeId: Types.ObjectId; code: string } | null;
   /** When each visit reminder went out (spec §8: 24 h and 1 h before); reset on reschedule. */
   remindersSent: { day: Date | null; hour: Date | null };
   createdAt: Date;

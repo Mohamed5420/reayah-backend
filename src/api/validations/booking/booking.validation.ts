@@ -26,8 +26,16 @@ const quoteBody = z
     allow_fallback: z.boolean().default(true),
     scheduled_start: instant,
     quantity: z.number().int().min(1).default(1),
+    /** Optional; not together with a package. */
+    promo_code: z.string().trim().min(1).max(32).nullable().optional(),
+    /** Book one visit of my package (GET /me/package-subscriptions). Quantity must be 1. */
+    package_subscription_id: objectId.nullable().optional(),
   })
   .openapi('QuoteRequest');
+
+const discounts = z
+  .object({ promo: money, package: money, credit: money })
+  .openapi({ description: 'What makes up `discount`. Credit (referral rewards) is applied automatically.' });
 
 const listItem = z
   .object({
@@ -73,8 +81,14 @@ export const BookingSchemas = {
       platform_fee: money,
       total: money,
       currency: z.literal('EGP'),
+      discounts,
+      promo_code: z.string().nullable(),
+      package_subscription_id: objectId.nullable(),
+      /** Discount lines are negative. */
       lines: z.array(z.object({ label: z.string(), amount: money })),
       cancellation_policy: z.string(),
+      /** false when the total is 0 (package / credit cover everything): skip the payment method step. */
+      payment_required: z.boolean(),
       /** Valid 10 minutes; guarantees the price. */
       quote_token: z.string(),
       expires_at: z.string(),
@@ -83,7 +97,10 @@ export const BookingSchemas = {
   createBody: z
     .object({
       quote_token: z.string().min(1),
-      payment_method: z.enum(PaymentMethod).openapi({ description: 'Only `cash` in Phase 1' }),
+      payment_method: z.enum([PaymentMethod.CASH, PaymentMethod.CARD, PaymentMethod.WALLET]).openapi({
+        description:
+          'card / wallet need the card_payment flag. When the quote has payment_required false (total 0, fully covered by a package and / or credit) this is ignored and the booking gets payment_method "covered".',
+      }),
       patient_notes: notes,
     })
     .openapi('CreateBooking'),
@@ -131,9 +148,12 @@ export const BookingSchemas = {
         subtotal: money,
         travel_fee: money,
         discount: money,
+        discounts,
         total: money,
         currency: z.literal('EGP'),
       }),
+      promo_code: z.string().nullable(),
+      package_subscription_id: objectId.nullable(),
       payment_method: z.enum(PaymentMethod),
       payment_status: z.enum(PaymentStatus),
       timeline: z.array(

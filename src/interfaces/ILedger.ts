@@ -3,6 +3,8 @@ import type { Types } from 'mongoose';
 export enum LedgerOwnerType {
   PROVIDER = 'provider',
   ORGANIZATION = 'organization',
+  /** A patient's in-app credit (referral rewards), owner = the user id. Spent on bookings, never paid out. */
+  PATIENT = 'patient',
 }
 
 /** Spec §4.8 `wallet_ledger.type`. */
@@ -15,6 +17,14 @@ export enum LedgerEntryType {
   COMMISSION_DUE = 'commission_due',
   /** The provider paid commission they owed, through the payment gateway. */
   COMMISSION_PAYMENT = 'commission_payment',
+  /** Cash booking with a discount: the platform bears it, so it owes the provider what they didn't collect. */
+  DISCOUNT_REIMBURSEMENT = 'discount_reimbursement',
+  /** Referral reward (patient credit or provider earnings). */
+  REFERRAL_REWARD = 'referral_reward',
+  /** Patient credit spent on a booking (negative). */
+  CREDIT_USED = 'credit_used',
+  /** Credit given back when that booking ended without a visit. */
+  CREDIT_RESTORED = 'credit_restored',
 }
 
 /**
