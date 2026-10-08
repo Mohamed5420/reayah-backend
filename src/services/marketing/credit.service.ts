@@ -6,6 +6,13 @@ import type { IBooking } from '../../interfaces/IBooking';
 import { ConflictError } from '../../utils/types-errors';
 import { LedgerService } from '../ledger/ledger.service';
 import { discountsOf } from '../booking/pricing';
+import { PaymentMethod } from '../../interfaces/IBooking';
+
+/** The travel-fee charge a covered booking paid with credit (kept from the patient, paid to the provider). */
+export const creditKeptForFee = (booking: Pick<IBooking, 'paymentMethod' | 'patientFee'>) =>
+  booking.paymentMethod === PaymentMethod.COVERED && booking.patientFee?.collected
+    ? booking.patientFee.amount
+    : 0;
 
 const PATIENT = LedgerOwnerType.PATIENT;
 
@@ -67,9 +74,13 @@ export class CreditService {
     );
   }
 
-  /** The booking ended without a visit: the credit it used comes back (once — one entry per booking). */
+  /**
+   * The booking ended without a visit: the credit it used comes back (once — one entry per booking),
+   * except a travel-fee charge it paid on a covered booking (no-show / cancelled after "on the way"),
+   * which goes to the provider instead.
+   */
   async restore(booking: IBooking, session: ClientSession) {
-    const credit = discountsOf(booking.price).credit;
+    const credit = discountsOf(booking.price).credit - creditKeptForFee(booking);
     if (credit <= 0) return;
     await this.ledger.record(
       {

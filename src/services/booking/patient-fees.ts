@@ -1,5 +1,11 @@
 import { Container } from 'typedi';
-import { GATEWAY_PAYMENT_METHODS, PaymentStatus, type IBooking } from '../../interfaces/IBooking';
+import {
+  GATEWAY_PAYMENT_METHODS,
+  PaymentMethod,
+  PaymentStatus,
+  type IBooking,
+} from '../../interfaces/IBooking';
+import { discountsOf } from './pricing';
 import { SettingsService } from '../settings/settings.service';
 
 /**
@@ -7,6 +13,8 @@ import { SettingsService } from '../settings/settings.service';
  * except a cancellation after the provider marked "on the way", or a no-show. Each is a setting. The fee
  * is the booking's travel fee and goes to the provider. A paid card / wallet booking keeps it back from
  * the refund (`collected: true`); a cash booking records it without collecting (`collected: false`).
+ * A covered booking paid its travel fee with patient credit, so that part of the credit is kept
+ * (`collected: true`) and goes to the provider instead of back to the patient (see `settleBenefits`).
  */
 export const patientFeeFor = async (
   booking: Pick<IBooking, 'price' | 'paymentStatus' | 'paymentMethod'>,
@@ -20,6 +28,9 @@ export const patientFeeFor = async (
     amount: booking.price.travelFee,
     reason,
     collected:
-      booking.paymentStatus === PaymentStatus.PAID && GATEWAY_PAYMENT_METHODS.includes(booking.paymentMethod),
+      (booking.paymentStatus === PaymentStatus.PAID &&
+        GATEWAY_PAYMENT_METHODS.includes(booking.paymentMethod)) ||
+      (booking.paymentMethod === PaymentMethod.COVERED &&
+        discountsOf(booking.price).credit >= booking.price.travelFee),
   };
 };

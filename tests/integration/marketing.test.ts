@@ -18,6 +18,7 @@ import {
 import { WalletLedgerModel } from '../../src/database/models/ledger/wallet.model';
 import { PackageSubscriptionModel } from '../../src/database/models/marketing/marketing.models';
 import { PaymentModel } from '../../src/database/models/payment/payment.models';
+import { BookingModel } from '../../src/database/models/booking/booking.model';
 import { withTransaction } from '../../src/database/transaction';
 import { LedgerEntryType, LedgerOwnerType } from '../../src/interfaces/ILedger';
 import { LedgerService } from '../../src/services/ledger/ledger.service';
@@ -410,6 +411,76 @@ describe('packages', () => {
       scheduled_start: nextSlot(),
     });
     expect(quote.body.error.code).toBe('PACKAGE_EXPIRED');
+  });
+
+  it('covered no-show: the provider gets the travel fee paid with credit; the visit and the rest come back', async () => {
+    await enableFeatures();
+    const packageId = await createPackage();
+    const { subscriptionId, paymentId } = await buy(packageId);
+    await pay(paymentId);
+    const credit = () =>
+      api(patient.auth)
+        .get('/me/referral')
+        .then((r) => r.body.data.credit_balance as number);
+    const visitsBooked = () =>
+      api(patient.auth)
+        .get('/me/package-subscriptions')
+        .then((r) => r.body.data[0].visits_booked as number);
+    const noShow = async (who: TestProvider) => {
+      const booked = await world.book(patient, who, {
+        package_subscription_id: subscriptionId,
+        scheduled_start: nextSlot(),
+      });
+      expect(booked.body.data.payment_method).toBe('covered');
+      const id: string = booked.body.data.id;
+      await world.providerApi(who, 'post', `/bookings/${id}/accept`).expect(200);
+      await BookingModel.updateOne({ _id: id }, { scheduledStart: new Date(Date.now() - 60_000) });
+      await world.providerApi(who, 'post', `/bookings/${id}/no-show`).expect(200);
+      return id;
+    };
+
+    // Package covers the 250 EGP visit; 50 EGP credit covers the 30 EGP travel fee (20 left over).
+    await withTransaction((session) =>
+      Container.get(CreditService).grant(new mongoose.Types.ObjectId(patient.userId), 5000, 'test', session),
+    );
+    const id = await noShow(provider);
+    expect((await BookingModel.findById(id).lean())!.patientFee).toEqual({
+      amount: 3000,
+      reason: 'no_show',
+      collected: true,
+    });
+    expect(await credit()).toBe(2000); // the 30 EGP stays spent
+    expect(await visitsBooked()).toBe(0); // the visit is back
+    expect(await providerLedger()).toEqual([['credit', 3000]]);
+    expect(
+      await WalletLedgerModel.find({ ownerId: patient.userId, type: 'credit_restored' }).lean(),
+    ).toHaveLength(0); // nothing to restore: the only credit used was the fee
+
+    // Credit alone covering 280 EGP: the 30 EGP fee is kept, the other 250 come back.
+    await withTransaction((session) =>
+      Container.get(CreditService).grant(new mongoose.Types.ObjectId(patient.userId), 28000, 'test', session),
+    );
+    const creditOnly = await world.book(patient, provider, { scheduled_start: nextSlot() });
+    expect(creditOnly.body.data.payment_method).toBe('covered');
+    expect(await credit()).toBe(2000);
+    await world.providerApi(provider, 'post', `/bookings/${creditOnly.body.data.id}/accept`).expect(200);
+    await BookingModel.updateOne(
+      { _id: creditOnly.body.data.id },
+      { scheduledStart: new Date(Date.now() - 60_000) },
+    );
+    await world.providerApi(provider, 'post', `/bookings/${creditOnly.body.data.id}/no-show`).expect(200);
+    expect(await credit()).toBe(27000);
+    expect(await providerLedger()).toEqual([
+      ['credit', 3000],
+      ['credit', 3000],
+    ]);
+
+    // No travel fee: nothing is kept and nothing is paid.
+    const nearby = await world.newProvider({ travelFee: 0 });
+    await noShow(nearby);
+    expect(await credit()).toBe(27000);
+    expect(await visitsBooked()).toBe(0);
+    expect(await providerLedger(nearby)).toEqual([]);
   });
 
   it('cash is not offered for packages', async () => {

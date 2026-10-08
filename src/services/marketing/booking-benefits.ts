@@ -4,7 +4,9 @@ import { PackageSubscriptionModel } from '../../database/models/marketing/market
 import { bookingEvents, type BookingEvent } from '../../events/booking.events';
 import { ACTIVE_BOOKING_STATUSES, BookingStatus, type IBooking } from '../../interfaces/IBooking';
 import { logger } from '../../utils/logger/winston';
-import { CreditService } from './credit.service';
+import { CreditService, creditKeptForFee } from './credit.service';
+import { LedgerService } from '../ledger/ledger.service';
+import { LedgerEntryType, LedgerOwnerType } from '../../interfaces/ILedger';
 import { PackageService } from './package.service';
 import { PromoService } from './promo.service';
 import { rewardReferralSafely } from './referral.service';
@@ -20,7 +22,8 @@ const ENDED_WITHOUT_VISIT = [
 /**
  * Called by `transitionBooking` inside the booking's transaction, so benefits always follow the status:
  * completed → the package visit is used; ended without a visit → visit, promo use and credit are given
- * back. Each status change happens once (conditional update), so this runs once per booking.
+ * back — minus a covered booking's travel-fee charge, which is paid to the provider. Each status change
+ * happens once (conditional update), so this runs once per booking.
  */
 export const settleBenefits = async (
   session: ClientSession,
@@ -40,6 +43,21 @@ export const settleBenefits = async (
   }
   if (booking.promo) await Container.get(PromoService).release(session, booking._id);
   await Container.get(CreditService).restore(booking, session);
+  // A covered booking's travel-fee charge was paid with credit: the provider gets it, as with card.
+  const fee = creditKeptForFee(booking);
+  if (fee > 0 && booking.providerProfileId) {
+    await Container.get(LedgerService).record(
+      {
+        ownerType: LedgerOwnerType.PROVIDER,
+        ownerId: booking.providerProfileId,
+        bookingId: booking._id,
+        type: LedgerEntryType.CREDIT,
+        amount: fee,
+        note: `${booking.patientFee!.reason}: ${booking.referenceCode}`,
+      },
+      session,
+    );
+  }
 };
 
 /** After-commit side effects of a completed visit. Registered once at startup (`runServer`). */
