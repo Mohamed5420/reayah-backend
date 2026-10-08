@@ -14,9 +14,10 @@ import { isTestPhone } from './test-accounts';
 import { ConsentService } from '../consent/consent.service';
 import type { ConsentKind } from '../../interfaces/IConsent';
 import { StaffService } from '../organization/staff.service';
+import { ReceptionService } from '../organization/reception.service';
 
 export type RegisterInput = {
-  role: UserRole.PATIENT | UserRole.PROVIDER | UserRole.OWNER | UserRole.PROVIDER_STAFF;
+  role: UserRole.PATIENT | UserRole.PROVIDER | UserRole.OWNER | UserRole.PROVIDER_STAFF | UserRole.RECEPTION;
   fullName: string;
   gender: Gender;
   dateOfBirth: Date;
@@ -89,6 +90,8 @@ export class RegisterUseCase {
           await ProviderProfileModel.create([{ userId: user._id, isTestAccount: user.isTestAccount }], {
             session,
           });
+        } else if (input.role === UserRole.RECEPTION) {
+          await Container.get(ReceptionService).joinAtSignup(session, user, input.staffInviteId ?? '');
         } else if (input.role === UserRole.PROVIDER_STAFF) {
           invite = await Container.get(StaffService).joinAtSignup(session, user, input.staffInviteId ?? '');
         }

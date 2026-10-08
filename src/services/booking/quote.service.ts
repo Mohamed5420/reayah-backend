@@ -36,6 +36,7 @@ import { assertClinicBookingAllowed } from './clinic-visit';
 import { priceBounds, withinBounds } from '../catalog/visit-types';
 import type { IAddress } from '../../interfaces/IAddress';
 import type { Settings } from '../settings/settings.definitions';
+import type { IProviderProfile } from '../../interfaces/IProfiles';
 
 type BookableArea = NonNullable<Awaited<ReturnType<LocationService['findBookableArea']>>>;
 
@@ -104,7 +105,8 @@ export class QuoteService {
   private readonly settings = Container.get(SettingsService);
 
   async prepare(userId: string, input: QuoteInput, excludeBookingId?: string) {
-    if (input.providerId && input.organizationId) {
+    // Both only for a specific doctor at an organization's branch (clinic visits, C4).
+    if (input.providerId && input.organizationId && input.type !== BookingType.CLINIC_VISIT) {
       throw new ValidationError({ organization_id: ['validation.provider_or_organization'] });
     }
     if (!input.providerId && !input.organizationId) {
@@ -117,9 +119,7 @@ export class QuoteService {
     const clinicVisit = input.type === BookingType.CLINIC_VISIT;
     if (clinicVisit) {
       await Container.get(ClinicDiscoveryService).assertEnabled();
-      // Organization branches: C4. Packages cover home visits only (until C5).
-      if (input.organizationId)
-        throw new ValidationError({ organization_id: ['validation.clinic_branches_later'] });
+      // Packages cover home visits only (until C5).
       if (input.packageSubscriptionId) {
         throw new ValidationError({ package_subscription_id: ['validation.package_home_only'] });
       }
@@ -133,23 +133,32 @@ export class QuoteService {
       (await UserModel.findById(userId).select('isTestAccount').lean())?.isTestAccount,
     );
     // Where the visit happens: the patient's address, or the clinic (whose address the booking keeps).
-    const seat = clinicVisit
-      ? await Container.get(ClinicDiscoveryService).bookableSeat(
-          input.providerId!,
-          input.serviceId,
-          input.clinicId!,
-        )
-      : null;
-    const address: AddressLike = seat
+    const clinicDiscovery = Container.get(ClinicDiscoveryService);
+    // An organization's branch (C4): any doctor there (the owner assigns) or a specific one.
+    const branch =
+      clinicVisit && input.organizationId
+        ? await clinicDiscovery.bookableBranch(
+            input.organizationId,
+            input.serviceId,
+            input.clinicId!,
+            input.providerId,
+          )
+        : null;
+    const seat =
+      clinicVisit && !branch
+        ? await clinicDiscovery.bookableSeat(input.providerId!, input.serviceId, input.clinicId!)
+        : null;
+    const place = seat?.clinic ?? branch?.branch ?? null;
+    const address: AddressLike = place
       ? {
-          label: seat.clinic.name,
-          governorateId: seat.clinic.governorateId,
-          areaId: seat.clinic.areaId,
-          street: seat.clinic.street,
-          building: seat.clinic.building,
-          floor: seat.clinic.floor,
+          label: place.name,
+          governorateId: place.governorateId,
+          areaId: place.areaId,
+          street: place.street,
+          building: place.building,
+          floor: place.floor,
           apartment: null,
-          landmark: seat.clinic.landmark,
+          landmark: place.landmark,
           notes: null,
         }
       : await this.addresses.getOwned(userId, input.addressId!);
@@ -158,11 +167,13 @@ export class QuoteService {
     const service = await this.catalog.getActiveService(input.serviceId);
     assertQuantity(service.pricingUnit, input.quantity);
 
-    const terms = seat
-      ? await this.clinicTerms(input, seat, settings, excludeBookingId)
-      : input.organizationId
-        ? await this.organizationTerms(input, input.organizationId, area, service, excludeBookingId)
-        : await this.providerTerms(input, input.providerId!, area, service, excludeBookingId);
+    const terms = branch
+      ? await this.branchTerms(input, branch, settings, excludeBookingId)
+      : seat
+        ? await this.clinicTerms(input, seat, settings, excludeBookingId)
+        : input.organizationId
+          ? await this.organizationTerms(input, input.organizationId, area, service, excludeBookingId)
+          : await this.providerTerms(input, input.providerId!, area, service, excludeBookingId);
     // Test and real accounts never book each other in production (test numbers, launch decision).
     if (!inSameWorld(isTestAccount, (terms.organization ?? terms.provider)?.isTestAccount)) {
       throw new NotFoundError(
@@ -172,7 +183,7 @@ export class QuoteService {
     const { slot, unitPrice, areaTravelFee } = terms;
     if (clinicVisit) {
       await assertClinicBookingAllowed(
-        { userId, patientProfileId: input.patientProfileId, providerId: input.providerId! },
+        { userId, patientProfileId: input.patientProfileId, providerId: input.providerId ?? null },
         slot,
         settings.max_upcoming_clinic_bookings,
         excludeBookingId,
@@ -236,7 +247,8 @@ export class QuoteService {
       ...input,
       promoCode: promo ? promo.promo.code : null,
       packageSubscriptionId: packageSubscription ? String(packageSubscription._id) : null,
-      providerId: input.organizationId ? null : input.providerId,
+      // An organization booking has no provider until assigned — except a specific doctor at a branch.
+      providerId: input.organizationId && !(clinicVisit && input.providerId) ? null : input.providerId,
       organizationId: input.organizationId ?? null,
       addressId: clinicVisit ? null : input.addressId,
       clinicId: clinicVisit ? input.clinicId! : null,
@@ -256,10 +268,55 @@ export class QuoteService {
       patientProfile,
       providerProfile: terms.provider,
       organization: terms.organization,
-      clinic: seat?.clinic ?? null,
-      clinicLink: seat?.link ?? null,
+      clinic: place,
+      // Branches: a specific doctor is confirmed at once; "any doctor" goes to the owner's queue.
+      clinicLink: seat?.link ?? (branch ? { instantConfirm: Boolean(input.providerId) } : null),
       settings,
       packageSubscription,
+    };
+  }
+
+  /**
+   * An organization's branch (clinic visits, C4): the start must be a free appointment of the given doctor
+   * — or of any doctor there (preferred gender respected). Price = the organization's clinic price;
+   * commission = its own rate, else `clinic_commission_rate`, else the platform's.
+   */
+  private async branchTerms(
+    input: QuoteInput,
+    branch: Awaited<ReturnType<ClinicDiscoveryService['bookableBranch']>>,
+    settings: Settings,
+    excludeBookingId?: string,
+  ) {
+    if (input.quantity !== 1) throw new ValidationError({ quantity: ['validation.invalid_value'] });
+    const { org, entry, service } = branch;
+    if (!withinBounds(priceBounds(service, BookingType.CLINIC_VISIT), entry.price)) {
+      throw new ConflictError('errors.provider_price_invalid');
+    }
+    const doctors = branch.doctors.filter(
+      (d) => input.preferredGender === PreferredGender.ANY || String(d.user.gender) === input.preferredGender,
+    );
+    if (!doctors.length)
+      throw new ValidationError({ preferred_gender: ['validation.provider_gender_mismatch'] });
+    const free = await Container.get(ClinicDiscoveryService).freeDoctorsAt(
+      doctors,
+      service,
+      input.scheduledStart,
+      excludeBookingId,
+    );
+    if (!free.length) throw new SlotUnavailableError();
+    const minutes = free[0].link.slotMinutes ?? service.defaultDurationMinutes;
+    const slot = {
+      start: input.scheduledStart,
+      end: new Date(input.scheduledStart.getTime() + minutes * 60_000),
+    };
+    return {
+      slot,
+      unitPrice: entry.price,
+      areaTravelFee: 0,
+      commissionRate:
+        org.commissionRate ?? (settings.clinic_commission_rate >= 0 ? settings.clinic_commission_rate : null),
+      provider: input.providerId ? (free[0].profile as unknown as IProviderProfile) : null,
+      organization: org,
     };
   }
 

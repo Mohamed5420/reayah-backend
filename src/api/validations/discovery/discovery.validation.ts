@@ -91,6 +91,24 @@ const organizationProfile = z
     rating_count: z.number(),
     completed_visits: z.number(),
     team_size: z.number(),
+    /** What can be booked: home_visit and / or clinic_visit (at its branches). */
+    visit_types: z.array(z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT])),
+    /** Branches (clinic visits): text address, clinic prices, the doctors there. No phone (after booking). */
+    clinics: z.array(
+      publicClinic.omit({ hours: true, appointment_minutes: true }).extend({
+        doctors: z.array(
+          z.object({
+            id: objectId,
+            name: z.string(),
+            specialty: specialtyView,
+            appointment_minutes: z.number().nullable(),
+            hours: z.array(
+              z.object({ day_of_week: z.number(), start_time: z.string(), end_time: z.string() }),
+            ),
+          }),
+        ),
+      }),
+    ),
     service_areas: z.array(z.object({ id: objectId, name: z.string() })),
     services: z.array(
       z.object({
@@ -196,8 +214,10 @@ export const DiscoverySchemas = {
       date,
       quantity: z.coerce.number().int().min(1).default(1),
       visit_type: z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]).default(BookingType.HOME_VISIT),
-      /** Required for clinic_visit: appointments at this clinic. */
+      /** Required for clinic_visit: appointments at this clinic (or an organization's branch). */
       clinic_id: objectId.optional(),
+      /** Organization branches: one doctor's appointments; omit for any doctor there. */
+      doctor_id: objectId.optional(),
       /** Organizations: only staff covering this area (the address's area). */
       area_id: objectId.optional(),
       /** Organizations: only staff of this gender (the preferred gender). */

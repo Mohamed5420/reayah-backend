@@ -65,7 +65,7 @@ const joinAsNewStaff = async (name = 'سارة أحمد') => {
   expect(invite.status).toBe(201);
   const verified = await loginWithOtp(app, phone);
   expect(verified.staff_invites).toEqual([
-    { id: invite.body.data.id, organization_name: 'مركز الشفاء للتمريض', type: 'nurse' },
+    { id: invite.body.data.id, organization_name: 'مركز الشفاء للتمريض', kind: 'staff', type: 'nurse' },
   ]);
   const registered = await request(app)
     .post('/api/v1/auth/register')

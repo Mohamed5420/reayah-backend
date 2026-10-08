@@ -8,6 +8,7 @@ import { ProviderProfileModel } from '../../database/models/provider/provider-pr
 import { UserModel } from '../../database/models/user/user.model';
 import { type Gender, VerificationStatus } from '../../interfaces/enums';
 import {
+  BookingType,
   AssignmentMode,
   BookingActor,
   BookingStatus,
@@ -45,6 +46,7 @@ import { CommissionService } from '../payouts/commission.service';
 import { SettingsService } from '../settings/settings.service';
 import { OrgDiscoveryService } from './org-discovery.service';
 import { offeredEntry } from '../catalog/visit-types';
+import { ClinicDiscoveryService } from '../discovery/clinic-discovery.service';
 
 /** Statuses in which the organization's assigned staff member is doing (or did) the visit. */
 const ASSIGNED_STATUSES = [
@@ -203,20 +205,29 @@ export class OrgBookingService {
           .lean()
       ).map((u) => [String(u._id), u]),
     );
-    const eligible = await this.orgs.eligibleStaff(org._id, {
-      serviceId: String(booking.serviceId),
-      areaId: String(booking.areaId),
-    });
-    const free = new Set(
-      (
-        await this.orgs.freeAt(
-          eligible,
-          await this.orgs.serviceRowFor(booking),
-          booking.scheduledStart,
-          booking.quantity,
-          String(booking._id),
+    const clinic = booking.type === BookingType.CLINIC_VISIT;
+    const atBranch = clinic
+      ? new Set(
+          (await Container.get(ClinicDiscoveryService).branchDoctors(org._id, booking.clinicId!)).map((d) =>
+            String(d.profile._id),
+          ),
         )
-      ).map((s) => String(s.profile._id)),
+      : null;
+    const free = new Set(
+      clinic
+        ? (await this.freeAtBranch(org, booking)).map((d) => String(d.profile._id))
+        : (
+            await this.orgs.freeAt(
+              await this.orgs.eligibleStaff(org._id, {
+                serviceId: String(booking.serviceId),
+                areaId: String(booking.areaId),
+              }),
+              await this.orgs.serviceRowFor(booking),
+              booking.scheduledStart,
+              booking.quantity,
+              String(booking._id),
+            )
+          ).map((s) => String(s.profile._id)),
     );
     const rows = members.map((m): StaffEligibility => {
       const user = users.get(String(m.userId));
@@ -225,15 +236,18 @@ export class OrgBookingService {
         ? 'suspended'
         : !m.isAcceptingBookings
           ? 'not_accepting'
-          : !m.serviceAreas.some((a) => a.areaId.equals(booking.areaId))
-            ? 'area'
-            : !offeredEntry(m.services, String(booking.serviceId), booking.type)
-              ? 'service'
-              : booking.preferredGender !== PreferredGender.ANY && String(gender) !== booking.preferredGender
-                ? 'gender'
-                : !free.has(String(m._id))
-                  ? 'busy'
-                  : null;
+          : atBranch && !atBranch.has(String(m._id))
+            ? 'branch'
+            : !atBranch && !m.serviceAreas.some((a) => a.areaId.equals(booking.areaId))
+              ? 'area'
+              : !atBranch && !offeredEntry(m.services, String(booking.serviceId), booking.type)
+                ? 'service'
+                : booking.preferredGender !== PreferredGender.ANY &&
+                    String(gender) !== booking.preferredGender
+                  ? 'gender'
+                  : !free.has(String(m._id))
+                    ? 'busy'
+                    : null;
       return {
         profileId: m._id,
         name: user?.fullName ?? '',
@@ -384,6 +398,15 @@ export class OrgBookingService {
     }
     if (!booking.assignmentDeadline || booking.assignmentDeadline <= new Date())
       throw new AssignmentDeadlinePassedError();
+    const free =
+      booking.type === BookingType.CLINIC_VISIT
+        ? await this.freeAtBranch(org, booking)
+        : await this.freeHomeStaff(org, booking);
+    if (!free.length) throw new ConflictError('errors.no_eligible_staff');
+    return this.offerTo(org, booking, free);
+  }
+
+  private async freeHomeStaff(org: IOrganization, booking: IBooking) {
     const eligible = await this.orgs.eligibleStaff(org._id, {
       serviceId: String(booking.serviceId),
       areaId: String(booking.areaId),
@@ -392,14 +415,20 @@ export class OrgBookingService {
           ? null
           : (booking.preferredGender as unknown as Gender),
     });
-    const free = await this.orgs.freeAt(
+    return this.orgs.freeAt(
       eligible,
       await this.orgs.serviceRowFor(booking),
       booking.scheduledStart,
       booking.quantity,
       String(booking._id),
     );
-    if (!free.length) throw new ConflictError('errors.no_eligible_staff');
+  }
+
+  private async offerTo(
+    org: IOrganization,
+    booking: IBooking,
+    free: Array<{ profile: { _id: Types.ObjectId } }>,
+  ) {
     const already = new Set(
       (await BookingOfferModel.find({ bookingId: booking._id }).select('providerProfileId').lean()).map((o) =>
         String(o.providerProfileId),
@@ -545,7 +574,33 @@ export class OrgBookingService {
   // ── Helpers ──
 
   /** The member can take this booking: theirs, active, right area / service / gender, free then. */
+  /** Clinic bookings (C4): doctors at the booking's branch free for exactly its appointment. */
+  private async freeAtBranch(org: Pick<IOrganization, '_id'>, booking: IBooking) {
+    const clinics = Container.get(ClinicDiscoveryService);
+    const doctors = await clinics.branchDoctors(org._id, booking.clinicId!, {
+      gender:
+        booking.preferredGender === PreferredGender.ANY
+          ? undefined
+          : (booking.preferredGender as unknown as Gender),
+    });
+    return clinics.freeDoctorsAt(
+      doctors,
+      await this.orgs.serviceRowFor(booking),
+      booking.scheduledStart,
+      String(booking._id),
+    );
+  }
+
   private async assertCanTake(org: IOrganization, booking: IBooking, staffId: string) {
+    if (booking.type === BookingType.CLINIC_VISIT) {
+      const free = (await this.freeAtBranch(org, booking)).filter((d) => d.profile._id.equals(staffId));
+      if (free.length) return free[0].profile._id;
+      const member = Types.ObjectId.isValid(staffId)
+        ? await ProviderProfileModel.exists({ _id: staffId, organizationId: org._id })
+        : null;
+      if (!member) throw new NotFoundError('errors.staff_not_found');
+      throw new SlotUnavailableError();
+    }
     const eligible = Types.ObjectId.isValid(staffId)
       ? (
           await this.orgs.eligibleStaff(org._id, {

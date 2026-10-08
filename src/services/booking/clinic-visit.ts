@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomInt, timingSafeEqual } from 'node:crypto';
 import {
   ACTIVE_BOOKING_STATUSES,
   BookingActor,
@@ -7,7 +7,7 @@ import {
   type IBooking,
 } from '../../interfaces/IBooking';
 import { BookingModel } from '../../database/models/booking/booking.model';
-import { ConflictError } from '../../utils/types-errors';
+import { ConflictError, ValidationError } from '../../utils/types-errors';
 import { transitionBooking, type BookingTx } from './booking-transaction';
 
 /**
@@ -35,7 +35,7 @@ export const VISIT_CODE_MAX_ATTEMPTS = 5;
  * `excludeBookingId`: the booking being rescheduled.
  */
 export const assertClinicBookingAllowed = async (
-  who: { userId: string; patientProfileId: string; providerId: string },
+  who: { userId: string; patientProfileId: string; providerId: string | null },
   slot: { start: Date; end: Date },
   max: number,
   excludeBookingId?: string,
@@ -53,6 +53,7 @@ export const assertClinicBookingAllowed = async (
     throw new ConflictError('errors.clinic_booking_overlap');
   }
   if (
+    who.providerId &&
     upcoming.some(
       (b) =>
         String(b.providerProfileId) === who.providerId && String(b.patientProfileId) === who.patientProfileId,
@@ -61,6 +62,34 @@ export const assertClinicBookingAllowed = async (
     throw new ConflictError('errors.clinic_same_doctor_limit');
   }
   if (upcoming.length >= max) throw new ConflictError('errors.clinic_booking_limit', { max });
+};
+
+/**
+ * Checks the patient's visit code (counting tries across doctor and reception) or takes a reason to start
+ * without it. Returns the check-in record for `booking.checkIn`.
+ */
+export const verifyCheckIn = async (
+  booking: IBooking,
+  input: { visitCode?: string; withoutCodeReason?: string },
+  at: Date,
+): Promise<NonNullable<IBooking['checkIn']>> => {
+  if (input.withoutCodeReason) return { method: 'without_code', reason: input.withoutCodeReason, at };
+  if (!input.visitCode) throw new ValidationError({ visit_code: ['validation.required'] });
+  if ((booking.visitCodeAttempts ?? 0) >= VISIT_CODE_MAX_ATTEMPTS)
+    throw new ConflictError('errors.visit_code_locked');
+  const counted = await BookingModel.findOneAndUpdate(
+    { _id: booking._id, visitCodeAttempts: { $lt: VISIT_CODE_MAX_ATTEMPTS } },
+    { $inc: { visitCodeAttempts: 1 } },
+    { new: true },
+  ).lean();
+  if (!counted) throw new ConflictError('errors.visit_code_locked');
+  if (
+    !booking.visitCode ||
+    !timingSafeEqual(Buffer.from(booking.visitCode), Buffer.from(input.visitCode.padEnd(4)))
+  ) {
+    throw new ValidationError({ visit_code: ['validation.visit_code_wrong'] });
+  }
+  return { method: 'code', reason: null, at };
 };
 
 /** pending / awaiting_payment → accepted, by the system, for an instant-confirm clinic appointment. */

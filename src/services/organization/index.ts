@@ -7,3 +7,4 @@ export * from './org-booking.service';
 export * from './subscription.service';
 export * from './statement.service';
 export * from './org-report.service';
+export * from './reception.service';

@@ -188,6 +188,19 @@ export const handleBookingEvent = async (event: BookingEvent) => {
     }
     return;
   }
+  if (
+    event.to === BookingStatus.EXPIRED &&
+    booking.type === BookingType.CLINIC_VISIT &&
+    event.reason !== 'payment_timeout'
+  ) {
+    await notifications.notify([booking.patientUserId], {
+      type: NotificationType.BOOKING_STATUS,
+      template: 'clinic_booking_expired',
+      params,
+      data: { ...statusData, action: 'choose_again' },
+    });
+    return;
+  }
   if (event.to === BookingStatus.NO_SHOW && booking.type === BookingType.CLINIC_VISIT) {
     await notifications.notify([booking.patientUserId], {
       type: NotificationType.BOOKING_STATUS,

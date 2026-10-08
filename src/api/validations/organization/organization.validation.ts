@@ -440,7 +440,8 @@ export const OrgFinanceSchemas = {
   reportQuery: z.object({
     from: z.iso.date(),
     to: z.iso.date(),
-    group_by: z.enum(['day', 'staff', 'service']).default('day'),
+    /** branch: one row per clinic branch, plus one for home visits (clinic visits, C4). */
+    group_by: z.enum(['day', 'staff', 'service', 'branch']).default('day'),
   }),
   report: z
     .object({

@@ -162,17 +162,29 @@
                     "organization_name": {
                       "type": "string"
                     },
-                    "type": {
+                    "kind": {
                       "type": "string",
                       "enum": [
+                        "staff",
+                        "reception"
+                      ]
+                    },
+                    "type": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
                         "nurse",
-                        "doctor"
+                        "doctor",
+                        null
                       ]
                     }
                   },
                   "required": [
                     "id",
                     "organization_name",
+                    "kind",
                     "type"
                   ]
                 }
@@ -204,7 +216,8 @@
               "provider",
               "provider_staff",
               "owner",
-              "admin"
+              "admin",
+              "reception"
             ]
           },
           "language": {
@@ -274,7 +287,8 @@
               "patient",
               "provider",
               "owner",
-              "provider_staff"
+              "provider_staff",
+              "reception"
             ]
           },
           "full_name": {
@@ -416,7 +430,8 @@
               "provider",
               "provider_staff",
               "owner",
-              "admin"
+              "admin",
+              "reception"
             ]
           },
           "language": {
@@ -4425,6 +4440,192 @@
           "team_size": {
             "type": "number"
           },
+          "visit_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "home_visit",
+                "clinic_visit"
+              ]
+            }
+          },
+          "clinics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{24}$/i",
+                  "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "governorate": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{24}$/i",
+                      "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                },
+                "area": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{24}$/i",
+                      "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                },
+                "street": {
+                  "type": "string"
+                },
+                "building": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "floor": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "landmark": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "services": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "service_id": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{24}$/i",
+                        "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "price": {
+                        "type": "number"
+                      },
+                      "pricing_unit": {
+                        "type": "string",
+                        "enum": [
+                          "per_visit",
+                          "per_hour",
+                          "per_day"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "service_id",
+                      "name",
+                      "price",
+                      "pricing_unit"
+                    ]
+                  }
+                },
+                "doctors": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{24}$/i",
+                        "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "specialty": {
+                        "$ref": "#/components/schemas/Specialty"
+                      },
+                      "appointment_minutes": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "hours": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "day_of_week": {
+                              "type": "number"
+                            },
+                            "start_time": {
+                              "type": "string"
+                            },
+                            "end_time": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "day_of_week",
+                            "start_time",
+                            "end_time"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "specialty",
+                      "appointment_minutes",
+                      "hours"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "governorate",
+                "area",
+                "street",
+                "building",
+                "floor",
+                "landmark",
+                "services",
+                "doctors"
+              ]
+            }
+          },
           "service_areas": {
             "type": "array",
             "items": {
@@ -4537,6 +4738,8 @@
           "rating_count",
           "completed_visits",
           "team_size",
+          "visit_types",
+          "clinics",
           "service_areas",
           "services",
           "organization",
@@ -6616,7 +6819,8 @@
               "provider",
               "provider_staff",
               "owner",
-              "admin"
+              "admin",
+              "reception"
             ]
           },
           "admin_role": {
@@ -12265,7 +12469,8 @@
                 "patient",
                 "provider",
                 "provider_staff",
-                "owner"
+                "owner",
+                "reception"
               ]
             },
             "minItems": 1
@@ -12772,6 +12977,259 @@
           "submitted_at",
           "reviewed_at",
           "created_at"
+        ]
+      },
+      "Branch": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "governorate": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "area": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "street": {
+            "type": "string"
+          },
+          "building": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "floor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "landmark": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "approved",
+              "changes_requested",
+              "rejected"
+            ]
+          },
+          "admin_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "licence": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "uploaded_at": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "file_url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "uploaded_at",
+              "expires_at",
+              "file_url"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "doctors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "staff_id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "appointment_minutes": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "hours": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "day_of_week": {
+                        "type": "number"
+                      },
+                      "start_time": {
+                        "type": "string"
+                      },
+                      "end_time": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "day_of_week",
+                      "start_time",
+                      "end_time"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "staff_id",
+                "name",
+                "appointment_minutes",
+                "hours"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "governorate",
+          "area",
+          "street",
+          "building",
+          "floor",
+          "landmark",
+          "phone",
+          "is_active",
+          "status",
+          "admin_message",
+          "licence",
+          "created_at",
+          "doctors"
+        ]
+      },
+      "ReceptionAppointment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reference_code": {
+            "type": "string"
+          },
+          "patient_name": {
+            "type": "string"
+          },
+          "doctor_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "service": {
+            "type": "string"
+          },
+          "scheduled_start": {
+            "type": "string"
+          },
+          "scheduled_end": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "awaiting_payment",
+              "pending",
+              "accepted",
+              "declined",
+              "expired",
+              "on_the_way",
+              "in_progress",
+              "completed",
+              "cancelled",
+              "no_show",
+              "disputed"
+            ]
+          },
+          "checked_in": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "code",
+              "without_code",
+              null
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "reference_code",
+          "patient_name",
+          "doctor_name",
+          "service",
+          "scheduled_start",
+          "scheduled_end",
+          "status",
+          "checked_in"
         ]
       }
     },
@@ -18590,6 +19048,16 @@
               "example": "665f1c2b9e1d2a4c3b9e8f1a"
             },
             "required": false,
+            "name": "doctor_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
             "name": "area_id",
             "in": "query"
           },
@@ -21033,7 +21501,8 @@
                 "provider",
                 "provider_staff",
                 "owner",
-                "admin"
+                "admin",
+                "reception"
               ]
             },
             "required": false,
@@ -27751,7 +28220,8 @@
               "enum": [
                 "day",
                 "staff",
-                "service"
+                "service",
+                "branch"
               ],
               "default": "day"
             },
@@ -28865,7 +29335,8 @@
                 "patient",
                 "provider",
                 "provider_staff",
-                "owner"
+                "owner",
+                "reception"
               ]
             },
             "required": false,
@@ -29885,6 +30356,905 @@
                 }
               }
             }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/branches": {
+      "get": {
+        "summary": "My branches (clinics) with the doctors placed at each",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Branch"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a branch: text address only (no coordinates), branch phone. Draft until its licence is attached and it is submitted for review.",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClinicInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Branch"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/branches/{id}": {
+      "patch": {
+        "summary": "Edit or pause a branch. Changing the name or address of an approved branch sends it back for review.",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClinicPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Branch"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove a branch (and every doctor’s hours there)",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/branches/{id}/licence": {
+      "put": {
+        "summary": "Attach the branch licence (POST /uploads with purpose `clinic_licence` first)",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file_key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "expires_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date",
+                    "example": "2028-12-31"
+                  }
+                },
+                "required": [
+                  "file_key"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Branch"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/branches/{id}/submit": {
+      "post": {
+        "summary": "Send the branch for review (needs a licence). Bookable only once approved.",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Branch"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/branches/{id}/doctors/{staffId}": {
+      "put": {
+        "summary": "Place a staff doctor at the branch with weekly hours there (replaces them). Hours may not overlap the doctor’s home-visit hours or another branch’s.",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "staffId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slot_minutes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 5,
+                    "maximum": 240,
+                    "default": null
+                  },
+                  "hours": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "day_of_week": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 6,
+                          "description": "0 = Sunday"
+                        },
+                        "start_time": {
+                          "type": "string",
+                          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                          "example": "09:00"
+                        },
+                        "end_time": {
+                          "type": "string",
+                          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+                          "example": "09:00"
+                        }
+                      },
+                      "required": [
+                        "day_of_week",
+                        "start_time",
+                        "end_time"
+                      ]
+                    },
+                    "maxItems": 50
+                  }
+                },
+                "required": [
+                  "hours"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Branch"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Take a doctor off the branch",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "staffId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/branches/{id}/reception": {
+      "post": {
+        "summary": "Invite a receptionist to this branch (SMS with the organization’s name and the app link only). The number must not have an account yet; they sign up with role reception.",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+201[0125]\\d{8}$"
+                  },
+                  "full_name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "phone",
+                  "full_name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "invite_id": {
+                          "type": "string"
+                        },
+                        "expires_at": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "invite_id",
+                        "expires_at"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Receptionists of this branch, and open invites",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "members": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "user_id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "phone": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "user_id",
+                              "name",
+                              "phone"
+                            ]
+                          }
+                        },
+                        "invites": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "phone": {
+                                "type": "string"
+                              },
+                              "expires_at": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "phone",
+                              "expires_at"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "members",
+                        "invites"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/branches/{id}/reception/{userId}": {
+      "delete": {
+        "summary": "Remove a receptionist from the branch: access ends and their sessions are signed out now. Audited.",
+        "tags": [
+          "Organization — Branches"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "userId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reception/appointments": {
+      "get": {
+        "summary": "Today’s appointments at my branch (Cairo day): patient name, time, doctor, status. Nothing medical, no notes, no prices. Audited.",
+        "tags": [
+          "Reception"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReceptionAppointment"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reception/appointments/{id}/check-in": {
+      "post": {
+        "summary": "Check the patient in with their 4-digit visit_code (shared 5 tries), or without_code_reason: starts the visit. Audited.",
+        "tags": [
+          "Reception"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "visit_code": {
+                    "type": "string",
+                    "pattern": "^\\d{4}$"
+                  },
+                  "without_code_reason": {
+                    "type": "string",
+                    "minLength": 5,
+                    "maxLength": 300
+                  }
+                },
+                "default": {},
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reception/appointments/{id}/no-show": {
+      "post": {
+        "summary": "The patient didn’t come (from start + clinic_no_show_grace_minutes). Audited.",
+        "tags": [
+          "Reception"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
           },
           "default": {
             "description": "Error (see `error.code`)",

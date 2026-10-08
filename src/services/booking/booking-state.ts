@@ -49,6 +49,15 @@ export const canTransition = (
 ) => {
   // Video consultations and clinic visits have no journey (spec §5; clinic visits C3).
   if (to === S.ON_THE_WAY && (type === BookingType.VIDEO || type === BookingType.CLINIC_VISIT)) return false;
+  // Branch reception (C4) acts for the organization at its clinic: check-in starts the visit; no-show.
+  if (
+    type === BookingType.CLINIC_VISIT &&
+    actor === ORGANIZATION &&
+    from === S.ACCEPTED &&
+    (to === S.IN_PROGRESS || to === S.NO_SHOW)
+  ) {
+    return true;
+  }
   // Clinic visits with instant confirmation: the system confirms a free appointment (when booked, or
   // once paid) — clinic visits only.
   if (

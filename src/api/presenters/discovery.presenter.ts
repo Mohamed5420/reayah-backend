@@ -43,8 +43,10 @@ export const presentSearchCard = (
         organization: { id: String(card.org._id), name: card.org.name },
         team_size: card.teamSize,
         next_available: card.nextAvailable ? new Date(card.nextAvailable).toISOString() : null,
-        visit_type: 'home_visit' as const,
-        clinic: null,
+        visit_type: card.clinic ? ('clinic_visit' as const) : ('home_visit' as const),
+        clinic: card.clinic
+          ? { id: card.clinic.id, name: card.clinic.name, area: areaRef(card.clinic.areaId, places, lang) }
+          : null,
       };
 
 export const presentProviderCard = (
@@ -173,6 +175,16 @@ export const presentOrgPublicProfile = (input: {
   ratingAvg: number;
   ratingCount: number;
   completedVisits: number;
+  branches?: Array<{
+    branch: PublicClinic['clinic'];
+    place: PublicClinic['place'];
+    doctors: Array<{
+      profile: { _id: unknown; specialty: string | null; clinics: Array<{ clinicId: unknown }> };
+      user: { fullName: string };
+      link: PublicClinic['link'];
+    }>;
+  }>;
+  clinicServices?: Array<{ service: ServiceRow; price: number }>;
   recentReviews: Array<{ rating: number; comment: string | null; patient_name: string; date: string }>;
   lang: Language;
 }) => ({
@@ -187,6 +199,39 @@ export const presentOrgPublicProfile = (input: {
   rating_count: input.ratingCount,
   completed_visits: input.completedVisits,
   team_size: input.teamSize,
+  visit_types: [
+    ...(input.services.length && input.areas.length ? ['home_visit' as const] : []),
+    ...(input.branches?.length ? ['clinic_visit' as const] : []),
+  ],
+  clinics: (input.branches ?? []).map((b) => {
+    const {
+      hours: _hours,
+      appointment_minutes: _minutes,
+      ...base
+    } = presentPublicClinic(
+      {
+        clinic: b.branch,
+        link: { clinicId: b.branch._id, slotMinutes: null, instantConfirm: true, hours: [] },
+        place: b.place,
+      },
+      input.clinicServices ?? [],
+      input.lang,
+    );
+    return {
+      ...base,
+      doctors: b.doctors.map((d) => ({
+        id: String(d.profile._id),
+        name: d.user.fullName,
+        specialty: presentSpecialty(d.profile.specialty, input.lang),
+        appointment_minutes: d.link.slotMinutes,
+        hours: d.link.hours.map((h) => ({
+          day_of_week: h.dayOfWeek,
+          start_time: h.startTime,
+          end_time: h.endTime,
+        })),
+      })),
+    };
+  }),
   service_areas: input.areas.map((a) => ({ id: a.id, name: localized(a.nameAr, a.nameEn, input.lang) })),
   services: input.services.map(({ service, price }) => ({
     service_id: service.id,

@@ -206,7 +206,7 @@ export default class DiscoveryController implements IBaseController {
           ? await this.clinicDiscovery.search(filters, pagination)
           : await this.discovery.searchWithOrganizations(filters, pagination);
       const places = await this.locations.describeAreas(
-        data.flatMap((c) => (c.kind === 'provider' && c.clinic ? [c.clinic.areaId] : [])),
+        data.flatMap((c) => (c.clinic ? [c.clinic.areaId] : [])),
       );
       const cards = await Promise.all(
         data.map(async (card) =>
@@ -230,10 +230,20 @@ export default class DiscoveryController implements IBaseController {
       if (await this.orgDiscovery.isOrganization(req.params.id)) {
         const org = await this.orgDiscovery.publicProfile(req.params.id);
         const staffIds = await this.orgStaffIds(org.org._id);
+        const catalog = new Map((await this.catalog.activeServices()).map((s) => [s.id, s]));
+        const clinicServices = org.org.services.flatMap((s) => {
+          const row = catalog.get(String(s.serviceId));
+          return s.isActive && row && s.visitType === BookingType.CLINIC_VISIT
+            ? [{ service: row, price: s.price }]
+            : [];
+        });
+        const branches = await this.clinicDiscovery.publicBranches(org.org);
         return HttpResponse.ok(
           res,
           presentOrgPublicProfile({
             ...org,
+            branches,
+            clinicServices,
             logoUrl: await this.avatarUrl(org.org.logoKey),
             recentReviews: (await this.reviewService.recentForProvider(staffIds)).map(presentPublicReview),
             lang: resolveLanguage(req),
@@ -290,21 +300,30 @@ export default class DiscoveryController implements IBaseController {
   private async slots(req: Request, res: Response, next: NextFunction) {
     try {
       const q = req.query as unknown as z.infer<typeof DiscoverySchemas.slotsQuery>;
-      const slots = (await this.orgDiscovery.isOrganization(req.params.id))
-        ? await this.orgDiscovery.slots(req.params.id, {
-            serviceId: q.service_id,
-            date: q.date,
-            quantity: q.quantity,
-            areaId: q.area_id,
-            gender: q.gender,
-          })
-        : q.visit_type === BookingType.CLINIC_VISIT
-          ? await this.clinicDiscovery.slots(req.params.id, {
+      const isOrg = await this.orgDiscovery.isOrganization(req.params.id);
+      const slots =
+        isOrg && q.visit_type === BookingType.CLINIC_VISIT
+          ? await this.clinicDiscovery.branchSlots(req.params.id, {
               serviceId: q.service_id,
               clinicId: q.clinic_id!,
               date: q.date,
+              doctorId: q.doctor_id,
             })
-          : await this.discovery.providerSlots(req.params.id, q.service_id, q.date, q.quantity);
+          : isOrg
+            ? await this.orgDiscovery.slots(req.params.id, {
+                serviceId: q.service_id,
+                date: q.date,
+                quantity: q.quantity,
+                areaId: q.area_id,
+                gender: q.gender,
+              })
+            : q.visit_type === BookingType.CLINIC_VISIT
+              ? await this.clinicDiscovery.slots(req.params.id, {
+                  serviceId: q.service_id,
+                  clinicId: q.clinic_id!,
+                  date: q.date,
+                })
+              : await this.discovery.providerSlots(req.params.id, q.service_id, q.date, q.quantity);
       return HttpResponse.ok(res, presentSlots(q.date, slots));
     } catch (err) {
       next(err);

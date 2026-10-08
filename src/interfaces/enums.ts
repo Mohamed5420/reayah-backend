@@ -6,6 +6,8 @@ export enum UserRole {
   PROVIDER_STAFF = 'provider_staff',
   OWNER = 'owner',
   ADMIN = 'admin',
+  /** Branch reception (clinic visits, C4): today's appointments at one branch, check-in, no-show. */
+  RECEPTION = 'reception',
 }
 
 /**

@@ -4,7 +4,13 @@ import { z } from '../zod';
 
 const kind = z.enum(ConsentKind);
 const version = z.number().int().min(1);
-const consentRoles = z.enum([UserRole.PATIENT, UserRole.PROVIDER, UserRole.PROVIDER_STAFF, UserRole.OWNER]);
+const consentRoles = z.enum([
+  UserRole.PATIENT,
+  UserRole.PROVIDER,
+  UserRole.PROVIDER_STAFF,
+  UserRole.OWNER,
+  UserRole.RECEPTION,
+]);
 
 export const ConsentSchemas = {
   /** Sign-up: the current version of every text the role must accept (GET /consent-documents?role=). */

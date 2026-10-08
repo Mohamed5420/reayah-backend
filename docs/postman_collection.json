@@ -3588,6 +3588,11 @@
                   "disabled": true
                 },
                 {
+                  "key": "doctor_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
                   "key": "area_id",
                   "value": "665f1c2b9e1d2a4c3b9e8f1a",
                   "disabled": true
@@ -9745,6 +9750,510 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Organization — Branches",
+      "item": [
+        {
+          "name": "My branches (clinics) with the doctors placed at each",
+          "request": {
+            "method": "GET",
+            "description": "My branches (clinics) with the doctors placed at each",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Add a branch: text address only (no coordinates), branch phone. Draft until its licence is attached and it is submitted for review.",
+          "request": {
+            "method": "POST",
+            "description": "Add a branch: text address only (no coordinates), branch phone. Draft until its licence is attached and it is submitted for review.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"عيادة د. منى للأطفال\",\n  \"governorate_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"area_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"street\": \"شارع مكرم عبيد\",\n  \"building\": \"12\",\n  \"floor\": \"3\",\n  \"landmark\": \"أمام سيتي ستارز\",\n  \"phone\": \"+20224001234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Edit or pause a branch. Changing the name or address of an approved branch sends it back for review.",
+          "request": {
+            "method": "PATCH",
+            "description": "Edit or pause a branch. Changing the name or address of an approved branch sends it back for review.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"عيادة د. منى للأطفال\",\n  \"governorate_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"area_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"street\": \"شارع مكرم عبيد\",\n  \"building\": \"12\",\n  \"floor\": \"3\",\n  \"landmark\": \"أمام سيتي ستارز\",\n  \"phone\": \"+20224001234\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove a branch (and every doctor’s hours there)",
+          "request": {
+            "method": "DELETE",
+            "description": "Remove a branch (and every doctor’s hours there)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Attach the branch licence (POST /uploads with purpose `clinic_licence` first)",
+          "request": {
+            "method": "PUT",
+            "description": "Attach the branch licence (POST /uploads with purpose `clinic_licence` first)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches/:id/licence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches",
+                ":id",
+                "licence"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_key\": \"string\",\n  \"expires_at\": \"2028-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Send the branch for review (needs a licence). Bookable only once approved.",
+          "request": {
+            "method": "POST",
+            "description": "Send the branch for review (needs a licence). Bookable only once approved.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches/:id/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches",
+                ":id",
+                "submit"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Place a staff doctor at the branch with weekly hours there (replaces them). Hours may not overlap the doctor’s home-visit hours or another branch’s.",
+          "request": {
+            "method": "PUT",
+            "description": "Place a staff doctor at the branch with weekly hours there (replaces them). Hours may not overlap the doctor’s home-visit hours or another branch’s.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches/:id/doctors/:staffId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches",
+                ":id",
+                "doctors",
+                ":staffId"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "staffId",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slot_minutes\": null,\n  \"hours\": [\n    {\n      \"day_of_week\": 0,\n      \"start_time\": \"09:00\",\n      \"end_time\": \"09:00\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Take a doctor off the branch",
+          "request": {
+            "method": "DELETE",
+            "description": "Take a doctor off the branch",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches/:id/doctors/:staffId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches",
+                ":id",
+                "doctors",
+                ":staffId"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "staffId",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Invite a receptionist to this branch (SMS with the organization’s name and the app link only). The number must not have an account yet; they sign up with role reception.",
+          "request": {
+            "method": "POST",
+            "description": "Invite a receptionist to this branch (SMS with the organization’s name and the app link only). The number must not have an account yet; they sign up with role reception.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches/:id/reception",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches",
+                ":id",
+                "reception"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"string\",\n  \"full_name\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Receptionists of this branch, and open invites",
+          "request": {
+            "method": "GET",
+            "description": "Receptionists of this branch, and open invites",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches/:id/reception",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches",
+                ":id",
+                "reception"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove a receptionist from the branch: access ends and their sessions are signed out now. Audited.",
+          "request": {
+            "method": "DELETE",
+            "description": "Remove a receptionist from the branch: access ends and their sessions are signed out now. Audited.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/branches/:id/reception/:userId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "branches",
+                ":id",
+                "reception",
+                ":userId"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                {
+                  "key": "userId",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reception",
+      "item": [
+        {
+          "name": "Today’s appointments at my branch (Cairo day): patient name, time, doctor, status. Nothing medical, no notes, no prices. Audited.",
+          "request": {
+            "method": "GET",
+            "description": "Today’s appointments at my branch (Cairo day): patient name, time, doctor, status. Nothing medical, no notes, no prices. Audited.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reception/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reception",
+                "appointments"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Check the patient in with their 4-digit visit_code (shared 5 tries), or without_code_reason: starts the visit. Audited.",
+          "request": {
+            "method": "POST",
+            "description": "Check the patient in with their 4-digit visit_code (shared 5 tries), or without_code_reason: starts the visit. Audited.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reception/appointments/:id/check-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reception",
+                "appointments",
+                ":id",
+                "check-in"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "The patient didn’t come (from start + clinic_no_show_grace_minutes). Audited.",
+          "request": {
+            "method": "POST",
+            "description": "The patient didn’t come (from start + clinic_no_show_grace_minutes). Audited.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/reception/appointments/:id/no-show",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reception",
+                "appointments",
+                ":id",
+                "no-show"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
             }
           }
         }

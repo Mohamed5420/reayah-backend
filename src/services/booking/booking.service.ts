@@ -52,6 +52,7 @@ import { PackageService } from '../marketing/package.service';
 import { PromoService } from '../marketing/promo.service';
 import { discountsOf } from './pricing';
 import { confirmClinicVisit, confirmsInstantly, isClinicVisit, newVisitCode } from './clinic-visit';
+import { ClinicDiscoveryService } from '../discovery/clinic-discovery.service';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I
 
@@ -544,6 +545,20 @@ export class BookingService {
   /** The assigned staff member could still take the booking at `start` (eligible, free). */
   private async staffStillFits(booking: IBooking, start: Date) {
     const orgs = Container.get(OrgDiscoveryService);
+    // Branch appointments (C4): still placed at the branch and free for the new appointment.
+    if (isClinicVisit(booking)) {
+      const clinics = Container.get(ClinicDiscoveryService);
+      const doctors = await clinics.branchDoctors(booking.organizationId!, booking.clinicId!, {
+        doctorId: String(booking.providerProfileId),
+      });
+      const free = await clinics.freeDoctorsAt(
+        doctors,
+        await orgs.serviceRowFor(booking),
+        start,
+        String(booking._id),
+      );
+      return free.length > 0;
+    }
     const staff = (
       await orgs.eligibleStaff(booking.organizationId!, {
         serviceId: String(booking.serviceId),

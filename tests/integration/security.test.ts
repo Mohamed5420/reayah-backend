@@ -115,6 +115,30 @@ describe('authentication on every route', () => {
 });
 
 describe('role guards', () => {
+  it('reception routes refuse every other role, and reception reaches nothing outside them', async () => {
+    const reception = await createUserWithToken(UserRole.RECEPTION);
+    const others = await Promise.all(
+      [UserRole.PATIENT, UserRole.PROVIDER, UserRole.OWNER].map((role) => createUserWithToken(role)),
+    );
+    const gets = mountedRoutes(app).filter((r) => r.method === 'GET');
+    const receptionGets = gets.filter((r) => r.path.startsWith('/reception/'));
+    expect(receptionGets.length).toBeGreaterThan(0);
+    for (const route of receptionGets) {
+      for (const user of others) {
+        const res = await request(app)
+          .get(prefix + sample(route.path))
+          .set('Authorization', user.auth);
+        expect([403, 422], `${key(route)} as ${user.user.role}`).toContain(res.status);
+      }
+    }
+    for (const route of gets.filter((r) => /^\/(admin|provider|org)\//.test(r.path))) {
+      const res = await request(app)
+        .get(prefix + sample(route.path))
+        .set('Authorization', reception.auth);
+      expect([403, 422], `${key(route)} as reception`).toContain(res.status);
+    }
+  });
+
   it('every admin route checks the admin sub-role (AdminGuard), not just the admin role', () => {
     const admin = mountedRoutes(app).filter((r) => r.path.startsWith('/admin/'));
     expect(admin.length).toBeGreaterThan(40);

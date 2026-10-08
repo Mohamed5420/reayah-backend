@@ -23,7 +23,6 @@ import {
   InvalidStatusTransitionError,
   NotFoundError,
   OfferTakenError,
-  ValidationError,
 } from '../../utils/types-errors';
 import { AuditService, type AuditContext } from '../audit/audit.service';
 import { LedgerService } from '../ledger/ledger.service';
@@ -40,8 +39,7 @@ import {
   transitionBooking,
 } from './booking-transaction';
 import { ConsentService } from '../consent/consent.service';
-import { isClinicVisit, VISIT_CODE_MAX_ATTEMPTS } from './clinic-visit';
-import { timingSafeEqual } from 'node:crypto';
+import { isClinicVisit, verifyCheckIn } from './clinic-visit';
 
 type ProviderDoc = HydratedDocument<IProviderProfile>;
 
@@ -216,7 +214,7 @@ export class ProviderBookingService {
     const booking = await this.getAssigned(profile, bookingId);
     const grace = await this.settings.get('on_time_grace_minutes');
     const startedAt = new Date();
-    const checkInRecord = isClinicVisit(booking) ? await this.checkIn(booking, checkIn, startedAt) : null;
+    const checkInRecord = isClinicVisit(booking) ? await verifyCheckIn(booking, checkIn, startedAt) : null;
     const updated = await this.act(profile, bookingId, userId, BookingStatus.IN_PROGRESS, {
       set: {
         startedAt,
@@ -233,32 +231,6 @@ export class ProviderBookingService {
       });
     }
     return updated;
-  }
-
-  /** Checks the visit code (counting tries) or takes a reason to start without it. */
-  private async checkIn(
-    booking: IBooking,
-    input: { visitCode?: string; withoutCodeReason?: string },
-    at: Date,
-  ): Promise<NonNullable<IBooking['checkIn']>> {
-    if (input.withoutCodeReason) return { method: 'without_code', reason: input.withoutCodeReason, at };
-    if (!input.visitCode) throw new ValidationError({ visit_code: ['validation.required'] });
-    if ((booking.visitCodeAttempts ?? 0) >= VISIT_CODE_MAX_ATTEMPTS) {
-      throw new ConflictError('errors.visit_code_locked');
-    }
-    const counted = await BookingModel.findOneAndUpdate(
-      { _id: booking._id, visitCodeAttempts: { $lt: VISIT_CODE_MAX_ATTEMPTS } },
-      { $inc: { visitCodeAttempts: 1 } },
-      { new: true },
-    ).lean();
-    if (!counted) throw new ConflictError('errors.visit_code_locked');
-    if (
-      !booking.visitCode ||
-      !timingSafeEqual(Buffer.from(booking.visitCode), Buffer.from(input.visitCode.padEnd(4)))
-    ) {
-      throw new ValidationError({ visit_code: ['validation.visit_code_wrong'] });
-    }
-    return { method: 'code', reason: null, at };
   }
 
   /** Complete: counts the visit and records the cash commission in the provider's ledger. */

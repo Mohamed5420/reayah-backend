@@ -115,6 +115,7 @@ export class StaffService {
   pendingInvites(orgId: Types.ObjectId) {
     return StaffInviteModel.find({
       organizationId: orgId,
+      kind: { $ne: 'reception' },
       status: StaffInviteStatus.PENDING,
       expiresAt: { $gt: new Date() },
     })
@@ -490,7 +491,13 @@ export class StaffService {
   private async claim(session: ClientSession, inviteId: string, phone: string, userId: Types.ObjectId) {
     const invite = Types.ObjectId.isValid(inviteId)
       ? await StaffInviteModel.findOneAndUpdate(
-          { _id: inviteId, phone, status: StaffInviteStatus.PENDING, expiresAt: { $gt: new Date() } },
+          {
+            _id: inviteId,
+            phone,
+            kind: { $ne: 'reception' },
+            status: StaffInviteStatus.PENDING,
+            expiresAt: { $gt: new Date() },
+          },
           { status: StaffInviteStatus.ACCEPTED, respondedAt: new Date(), userId },
           { new: true, session },
         ).lean()

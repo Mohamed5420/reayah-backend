@@ -4,6 +4,8 @@ import type { Types } from 'mongoose';
 import { BookingModel } from '../../database/models/booking/booking.model';
 import { BookingOfferModel } from '../../database/models/booking/booking-offer.model';
 import {
+  ACTIVE_BOOKING_STATUSES,
+  BookingType,
   AssignmentMode,
   BookingActor,
   BookingStatus,
@@ -14,7 +16,7 @@ import {
 } from '../../interfaces/IBooking';
 import type { Gender } from '../../interfaces/enums';
 import { logger } from '../../utils/logger/winston';
-import { cairoDate, cairoOffsetMinutes, fromMinutes } from '../../utils/time/cairo';
+import { addDays, cairoDate, cairoOffsetMinutes, cairoToUtc, fromMinutes } from '../../utils/time/cairo';
 import { DiscoveryService, ProviderSort } from '../discovery/discovery.service';
 import { overlaps } from '../discovery/slot-engine';
 import { SettingsService } from '../settings/settings.service';
@@ -28,6 +30,9 @@ import { OrgDiscoveryService } from '../organization/org-discovery.service';
 import { sameWorld } from '../auth/test-accounts';
 import { recordHistory, runBookingTransaction, transitionBooking } from './booking-transaction';
 import { visitTypeMatch } from '../catalog/visit-types';
+import { ClinicDiscoveryService } from '../discovery/clinic-discovery.service';
+import { confirmClinicVisit } from './clinic-visit';
+import { assertProviderFree, lockProviderSchedule } from './booking-transaction';
 
 /** Spec §6.6: the owner is warned this long before the assignment deadline. */
 export const ORG_DEADLINE_WARNING_MINUTES = 10;
@@ -94,6 +99,10 @@ export class BookingDeadlineService {
   }
 
   private async handleTimeout(booking: IBooking, now: Date) {
+    // A branch appointment nobody assigned (C4): a free doctor at the same branch takes it, else it expires.
+    if (booking.type === BookingType.CLINIC_VISIT && booking.organizationId && !booking.providerProfileId) {
+      if (await this.autoAssignAtBranch(booking)) return;
+    }
     const started = booking.allowFallback && (await this.startFallback(booking, now));
     if (started) return;
     await this.expire(
@@ -102,6 +111,64 @@ export class BookingDeadlineService {
         ? { assignmentMode: AssignmentMode.DIRECT, providerProfileId: booking.providerProfileId }
         : { assignmentMode: AssignmentMode.ORGANIZATION, providerProfileId: null },
     );
+  }
+
+  /**
+   * A free doctor at the branch, by the system (decision after C4 review): only doctors matching the
+   * patient's preferred gender; among them the one with the fewest appointments that day at that branch,
+   * then the higher rating — so one doctor doesn't get every auto-assigned booking. false = none free.
+   */
+  private async autoAssignAtBranch(booking: IBooking) {
+    const clinics = Container.get(ClinicDiscoveryService);
+    const doctors = await clinics.branchDoctors(booking.organizationId!, booking.clinicId!, {
+      gender:
+        booking.preferredGender === PreferredGender.ANY
+          ? undefined
+          : (booking.preferredGender as unknown as Gender),
+    });
+    const free = await clinics.freeDoctorsAt(
+      doctors,
+      await Container.get(OrgDiscoveryService).serviceRowFor(booking),
+      booking.scheduledStart,
+      String(booking._id),
+    );
+    const day = cairoDate(booking.scheduledStart);
+    const load = new Map(
+      (
+        await BookingModel.aggregate<{ _id: Types.ObjectId; count: number }>([
+          {
+            $match: {
+              clinicId: booking.clinicId,
+              providerProfileId: { $in: free.map((d) => d.profile._id) },
+              status: { $in: [...ACTIVE_BOOKING_STATUSES, BookingStatus.COMPLETED] },
+              scheduledStart: { $gte: cairoToUtc(day, '00:00'), $lt: cairoToUtc(addDays(day, 1), '00:00') },
+            },
+          },
+          { $group: { _id: '$providerProfileId', count: { $sum: 1 } } },
+        ])
+      ).map((r) => [String(r._id), r.count]),
+    );
+    const appointments = (d: (typeof free)[number]) => load.get(String(d.profile._id)) ?? 0;
+    free.sort((a, b) => appointments(a) - appointments(b) || b.profile.ratingAvg - a.profile.ratingAvg);
+    for (const doctor of free) {
+      try {
+        await runBookingTransaction(async (tx) => {
+          await lockProviderSchedule(String(doctor.profile._id), tx.session);
+          await assertProviderFree(
+            String(doctor.profile._id),
+            booking.scheduledStart,
+            booking.scheduledEnd,
+            tx.session,
+            booking._id,
+          );
+          await confirmClinicVisit(tx, booking, { providerProfileId: doctor.profile._id });
+        });
+        return true;
+      } catch (err) {
+        logger.warn(`Auto-assign of ${String(booking._id)} to ${String(doctor.profile._id)} failed`, err);
+      }
+    }
+    return false;
   }
 
   /**

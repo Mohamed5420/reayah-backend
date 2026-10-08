@@ -2,6 +2,7 @@ import { Container, Service } from 'typedi';
 import { Types, type HydratedDocument } from 'mongoose';
 import { ClinicModel } from '../../database/models/clinic/clinic.model';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
+import { OrganizationModel } from '../../database/models/organization/organization.models';
 import { ProviderType } from '../../interfaces/enums';
 import {
   ClinicStatus,
@@ -27,6 +28,7 @@ import type { Pagination } from '../../utils/response/pagination';
 import { logger } from '../../utils/logger/winston';
 
 type ProfileDoc = HydratedDocument<IProviderProfile>;
+export type ClinicDoc = HydratedDocument<IClinic> & { softDelete: () => Promise<unknown> };
 
 export type ClinicInput = {
   name: string;
@@ -97,7 +99,12 @@ export class ClinicService {
   }
 
   async update(profile: ProfileDoc, clinicId: string, patch: Partial<ClinicInput> & { isActive?: boolean }) {
-    const clinic = await this.getOwn(profile, clinicId);
+    const clinic = await this.updateDoc(await this.getOwn(profile, clinicId), patch);
+    return { clinic, link: this.linkOf(profile, clinic._id) };
+  }
+
+  /** Shared by doctors' clinics and organizations' branches. */
+  async updateDoc(clinic: ClinicDoc, patch: Partial<ClinicInput> & { isActive?: boolean }) {
     if (patch.areaId || patch.governorateId) {
       await this.assertBookableArea(
         patch.governorateId ?? String(clinic.governorateId),
@@ -114,7 +121,7 @@ export class ClinicService {
       clinic.submittedAt = new Date();
     }
     await clinic.save();
-    return { clinic: clinic.toObject(), link: this.linkOf(profile, clinic._id) };
+    return clinic.toObject();
   }
 
   /** The licence: an upload with purpose `clinic_licence`, replacing any previous one. */
@@ -124,7 +131,15 @@ export class ClinicService {
     clinicId: string,
     input: { fileKey: string; expiresAt?: Date | null },
   ) {
-    const clinic = await this.getOwn(profile, clinicId);
+    const clinic = await this.attachLicenceDoc(userId, await this.getOwn(profile, clinicId), input);
+    return { clinic, link: this.linkOf(profile, clinic._id) };
+  }
+
+  async attachLicenceDoc(
+    userId: string,
+    clinic: ClinicDoc,
+    input: { fileKey: string; expiresAt?: Date | null },
+  ) {
     const fileKey = await this.storage.promote(input.fileKey, {
       ownerId: userId,
       purpose: 'clinic_licence',
@@ -138,19 +153,23 @@ export class ClinicService {
     }
     await clinic.save();
     if (previous) await this.storage.delete(previous).catch(() => undefined);
-    return { clinic: clinic.toObject(), link: this.linkOf(profile, clinic._id) };
+    return clinic.toObject();
   }
 
   /** Sends a clinic for review: it needs a licence; from draft / changes requested / rejected. */
   async submit(profile: ProfileDoc, clinicId: string) {
-    const clinic = await this.getOwn(profile, clinicId);
+    const clinic = await this.submitDoc(await this.getOwn(profile, clinicId));
+    return { clinic, link: this.linkOf(profile, clinic._id) };
+  }
+
+  async submitDoc(clinic: ClinicDoc) {
     if (!CLINIC_EDITABLE_STATUSES.includes(clinic.status))
       throw new ConflictError('errors.clinic_not_submittable');
     if (!clinic.licence) throw new ConflictError('errors.clinic_licence_required');
     clinic.status = ClinicStatus.PENDING;
     clinic.submittedAt = new Date();
     await clinic.save();
-    return { clinic: clinic.toObject(), link: this.linkOf(profile, clinic._id) };
+    return clinic.toObject();
   }
 
   /** Soft-deletes the clinic and drops its hours from the profile (bookings guard: C3). */
@@ -300,7 +319,7 @@ export class ClinicService {
     if (profile.type !== ProviderType.DOCTOR) throw new ForbiddenError('errors.clinic_doctors_only');
   }
 
-  private async assertBookableArea(governorateId: string, areaId: string) {
+  async assertBookableArea(governorateId: string, areaId: string) {
     const area = await this.locations.findBookableArea(areaId);
     if (!area) throw new ValidationError({ area_id: ['validation.area_unavailable'] });
     if (area.governorateId !== governorateId) {
@@ -308,7 +327,7 @@ export class ClinicService {
     }
   }
 
-  private toFields(input: ClinicInput) {
+  toFields(input: ClinicInput) {
     return {
       name: input.name,
       governorateId: new Types.ObjectId(input.governorateId),
@@ -342,9 +361,12 @@ export class ClinicService {
   }
 
   private async notifyOwner(clinic: IClinic, status: ClinicStatus, message: string | null) {
-    if (!clinic.providerProfileId) return; // branches: the owner is told in C4
-    const profile = await ProviderProfileModel.findById(clinic.providerProfileId).select('userId').lean();
-    if (!profile) return;
+    // A doctor's clinic → the doctor; a branch → the organization's owner.
+    const userId = clinic.providerProfileId
+      ? (await ProviderProfileModel.findById(clinic.providerProfileId).select('userId').lean())?.userId
+      : (await OrganizationModel.findById(clinic.organizationId).select('ownerUserId').lean())?.ownerUserId;
+    if (!userId) return;
+    const profile = { userId };
     const template =
       status === ClinicStatus.APPROVED
         ? 'clinic_approved'

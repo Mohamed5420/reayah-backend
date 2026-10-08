@@ -43,7 +43,7 @@ describe('consent', () => {
     expect((await publish('terms')).body.data).toMatchObject({
       kind: 'terms',
       version: 1,
-      roles: ['patient', 'provider', 'provider_staff', 'owner'],
+      roles: ['patient', 'provider', 'provider_staff', 'owner', 'reception'],
     });
     expect((await publish('health_data')).body.data).toMatchObject({ version: 1, roles: ['patient'] });
     expect((await publish('terms')).body.data.version).toBe(2);

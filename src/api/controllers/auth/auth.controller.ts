@@ -151,7 +151,8 @@ export default class AuthController implements IBaseController {
               staff_invites: (await Container.get(StaffService).invitesForPhone(req.body.phone)).map((i) => ({
                 id: String(i.invite._id),
                 organization_name: i.organizationName,
-                type: i.invite.type,
+                kind: i.invite.kind ?? 'staff',
+                type: i.invite.type ?? null,
               })),
             }
           : { is_new_user: false, ...result.tokens, user: presentAuthUser(result.user) },

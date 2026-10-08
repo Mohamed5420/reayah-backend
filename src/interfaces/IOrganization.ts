@@ -114,7 +114,12 @@ export interface IStaffInvite {
   organizationId: Types.ObjectId;
   phone: string;
   fullName: string;
-  type: ProviderType;
+  /** Staff invites: nurse or doctor. Reception invites: null. */
+  type: ProviderType | null;
+  /** staff (nurse / doctor) or reception (C4: one branch). */
+  kind?: 'staff' | 'reception';
+  /** Reception invites: the branch. */
+  clinicId?: Types.ObjectId | null;
   status: StaffInviteStatus;
   invitedBy: Types.ObjectId;
   expiresAt: Date;

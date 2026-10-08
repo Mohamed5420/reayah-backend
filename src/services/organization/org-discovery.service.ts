@@ -35,6 +35,8 @@ export type OrgCard = {
   ratingCount: number;
   completedVisits: number;
   nextAvailable: Date | null;
+  /** Clinic-visit cards (C4): the branch this card books. */
+  clinic?: { id: string; name: string; areaId: string } | null;
 };
 
 /**

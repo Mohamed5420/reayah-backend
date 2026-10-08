@@ -89,7 +89,14 @@ export const AuthSchemas = {
         registration_token: z.string(),
         /** Organizations that invited this number: register with role provider_staff + staff_invite_id to join. */
         staff_invites: z.array(
-          z.object({ id: objectId, organization_name: z.string(), type: z.enum(ProviderType) }),
+          z.object({
+            id: objectId,
+            organization_name: z.string(),
+            /** staff: register as provider_staff; reception: register as reception (one branch). */
+            kind: z.enum(['staff', 'reception']),
+            /** Staff: nurse or doctor; reception: null. */
+            type: z.enum(ProviderType).nullable(),
+          }),
         ),
       }),
     ])
@@ -98,7 +105,7 @@ export const AuthSchemas = {
   registerBody: z
     .object({
       /** provider_staff only together with staff_invite_id (from the OTP verify response). */
-      role: z.enum([...SELF_REGISTER_ROLES, UserRole.PROVIDER_STAFF]),
+      role: z.enum([...SELF_REGISTER_ROLES, UserRole.PROVIDER_STAFF, UserRole.RECEPTION]),
       full_name: fullName,
       gender: z.enum(Gender),
       date_of_birth: dateOfBirth,
@@ -113,10 +120,13 @@ export const AuthSchemas = {
        */
       consents: ConsentSchemas.signupConsents.optional(),
     })
-    .refine((b) => (b.role === UserRole.PROVIDER_STAFF) === Boolean(b.staff_invite_id), {
-      error: 'validation.staff_invite_required',
-      path: ['staff_invite_id'],
-    })
+    .refine(
+      (b) => [UserRole.PROVIDER_STAFF, UserRole.RECEPTION].includes(b.role) === Boolean(b.staff_invite_id),
+      {
+        error: 'validation.staff_invite_required',
+        path: ['staff_invite_id'],
+      },
+    )
     .openapi('Register'),
   session: z.object({ ...tokens, user: authUser }).openapi('Session'),
 

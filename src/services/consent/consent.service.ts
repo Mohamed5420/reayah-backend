@@ -18,8 +18,20 @@ const KIND_ORDER = Object.values(ConsentKind);
 
 /** Who must accept each kind unless the published version says otherwise. */
 export const DEFAULT_CONSENT_ROLES: Record<ConsentKind, UserRole[]> = {
-  [ConsentKind.TERMS]: [UserRole.PATIENT, UserRole.PROVIDER, UserRole.PROVIDER_STAFF, UserRole.OWNER],
-  [ConsentKind.PRIVACY]: [UserRole.PATIENT, UserRole.PROVIDER, UserRole.PROVIDER_STAFF, UserRole.OWNER],
+  [ConsentKind.TERMS]: [
+    UserRole.PATIENT,
+    UserRole.PROVIDER,
+    UserRole.PROVIDER_STAFF,
+    UserRole.OWNER,
+    UserRole.RECEPTION,
+  ],
+  [ConsentKind.PRIVACY]: [
+    UserRole.PATIENT,
+    UserRole.PROVIDER,
+    UserRole.PROVIDER_STAFF,
+    UserRole.OWNER,
+    UserRole.RECEPTION,
+  ],
   [ConsentKind.HEALTH_DATA]: [UserRole.PATIENT],
 };
 

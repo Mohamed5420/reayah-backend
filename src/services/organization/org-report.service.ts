@@ -14,7 +14,8 @@ import { addDays, cairoDate, cairoToUtc } from '../../utils/time/cairo';
 import { CommissionService } from '../payouts/commission.service';
 
 export type DashboardPeriod = 'today' | 'week' | 'month';
-export type ReportGroup = 'day' | 'staff' | 'service';
+/** `branch`: by clinic branch (C4); home visits are one row of their own. */
+export type ReportGroup = 'day' | 'staff' | 'service' | 'branch';
 
 const ENDED = [
   BookingStatus.COMPLETED,
@@ -151,7 +152,7 @@ export class OrgReportService {
         $lt: cairoToUtc(addDays(input.to, 1), '00:00'),
       },
     })
-      .select('status providerProfileId serviceId service scheduledStart price isOnTime')
+      .select('status providerProfileId serviceId service scheduledStart price isOnTime clinicId clinic')
       .lean();
     const reviews = await ReviewModel.find({
       bookingId: { $in: bookings.map((b) => b._id) },
@@ -165,9 +166,13 @@ export class OrgReportService {
     const keyOf = (b: IBooking): [string, string] =>
       input.groupBy === 'day'
         ? [cairoDate(b.scheduledStart), cairoDate(b.scheduledStart)]
-        : input.groupBy === 'staff'
-          ? [String(b.providerProfileId), names.get(String(b.providerProfileId)) ?? '']
-          : [String(b.serviceId), (lang === 'en' && b.service.nameEn) || b.service.nameAr];
+        : input.groupBy === 'branch'
+          ? b.clinicId
+            ? [String(b.clinicId), b.clinic?.name ?? '']
+            : ['home_visit', t('reports.home_visits', undefined, lang)]
+          : input.groupBy === 'staff'
+            ? [String(b.providerProfileId), names.get(String(b.providerProfileId)) ?? '']
+            : [String(b.serviceId), (lang === 'en' && b.service.nameEn) || b.service.nameAr];
     const groups = new Map<string, { label: string; bookings: IBooking[] }>();
     for (const b of bookings as IBooking[]) {
       if (input.groupBy === 'staff' && !b.providerProfileId) continue;

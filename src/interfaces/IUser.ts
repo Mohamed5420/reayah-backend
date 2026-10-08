@@ -26,6 +26,8 @@ export interface IUser {
   adminRole: AdminRole | null;
   /** Signed up with an allowlisted test number (reviewers, testers). Kept apart from real users in production. */
   isTestAccount: boolean;
+  /** Reception staff (C4): the organization branch they work at; null once removed. */
+  reception?: { organizationId: Types.ObjectId; clinicId: Types.ObjectId } | null;
   /** This user's own code to invite others (created on first GET /me/referral). */
   referralCode: string | null;
   deletionRequestedAt: Date | null;
