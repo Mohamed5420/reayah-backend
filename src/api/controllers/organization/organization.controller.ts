@@ -16,6 +16,7 @@ import { defineRoute, type DefinedRoute } from '../../../docs/openapi';
 import {
   OrganizationDocumentService,
   OrganizationService,
+  StaffService,
   type OrganizationDoc,
   type OrganizationInput,
 } from '../../../services/organization';
@@ -231,11 +232,12 @@ export default class OrganizationController implements IBaseController {
   }
 
   private async view(org: OrganizationDoc) {
-    const [logoUrl, checklist] = await Promise.all([
+    const [logoUrl, checklist, inviteStats] = await Promise.all([
       this.organizations.logoUrl(org),
       this.organizations.checklist(org),
+      Container.get(StaffService).inviteStats(org._id, org.lapsedInvitesCount ?? 0),
     ]);
-    return presentOrganization(org, logoUrl, checklist);
+    return presentOrganization(org, logoUrl, checklist, inviteStats);
   }
 
   private async areas(org: OrganizationDoc, req: Request) {

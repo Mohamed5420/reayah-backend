@@ -24,10 +24,13 @@ export const presentOrgChecklist = (c: OrganizationChecklist) => ({
   can_submit: c.canSubmit,
 });
 
+export type InviteStats = { pending: number; accepted: number; notAccepted: number };
+
 export const presentOrganization = (
   org: IOrganization,
   logoUrl: string | null,
   checklist: OrganizationChecklist,
+  inviteStats: InviteStats = { pending: 0, accepted: 0, notAccepted: 0 },
 ) => ({
   id: String(org._id),
   name: org.name,
@@ -44,6 +47,11 @@ export const presentOrganization = (
   submitted_at: iso(org.submittedAt),
   reviewed_at: iso(org.reviewedAt),
   onboarding: presentOrgChecklist(checklist),
+  invite_stats: {
+    pending: inviteStats.pending,
+    accepted: inviteStats.accepted,
+    not_accepted: inviteStats.notAccepted,
+  },
   created_at: org.createdAt.toISOString(),
   updated_at: org.updatedAt.toISOString(),
 });
@@ -106,7 +114,11 @@ export const presentOrgReviewDetail = (input: {
   catalog: Map<string, { service: ICatalogService; available: boolean }>;
   lang: Language;
 }) => {
-  const { onboarding: _onboarding, ...base } = presentOrganization(input.org, input.logoUrl, input.checklist);
+  const {
+    onboarding: _onboarding,
+    invite_stats: _stats,
+    ...base
+  } = presentOrganization(input.org, input.logoUrl, input.checklist);
   return {
     ...base,
     kind: 'organization' as const,

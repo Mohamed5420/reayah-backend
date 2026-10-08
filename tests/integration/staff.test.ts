@@ -17,6 +17,8 @@ import { withTransaction } from '../../src/database/transaction';
 import { UserRole, VerificationStatus } from '../../src/interfaces/enums';
 import { LedgerEntryType, LedgerOwnerType } from '../../src/interfaces/ILedger';
 import { LedgerService } from '../../src/services/ledger/ledger.service';
+import { StaffService } from '../../src/services/organization';
+import { LogSmsProvider } from '../../src/services/sms/sms.service';
 
 /** M3.2: team management — invites, joining, the owner's staff controls, removal. */
 
@@ -355,5 +357,47 @@ describe('the team', () => {
     expect((await api(other.auth).delete(`/org/staff/${staff.profileId}`)).status).toBe(404);
     expect((await api(other.auth).get('/org/staff')).body.data).toEqual([]);
     expect(await StaffInviteModel.countDocuments({ organizationId: other.orgId })).toBe(0);
+  });
+});
+
+describe('invite privacy default (until counsel answers question 11)', () => {
+  it('the SMS names only the organization and the app link', async () => {
+    const phone = randomPhone();
+    await api(owner.auth)
+      .post('/org/staff/invite', { phone, full_name: 'سارة أحمد', type: 'nurse' })
+      .expect(201);
+    const sms = [...LogSmsProvider.sent].reverse().find((m) => m.phone === phone)!;
+    expect(sms.message).toBe(
+      'دعتك مركز الشفاء للتمريض للانضمام إلى فريقها على رعاية+. حمّل التطبيق: https://reaya.app/download',
+    );
+    expect(sms.message).not.toContain('سارة');
+  });
+
+  it('never-accepted invites are deleted 30 days after expiry; only a count remains', async () => {
+    const invite = async () =>
+      (
+        await api(owner.auth).post('/org/staff/invite', {
+          phone: randomPhone(),
+          full_name: 'منى',
+          type: 'nurse',
+        })
+      ).body.data.id as string;
+    const lapsed = await invite();
+    const declined = await invite();
+    const recent = await invite();
+    const accepted = await joinAsNewStaff();
+    await StaffInviteModel.updateOne({ _id: declined }, { status: 'declined' });
+    const longAgo = new Date(Date.now() - 31 * 24 * 3600_000);
+    await StaffInviteModel.updateMany({ _id: { $in: [lapsed, declined] } }, { expiresAt: longAgo });
+    await StaffInviteModel.updateOne({ userId: accepted.userId }, { expiresAt: longAgo });
+
+    expect(await Container.get(StaffService).purgeLapsed()).toBe(2);
+    expect(await StaffInviteModel.exists({ _id: { $in: [lapsed, declined] } })).toBeNull();
+    expect(await StaffInviteModel.exists({ _id: recent })).toBeTruthy();
+    expect(await StaffInviteModel.exists({ userId: accepted.userId })).toBeTruthy(); // accepted ones stay
+
+    const org = (await api(owner.auth).get('/org')).body.data;
+    expect(org.invite_stats).toEqual({ pending: 1, accepted: 1, not_accepted: 2 });
+    expect(await Container.get(StaffService).purgeLapsed()).toBe(0);
   });
 });

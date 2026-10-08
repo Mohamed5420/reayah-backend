@@ -74,6 +74,8 @@ const organization = z
     submitted_at: z.string().nullable(),
     reviewed_at: z.string().nullable(),
     onboarding: checklist,
+    /** Team invites so far; never-accepted invites are deleted after 30 days but still counted here. */
+    invite_stats: z.object({ pending: z.number(), accepted: z.number(), not_accepted: z.number() }),
     ...timestamps,
   })
   .openapi('Organization');
@@ -143,7 +145,7 @@ export const OrganizationSchemas = {
     })
     .openapi('OrganizationQueueItem'),
   reviewDetail: organization
-    .omit({ onboarding: true })
+    .omit({ onboarding: true, invite_stats: true })
     .extend({
       kind: z.literal('organization'),
       owner,

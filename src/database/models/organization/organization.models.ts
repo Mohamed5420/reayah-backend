@@ -63,6 +63,7 @@ const organizationSchema = new Schema<IOrganization, OrganizationModelType, Soft
     },
     commissionRate: { type: Number, default: null, min: 0, max: 100 },
     subscriptionPlanId: { type: Schema.Types.ObjectId, default: null },
+    lapsedInvitesCount: { type: Number, default: 0 },
   },
   baseSchemaOptions,
 );
@@ -133,5 +134,7 @@ staffInviteSchema.index(
   { unique: true, partialFilterExpression: { status: StaffInviteStatus.PENDING } },
 );
 staffInviteSchema.index({ phone: 1, status: 1 });
+// Daily purge of invites never accepted.
+staffInviteSchema.index({ status: 1, expiresAt: 1 });
 
 export const StaffInviteModel = model<IStaffInvite>('StaffInvite', staffInviteSchema, 'org_staff_invites');

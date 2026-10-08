@@ -9310,6 +9310,25 @@
               "can_submit"
             ]
           },
+          "invite_stats": {
+            "type": "object",
+            "properties": {
+              "pending": {
+                "type": "number"
+              },
+              "accepted": {
+                "type": "number"
+              },
+              "not_accepted": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "pending",
+              "accepted",
+              "not_accepted"
+            ]
+          },
           "created_at": {
             "type": "string"
           },
@@ -9333,6 +9352,7 @@
           "submitted_at",
           "reviewed_at",
           "onboarding",
+          "invite_stats",
           "created_at",
           "updated_at"
         ]

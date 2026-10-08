@@ -42,7 +42,7 @@ We collect identity and contact data from everyone, health data about patients, 
 | Provider credentials | Nurses and doctors | License and syndicate numbers, national ID photos (front, back), license and syndicate card photos, certificates, specialty (doctors), years of experience, bio | Verifying the provider before they can work | **Yes** (identity documents) |
 | Provider coverage and prices | Nurses and doctors | Areas served, travel fee, services and prices, weekly hours, time off | Matching patients with available providers | No |
 | Organization details | Organizations and their owner | Name, type, commercial register number, tax id, description, contact phone, business address (text), logo, commercial register and tax card scans, areas served with travel fees, services and prices | Verifying the business before it can receive bookings; showing it to patients | Business data; the scans may show the owner's personal details |
-| Staff invites | People an organization invites to join its team | Mobile number and name as entered by the owner, nurse or doctor, invite status; an SMS invitation is sent to that number | Letting the person join the organization's team | No (but entered by a third party: the owner) |
+| Staff invites | People an organization invites to join its team | Mobile number and name as entered by the owner, nurse or doctor, invite status; an SMS invitation is sent to that number. The SMS contains only the organization's name and the app link, nothing about the person. | Letting the person join the organization's team | No (but entered by a third party: the owner) |
 | Staff records | Nurses and doctors working for an organization | Which organization, suspended by the owner or not, the services, areas and weekly hours the owner set; performance (visits completed, rating, on-time rate) shown to the owner | Running the organization's team | No |
 | Card and wallet payments | Patients who pay by card or mobile wallet; providers who pay the commission they owe through the app | Amount, status, Paymob order and transaction ids, card brand and last 4 digits, refunds. The full card number never reaches Reaya+; Paymob collects it on its own page. | Taking payment, receipts, refunds, provider earnings, commission settlement | No (financial) |
 | Earnings records | Nurses and doctors | Running balance and its entries: earnings from card visits, commission owed on cash visits, commission paid, discounts reimbursed, referral rewards, dispute deductions, adjustments; each payout with its statement | Paying providers and settling commission | No (financial) |
@@ -68,7 +68,7 @@ All personal data lives in one database and one private file store, both at a ho
 | Private file storage | Medical documents, visit-report attachments, dispute attachments, chat attachments, provider ID and license photos, organization documents and logos, profile photos, banner images | Hosting provider (TBD) | Same as the database |
 | Temporary store (Redis) | For up to 24 hours: copies of booking-creation responses (to stop double bookings on retries), queued push messages (kept 1 day, failed ones 7 days), rate-limit counters, cached public lists | Hosting provider (TBD) | Same as the database |
 | Database backups | A full copy of the main database, made daily | Hosting provider (TBD) | Kept 14 days on the server; long-term copies off-server (location TBD) |
-| SMS provider | Mobile number and the one-time sign-in code; for staff invites, the number and the organization's name | Not yet chosen | TBD |
+| SMS provider | Mobile number and the one-time sign-in code; for staff invites, the number, the organization's name and the app link (nothing else about the person) | Not yet chosen | TBD |
 | Paymob (payment gateway) | Card or wallet details entered on its checkout page; from us: amount, a short description (service name and booking reference, package name, or "commission"), the payer's name and mobile number (email if given). No health data. | Paymob (licensed payment provider) | To confirm with Paymob |
 | Firebase Cloud Messaging (Google) | Device push token and each notification's title and text (service name, visit time, provider name; never medical details, never chat text) | Google | Google's global infrastructure |
 | Sentry (error tracking, optional) | Technical error reports. Its automatic collection of request bodies, headers and user details is switched off. | Sentry | Region chosen when the account is set up |
@@ -130,7 +130,7 @@ Short-lived security data is deleted automatically. Most personal and medical da
 | Referrals | Kept for the life of the referring account; the phone hash stays so a number can't be referred twice | Period after the accounts close |
 | Provider verification documents | Kept while the provider account exists | Period after the provider leaves |
 | Organization details and documents | Kept while the organization's account exists | Period after the organization leaves |
-| Staff invites | Kept (pending ones lapse after 7 days but are not erased) | Erase invites that were never accepted after a period (e.g. 90 days) |
+| Staff invites | Invites are valid 7 days. One never accepted (expired, declined or revoked) is deleted — number and name — 30 days after it expired, by a daily job; the organization keeps only an anonymous count. Accepted invites are kept with the staff member's account. | Default pending counsel's answer to question 11 |
 | Audit log | Kept indefinitely; cannot be edited | Retention period |
 | Backups | Daily; 14 days on the server, long-term copies off-server | Retention and erasure of long-term backups |
 | Server log files | Rotated at about 200 MB per service (no fixed period) | Retention period (e.g. 30–90 days) |
@@ -151,7 +151,7 @@ We need these answers before launch; the first two decide where we host.
 8. **Breach notification.** What are our duties and deadlines if data leaks?
 9. **Providers' access.** Is 7 days after a visit an acceptable window for a nurse or doctor to see a patient's medical summary?
 10. **Privacy notice.** Review of the privacy policy and terms shown in the app before launch.
-11. **Staff invited by organizations.** An owner enters a person's name and mobile number to invite them, and we send that number an SMS. Is the owner's assurance enough, or do we need something more before contacting the person? How long may we keep invites that were never accepted?
+11. **Staff invited by organizations.** An owner enters a person's name and mobile number to invite them, and we send that number an SMS. Is the owner's assurance enough, or do we need something more before contacting the person? How long may we keep invites that were never accepted? **Default applied until you answer:** the SMS contains only the organization's name and the app link, and invites not accepted within their 7-day validity are deleted (number and name) 30 days after they expire, keeping only an anonymous count for the organization's statistics. Please confirm or change.
 
 ## Change log
 
@@ -163,4 +163,5 @@ We need these answers before launch; the first two decide where we host.
 | 8 Oct 2026 | M2.5 | Package purchases, promo code use, referrals (phone hashed), in-app credit; banners carry no personal data. |
 | 8 Oct 2026 | M3.1 | Organizations: business details, documents, logo, areas and prices; owner and admin access. |
 | 8 Oct 2026 | M3.2 | Staff invites (number and name entered by the owner, SMS invitation) and staff records; what owners see about their staff; removal cuts access at once. |
+| 8 Oct 2026 | M3.2 | Default for staff invites until question 11 is answered: SMS limited to the organization's name and the app link; never-accepted invites deleted 30 days after expiry, count only. |
 | 8 Oct 2026 | — | This file became the source of truth (previously a shared online document); a Word copy is generated from it. |

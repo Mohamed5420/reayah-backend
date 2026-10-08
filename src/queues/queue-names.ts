@@ -19,4 +19,6 @@ export enum MaintenanceJob {
   PAYOUT_BATCH = 'payout-batch',
   /** Package expiry, "about to expire" and "one visit left" notices (M2.5). */
   PACKAGE_EXPIRY = 'package-expiry',
+  /** Deletes staff invites never accepted, 30 days after they expired (M3.2 default pending counsel). */
+  STAFF_INVITE_PURGE = 'staff-invite-purge',
 }

@@ -54,6 +54,8 @@ export interface IOrganization {
   commissionRate: number | null;
   /** Spec §4.4; plans arrive in M3.4. */
   subscriptionPlanId: Types.ObjectId | null;
+  /** Invites never accepted and since deleted (number and name gone): only this count is kept. */
+  lapsedInvitesCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -91,6 +93,11 @@ export enum StaffInviteStatus {
 
 /** An invite stays open this long. */
 export const STAFF_INVITE_DAYS = 7;
+/**
+ * Default until counsel answers (data inventory question 11): invites not accepted are deleted —
+ * number and name — this many days after they expire; the organization keeps only a count.
+ */
+export const LAPSED_INVITE_RETENTION_DAYS = 30;
 
 /**
  * Spec §7.11 `/org/staff/invite`: an owner invites a nurse or doctor by phone. A new number signs up

@@ -7,6 +7,7 @@ import { DocumentExpiryService } from '../../services/provider/document-expiry.s
 import { PaymentService } from '../../services/payments/payment.service';
 import { PayoutService } from '../../services/payouts/payout.service';
 import { PackageService } from '../../services/marketing/package.service';
+import { StaffService } from '../../services/organization/staff.service';
 import { redisConnection } from '../../config/redis.config';
 import { MaintenanceJob, QueueName } from '../queue-names';
 import { recordHeartbeat } from '../heartbeat';
@@ -33,6 +34,9 @@ export const runMaintenanceJob = async (name: string) => {
       break;
     case MaintenanceJob.PAYOUT_BATCH:
       await Container.get(PayoutService).runScheduled();
+      break;
+    case MaintenanceJob.STAFF_INVITE_PURGE:
+      await Container.get(StaffService).purgeLapsed();
       break;
     case MaintenanceJob.PACKAGE_EXPIRY:
       await Container.get(PackageService).processDue();

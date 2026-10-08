@@ -56,6 +56,8 @@ export const env = {
 
   /** Referral share links are `<this><CODE>` (GET /me/referral). */
   referralLinkBase: optional('REFERRAL_LINK_BASE', 'https://reaya.app/r/'),
+  /** App download link sent in staff invite SMS. */
+  appDownloadUrl: optional('APP_DOWNLOAD_URL', 'https://reaya.app/download'),
 
   /**
    * Card / wallet payments (M2.3). `PAYMENT_GATEWAY` picks the provider for new payments; the `fake`

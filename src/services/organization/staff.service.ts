@@ -11,7 +11,9 @@ import { ProviderType, UserRole, VerificationStatus } from '../../interfaces/enu
 import { ACTIVE_BOOKING_STATUSES, BookingStatus } from '../../interfaces/IBooking';
 import { LedgerOwnerType } from '../../interfaces/ILedger';
 import { NotificationType } from '../../interfaces/INotification';
+import { env } from '../../config/env.config';
 import {
+  LAPSED_INVITE_RETENTION_DAYS,
   STAFF_INVITE_DAYS,
   StaffInviteStatus,
   type IOrganization,
@@ -91,7 +93,8 @@ export class StaffService {
       expiresAt: new Date(Date.now() + STAFF_INVITE_DAYS * DAY_MS),
     });
     await Container.get(SmsService)
-      .send(input.phone, t('sms.staff_invite', { organization: org.name }))
+      // Nothing about the person: the organization's name and the app link only (default pending counsel).
+      .send(input.phone, t('sms.staff_invite', { organization: org.name, link: env.appDownloadUrl }))
       .catch((err: unknown) => logger.error(`Staff invite SMS to invite ${String(invite._id)} failed`, err));
     if (existing) {
       await this.notifications.notify([existing._id], {
@@ -122,6 +125,65 @@ export class StaffService {
         )
       : null;
     if (!updated) throw new NotFoundError('errors.invite_not_found');
+  }
+
+  /** Pending, accepted and never-accepted invites (the last includes ones already purged). */
+  async inviteStats(orgId: Types.ObjectId, lapsedPurged: number) {
+    const rows = await StaffInviteModel.aggregate<{ _id: string; count: number }>([
+      { $match: { organizationId: orgId } },
+      {
+        $group: {
+          _id: {
+            $cond: [
+              { $eq: ['$status', StaffInviteStatus.ACCEPTED] },
+              'accepted',
+              {
+                $cond: [
+                  {
+                    $and: [
+                      { $eq: ['$status', StaffInviteStatus.PENDING] },
+                      { $gt: ['$expiresAt', new Date()] },
+                    ],
+                  },
+                  'pending',
+                  'not_accepted',
+                ],
+              },
+            ],
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+    const count = (key: string) => rows.find((r) => r._id === key)?.count ?? 0;
+    return {
+      pending: count('pending'),
+      accepted: count('accepted'),
+      notAccepted: count('not_accepted') + lapsedPurged,
+    };
+  }
+
+  /**
+   * Daily (STAFF_INVITE_PURGE): invites never accepted — expired, declined or revoked — are deleted
+   * `LAPSED_INVITE_RETENTION_DAYS` after they expired; each organization keeps only the count.
+   */
+  async purgeLapsed(now = new Date()) {
+    const cutoff = new Date(now.getTime() - LAPSED_INVITE_RETENTION_DAYS * DAY_MS);
+    const query = { status: { $ne: StaffInviteStatus.ACCEPTED }, expiresAt: { $lte: cutoff } };
+    const orgIds: Types.ObjectId[] = await StaffInviteModel.distinct('organizationId', query);
+    let purged = 0;
+    for (const organizationId of orgIds) {
+      purged += await withTransaction(async (session) => {
+        const { deletedCount } = await StaffInviteModel.deleteMany({ ...query, organizationId }, { session });
+        await OrganizationModel.updateOne(
+          { _id: organizationId },
+          { $inc: { lapsedInvitesCount: deletedCount } },
+          { session },
+        ).setOptions({ withDeleted: true });
+        return deletedCount;
+      });
+    }
+    return purged;
   }
 
   // ── Invites (invitee) ──
