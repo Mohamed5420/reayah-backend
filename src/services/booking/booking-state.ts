@@ -8,18 +8,23 @@ const S = BookingStatus;
  * with 409 INVALID_STATUS_TRANSITION. `accepted → pending` is a patient reschedule.
  */
 const TRANSITIONS: Partial<Record<BookingStatus, Partial<Record<BookingStatus, BookingActor[]>>>> = {
+  // Card / wallet: the request reaches the provider only once paid (SYSTEM, from the payment webhook).
+  [S.AWAITING_PAYMENT]: {
+    [S.PENDING]: [SYSTEM],
+    [S.EXPIRED]: [SYSTEM],
+    [S.CANCELLED]: [PATIENT, ADMIN],
+  },
   [S.PENDING]: {
     [S.ACCEPTED]: [PROVIDER, ADMIN], // admin: only through reassign (it picks the provider)
     [S.DECLINED]: [PROVIDER],
     [S.EXPIRED]: [SYSTEM],
-    // SYSTEM: an unpaid card / wallet booking whose payment window passed (M2.3).
-    [S.CANCELLED]: [PATIENT, ADMIN, SYSTEM],
+    [S.CANCELLED]: [PATIENT, ADMIN],
   },
   [S.ACCEPTED]: {
     [S.ON_THE_WAY]: [PROVIDER],
     [S.IN_PROGRESS]: [PROVIDER],
     [S.PENDING]: [PATIENT],
-    [S.CANCELLED]: [PATIENT, PROVIDER, ADMIN, SYSTEM],
+    [S.CANCELLED]: [PATIENT, PROVIDER, ADMIN],
     [S.NO_SHOW]: [PROVIDER, ADMIN],
   },
   [S.ON_THE_WAY]: {

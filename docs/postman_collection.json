@@ -3474,7 +3474,7 @@
                 },
                 {
                   "key": "status",
-                  "value": "pending",
+                  "value": "awaiting_payment",
                   "disabled": true
                 },
                 {
@@ -3780,7 +3780,7 @@
                 },
                 {
                   "key": "status",
-                  "value": "pending",
+                  "value": "awaiting_payment",
                   "disabled": true
                 },
                 {
@@ -5111,7 +5111,7 @@
               "query": [
                 {
                   "key": "status",
-                  "value": "pending",
+                  "value": "awaiting_payment",
                   "disabled": true
                 },
                 {
@@ -5398,7 +5398,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"resolution\": \"refund\",\n  \"refund_amount\": 0,\n  \"provider_action\": \"none\",\n  \"suspend_days\": 1,\n  \"message_to_patient\": \"string\",\n  \"message_to_provider\": \"string\"\n}",
+              "raw": "{\n  \"resolution\": \"refund\",\n  \"refund_amount\": 0,\n  \"refund_bearer\": \"provider\",\n  \"provider_share\": 0,\n  \"provider_action\": \"none\",\n  \"suspend_days\": 1,\n  \"message_to_patient\": \"string\",\n  \"message_to_provider\": \"string\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

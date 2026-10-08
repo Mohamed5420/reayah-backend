@@ -2,14 +2,12 @@ import { Container, Service } from 'typedi';
 import { Types } from 'mongoose';
 import { env } from '../../config/env.config';
 import { BookingModel } from '../../database/models/booking/booking.model';
-import { BookingOfferModel } from '../../database/models/booking/booking-offer.model';
 import { PaymentModel, RefundModel } from '../../database/models/payment/payment.models';
 import { UserModel } from '../../database/models/user/user.model';
 import {
   ACTIVE_BOOKING_STATUSES,
   BookingActor,
   BookingStatus,
-  OfferStatus,
   PaymentMethod,
   PaymentStatus,
   type IBooking,
@@ -28,7 +26,6 @@ import {
 } from '../../utils/types-errors';
 import type { AuditContext } from '../audit/audit.service';
 import { AuditService } from '../audit/audit.service';
-import { canTransition } from '../booking/booking-state';
 import { runBookingTransaction, transitionBooking } from '../booking/booking-transaction';
 import { NotificationService } from '../notification/notification.service';
 import { SettingsService } from '../settings/settings.service';
@@ -284,45 +281,33 @@ export class PaymentService {
     return refund.toObject();
   }
 
-  /** Sweep: cancels card / wallet bookings still unpaid after the payment window. */
+  /** Sweep: card / wallet bookings still in awaiting_payment after the payment window expire (the slot frees up). */
   async expireUnpaid(now = new Date()) {
     const windowMinutes = await this.settings.get('card_payment_window_minutes');
     const cutoff = new Date(now.getTime() - windowMinutes * 60_000);
     const overdue = await BookingModel.find({
-      paymentMethod: { $in: CARD_METHODS },
-      paymentStatus: { $ne: PaymentStatus.PAID },
-      status: { $in: [BookingStatus.PENDING, BookingStatus.ACCEPTED] },
+      status: BookingStatus.AWAITING_PAYMENT,
       createdAt: { $lte: cutoff },
     }).lean();
-    let cancelled = 0;
+    let expired = 0;
     for (const booking of overdue) {
-      if (!canTransition(booking.status, BookingStatus.CANCELLED, BookingActor.SYSTEM, booking.type))
-        continue;
       try {
         await runBookingTransaction(async (tx) => {
-          await transitionBooking(tx, booking, BookingStatus.CANCELLED, BookingActor.SYSTEM, {
-            set: {
-              cancellationReason: { code: 'payment_timeout', text: null },
-              cancelledBy: BookingActor.SYSTEM,
-            },
+          await transitionBooking(tx, booking, BookingStatus.EXPIRED, BookingActor.SYSTEM, {
             note: 'payment_timeout',
+            reason: 'payment_timeout',
           });
-          await BookingOfferModel.updateMany(
-            { bookingId: booking._id, status: OfferStatus.OFFERED },
-            { status: OfferStatus.EXPIRED },
-            { session: tx.session },
-          );
         });
         await PaymentModel.updateMany(
           { bookingId: booking._id, status: PaymentRecordStatus.PENDING },
           { status: PaymentRecordStatus.EXPIRED },
         );
-        cancelled++;
+        expired++;
       } catch (err) {
-        logger.error(`Could not cancel unpaid booking ${String(booking._id)}`, err);
+        logger.error(`Could not expire unpaid booking ${String(booking._id)}`, err);
       }
     }
-    return cancelled;
+    return expired;
   }
 
   /** When the booking's payment window closes. */
@@ -362,6 +347,10 @@ export class PaymentService {
       return;
     }
     const lateForBooking = !booking || !ACTIVE_BOOKING_STATUSES.includes(booking.status);
+    if (booking && booking.status === BookingStatus.AWAITING_PAYMENT) {
+      await this.releaseToProvider(booking);
+      return;
+    }
     if (booking && !lateForBooking) {
       await BookingModel.updateOne({ _id: booking._id }, { paymentStatus: PaymentStatus.PAID });
       return;
@@ -375,6 +364,28 @@ export class PaymentService {
     ).catch((err: unknown) =>
       logger.error(`Automatic refund failed for payment ${String(payment._id)}`, err),
     );
+  }
+
+  /** Paid: awaiting_payment → pending; the provider gets the request now and their response clock starts. */
+  private async releaseToProvider(booking: IBooking) {
+    const responseMinutes = await this.settings.get('direct_request_response_minutes');
+    await runBookingTransaction(async (tx) => {
+      const updated = await transitionBooking(tx, booking, BookingStatus.PENDING, BookingActor.SYSTEM, {
+        set: {
+          paymentStatus: PaymentStatus.PAID,
+          assignmentDeadline: new Date(Date.now() + responseMinutes * 60_000),
+        },
+        note: 'paid',
+        reason: 'paid',
+      });
+      if (updated.providerProfileId) {
+        tx.publish({
+          type: 'new_request',
+          booking: updated.toObject(),
+          providerProfileIds: [String(updated.providerProfileId)],
+        });
+      }
+    });
   }
 
   private async refundDuplicate(payment: IPayment, transactionId: string) {

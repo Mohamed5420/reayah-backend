@@ -1,5 +1,10 @@
 import { ProviderType } from '../../../interfaces/enums';
-import { DisputeResolution, DisputeStatus, ProviderAction } from '../../../interfaces/IAftercare';
+import {
+  DisputeResolution,
+  DisputeStatus,
+  ProviderAction,
+  RefundBearer,
+} from '../../../interfaces/IAftercare';
 import { objectId, z } from '../zod';
 
 /** Upload keys from POST /uploads (`tmp/...`), or keys already on the record when editing. */
@@ -136,6 +141,10 @@ export const AftercareSchemas = {
     .strictObject({
       resolution: z.enum(DisputeResolution),
       refund_amount: z.number().int().min(0).optional(),
+      /** Who pays the refund; default provider when warned / suspended, else platform. */
+      refund_bearer: z.enum(RefundBearer).optional(),
+      /** With refund_bearer = split: the provider's part (piastres, ≤ refund_amount). */
+      provider_share: z.number().int().min(0).optional(),
       provider_action: z.enum(ProviderAction).default(ProviderAction.NONE),
       /** `null` / omitted with `suspend` = until lifted. */
       suspend_days: z.number().int().min(1).max(365).nullable().optional(),
@@ -158,6 +167,9 @@ export const AftercareSchemas = {
         .object({
           type: z.enum(DisputeResolution),
           refund_amount: z.number(),
+          refund_bearer: z.enum(RefundBearer),
+          /** Deducted from the provider (ledger debit); the rest is the platform's cost. */
+          provider_share: z.number(),
           provider_action: z.enum(ProviderAction),
           suspend_days: z.number().nullable(),
           message_to_patient: z.string().nullable(),

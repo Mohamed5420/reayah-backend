@@ -27,6 +27,7 @@ import {
 } from '../booking/booking-transaction';
 import { LedgerService } from '../ledger/ledger.service';
 import { ChatService } from '../chat/chat.service';
+import { patientFeeFor } from '../booking/patient-fees';
 import { auditNotesRead } from '../patient/medical-audit';
 
 /** Admin panel bookings (spec §7.15 "Bookings & disputes"). Every write is audited. */
@@ -103,6 +104,7 @@ export class AdminBookingService {
       });
     }
     if (input.status === BookingStatus.COMPLETED) set.completedAt = new Date();
+    if (input.status === BookingStatus.NO_SHOW) set.patientFee = await patientFeeFor(booking, 'no_show');
 
     const updated = await runBookingTransaction(async (tx) => {
       const result = await transitionBooking(tx, booking, input.status, BookingActor.ADMIN, {

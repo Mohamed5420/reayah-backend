@@ -3,6 +3,8 @@ import type { PricingUnit } from './enums';
 
 /** Spec §5. */
 export enum BookingStatus {
+  /** Card / wallet booking not paid yet: hidden from providers; expires after card_payment_window_minutes. */
+  AWAITING_PAYMENT = 'awaiting_payment',
   PENDING = 'pending',
   ACCEPTED = 'accepted',
   DECLINED = 'declined',
@@ -17,6 +19,7 @@ export enum BookingStatus {
 
 /** Still happening: blocks the provider's time, the address and account deletion. */
 export const ACTIVE_BOOKING_STATUSES = [
+  BookingStatus.AWAITING_PAYMENT, // holds the provider's slot while the patient pays
   BookingStatus.PENDING,
   BookingStatus.ACCEPTED,
   BookingStatus.ON_THE_WAY,
@@ -123,6 +126,17 @@ export interface IBooking {
   isOnTime: boolean | null;
   patientNotes: string | null;
   cancellationReason: { code: string; text: string | null } | null;
+  /**
+   * The patient's travel-fee charge for cancelling after "on the way" or a no-show (settings decide).
+   * Card: kept from the refund and credited to the provider. Cash: not collected at launch, recorded so
+   * admins can spot repeat cases.
+   */
+  patientFee: { amount: number; reason: 'late_cancellation' | 'no_show'; collected: boolean } | null;
+  /**
+   * The patient cancelled an accepted booking within `cancellation_free_window_hours` of the visit,
+   * before "on the way": still free, but recorded so admins can see repeat cases.
+   */
+  lateCancellation: boolean;
   cancelledBy: BookingActor | null;
   price: IBookingPrice;
   currency: 'EGP';

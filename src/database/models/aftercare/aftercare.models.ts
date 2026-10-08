@@ -3,6 +3,7 @@ import {
   DisputeResolution,
   DisputeStatus,
   ProviderAction,
+  RefundBearer,
   type IDispute,
   type IReview,
   type IUserSuspension,
@@ -60,6 +61,8 @@ const disputeSchema = new Schema<IDispute>(
         {
           type: { type: String, enum: Object.values(DisputeResolution), required: true },
           refundAmount: { type: Number, default: 0 },
+          refundBearer: { type: String, enum: Object.values(RefundBearer), default: RefundBearer.PLATFORM },
+          providerShare: { type: Number, default: 0 },
           providerAction: { type: String, enum: Object.values(ProviderAction), default: ProviderAction.NONE },
           suspendDays: { type: Number, default: null },
           messageToPatient: { type: String, default: null },

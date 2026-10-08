@@ -3,6 +3,7 @@ import { Types } from 'mongoose';
 import { BookingModel } from '../database/models/booking/booking.model';
 import { ProviderProfileModel } from '../database/models/provider/provider-profile.model';
 import type { IAuthUser } from '../interfaces/IUser';
+import { BookingStatus } from '../interfaces/IBooking';
 import { bookingRoom } from '../helper/socket';
 import type { AuthedSocket } from './middleware/socket-auth';
 import { logger } from '../utils/logger/winston';
@@ -10,10 +11,13 @@ import { logger } from '../utils/logger/winston';
 /** Only the booking's patient and its currently assigned provider may follow it live. */
 export const canFollowBooking = async (user: IAuthUser, bookingId: string) => {
   if (!Types.ObjectId.isValid(bookingId)) return false;
-  const booking = await BookingModel.findById(bookingId).select('patientUserId providerProfileId').lean();
+  const booking = await BookingModel.findById(bookingId)
+    .select('patientUserId providerProfileId status')
+    .lean();
   if (!booking) return false;
   if (String(booking.patientUserId) === user.id) return true;
-  if (!booking.providerProfileId) return false;
+  // Providers don't see a card / wallet booking until it's paid.
+  if (!booking.providerProfileId || booking.status === BookingStatus.AWAITING_PAYMENT) return false;
   const profile = await ProviderProfileModel.findById(booking.providerProfileId).select('userId').lean();
   return String(profile?.userId) === user.id;
 };

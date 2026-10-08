@@ -59,7 +59,44 @@ export class AdminUserService {
     const bookings = await BookingModel.countDocuments({
       $or: [{ patientUserId: user._id }, ...(provider ? [{ providerProfileId: provider._id }] : [])],
     });
-    return { user, provider, bookings };
+    // The patient's cancellation record: free late cancellations, and travel-fee charges
+    // (cancelled after "on the way" / no-show) with the cash ones not collected at launch.
+    const [record] = await BookingModel.aggregate<{
+      lateCancellations: number;
+      charges: number;
+      chargesTotal: number;
+      uncollected: number;
+      uncollectedTotal: number;
+    }>([
+      {
+        $match: { patientUserId: user._id, $or: [{ lateCancellation: true }, { patientFee: { $ne: null } }] },
+      },
+      {
+        $group: {
+          _id: null,
+          lateCancellations: { $sum: { $cond: ['$lateCancellation', 1, 0] } },
+          charges: { $sum: { $cond: [{ $ne: ['$patientFee', null] }, 1, 0] } },
+          chargesTotal: { $sum: { $ifNull: ['$patientFee.amount', 0] } },
+          uncollected: { $sum: { $cond: [{ $eq: ['$patientFee.collected', false] }, 1, 0] } },
+          uncollectedTotal: {
+            $sum: { $cond: [{ $eq: ['$patientFee.collected', false] }, '$patientFee.amount', 0] },
+          },
+        },
+      },
+    ]);
+    return {
+      user,
+      provider,
+      bookings,
+      cancellationRecord: {
+        lateCancellations: record?.lateCancellations ?? 0,
+        travelFeeCharges: {
+          count: record?.charges ?? 0,
+          total: record?.chargesTotal ?? 0,
+          uncollected: { count: record?.uncollected ?? 0, total: record?.uncollectedTotal ?? 0 },
+        },
+      },
+    };
   }
 
   async listProviders(

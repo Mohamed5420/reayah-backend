@@ -50,10 +50,18 @@ export const presentUserDetail = (input: {
   user: IUser;
   provider: IProviderProfile | null;
   bookings: number;
+  cancellationRecord: {
+    lateCancellations: number;
+    travelFeeCharges: { count: number; total: number; uncollected: { count: number; total: number } };
+  };
 }) => ({
   user: presentAdminUser(input.user),
   provider_profile: input.provider ? providerSummary(input.provider) : null,
   bookings_count: input.bookings,
+  cancellation_record: {
+    late_cancellations: input.cancellationRecord.lateCancellations,
+    travel_fee_charges: input.cancellationRecord.travelFeeCharges,
+  },
 });
 
 export const presentProviderItem = ({ profile, user }: { profile: IProviderProfile; user: IUser }) => ({
@@ -158,6 +166,8 @@ export const presentAdminBookingDetail = (input: {
       patient_notes: decryptNullable(b.patientNotes),
       cancellation_reason: b.cancellationReason,
       cancelled_by: b.cancelledBy,
+      patient_fee: b.patientFee,
+      late_cancellation: b.lateCancellation,
       completed_at: iso(b.completedAt),
     },
     history: input.history.map((h) => ({

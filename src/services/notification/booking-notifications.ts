@@ -84,13 +84,26 @@ export const handleBookingEvent = async (event: BookingEvent) => {
   if (event.to === BookingStatus.CANCELLED) {
     const recipients = [
       ...(event.actor !== BookingActor.PATIENT ? [String(booking.patientUserId)] : []),
-      ...(event.actor !== BookingActor.PROVIDER && booking.providerProfileId
+      // A provider never saw a booking that was still awaiting payment.
+      ...(event.actor !== BookingActor.PROVIDER &&
+      booking.providerProfileId &&
+      event.from !== BookingStatus.AWAITING_PAYMENT
         ? await providerUserIds([String(booking.providerProfileId)])
         : []),
     ];
     await notifications.notify(recipients, {
       type: NotificationType.BOOKING_STATUS,
       template: 'booking_cancelled',
+      params,
+      data: statusData,
+    });
+    return;
+  }
+
+  if (event.to === BookingStatus.EXPIRED && event.reason === 'payment_timeout') {
+    await notifications.notify([booking.patientUserId], {
+      type: NotificationType.BOOKING_STATUS,
+      template: 'booking_payment_expired',
       params,
       data: statusData,
     });

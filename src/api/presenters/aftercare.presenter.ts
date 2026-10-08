@@ -72,6 +72,8 @@ export const presentAdminDispute = (
     ? {
         type: d.resolution.type,
         refund_amount: d.resolution.refundAmount,
+        refund_bearer: d.resolution.refundBearer,
+        provider_share: d.resolution.providerShare,
         provider_action: d.resolution.providerAction,
         suspend_days: d.resolution.suspendDays,
         message_to_patient: d.resolution.messageToPatient,

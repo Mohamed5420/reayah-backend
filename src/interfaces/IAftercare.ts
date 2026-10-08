@@ -49,6 +49,13 @@ export enum DisputeResolution {
   NO_ACTION = 'no_action',
 }
 
+/** Who pays for a dispute refund (product decision): the provider's share, the platform, or split by amount. */
+export enum RefundBearer {
+  PROVIDER = 'provider',
+  PLATFORM = 'platform',
+  SPLIT = 'split',
+}
+
 export enum ProviderAction {
   NONE = 'none',
   WARN = 'warn',
@@ -69,6 +76,9 @@ export interface IDispute {
     type: DisputeResolution;
     /** Piastres. Cash bookings: recorded only — refunds through the app arrive with card payments (Phase 2). */
     refundAmount: number;
+    refundBearer: RefundBearer;
+    /** Part of the refund taken from the provider (a ledger debit); the rest is the platform's cost. */
+    providerShare: number;
     providerAction: ProviderAction;
     suspendDays: number | null;
     messageToPatient: string | null;

@@ -178,6 +178,8 @@ export default class AdminBookingController implements IBaseController {
         {
           resolution: body.resolution,
           refundAmount: body.refund_amount,
+          refundBearer: body.refund_bearer,
+          providerShare: body.provider_share,
           providerAction: body.provider_action,
           suspendDays: body.suspend_days,
           messageToPatient: body.message_to_patient,

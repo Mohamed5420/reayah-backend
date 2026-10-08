@@ -27,6 +27,7 @@ import {
 import type { AuditContext } from '../audit/audit.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { PatientProfileService } from '../patient/patient-profile.service';
+import { patientFeeFor } from './patient-fees';
 import { auditNotesRead } from '../patient/medical-audit';
 import { SettingsService } from '../settings/settings.service';
 import { nextStatuses } from './booking-state';
@@ -92,7 +93,11 @@ export class ProviderBookingService {
   ) {
     const query = {
       providerProfileId: profile._id,
-      ...(filters.status ? { status: filters.status } : {}),
+      // Unpaid card / wallet bookings stay out of sight until paid.
+      status:
+        filters.status && filters.status !== BookingStatus.AWAITING_PAYMENT
+          ? filters.status
+          : { $ne: BookingStatus.AWAITING_PAYMENT },
       ...(filters.date
         ? {
             scheduledStart: {
@@ -208,7 +213,9 @@ export class ProviderBookingService {
   async noShow(profile: ProviderDoc, bookingId: string, userId: string) {
     const booking = await this.getAssigned(profile, bookingId);
     if (booking.scheduledStart > new Date()) throw new ConflictError('errors.no_show_too_early');
-    return this.act(profile, bookingId, userId, BookingStatus.NO_SHOW);
+    // The patient is charged the travel fee (setting travel_fee_on_no_show); it goes to the provider.
+    const patientFee = await patientFeeFor(booking, 'no_show');
+    return this.act(profile, bookingId, userId, BookingStatus.NO_SHOW, { set: { patientFee } });
   }
 
   cancel(
@@ -342,7 +349,11 @@ export class ProviderBookingService {
   /** A booking currently assigned to this provider; 404 otherwise (including other providers' bookings). */
   private async getAssigned(profile: ProviderDoc, bookingId: string) {
     const booking = Types.ObjectId.isValid(bookingId)
-      ? await BookingModel.findOne({ _id: bookingId, providerProfileId: profile._id }).lean()
+      ? await BookingModel.findOne({
+          _id: bookingId,
+          providerProfileId: profile._id,
+          status: { $ne: BookingStatus.AWAITING_PAYMENT },
+        }).lean()
       : null;
     if (!booking) throw new NotFoundError('errors.booking_not_found');
     return booking;

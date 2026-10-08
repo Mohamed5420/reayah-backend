@@ -3715,6 +3715,7 @@
           "status": {
             "type": "string",
             "enum": [
+              "awaiting_payment",
               "pending",
               "accepted",
               "declined",
@@ -3822,6 +3823,7 @@
           "status": {
             "type": "string",
             "enum": [
+              "awaiting_payment",
               "pending",
               "accepted",
               "declined",
@@ -3900,6 +3902,7 @@
           "status": {
             "type": "string",
             "enum": [
+              "awaiting_payment",
               "pending",
               "accepted",
               "declined",
@@ -4064,6 +4067,7 @@
                 "status": {
                   "type": "string",
                   "enum": [
+                    "awaiting_payment",
                     "pending",
                     "accepted",
                     "declined",
@@ -4343,6 +4347,7 @@
           "status": {
             "type": "string",
             "enum": [
+              "awaiting_payment",
               "pending",
               "accepted",
               "declined",
@@ -4409,6 +4414,7 @@
           "status": {
             "type": "string",
             "enum": [
+              "awaiting_payment",
               "pending",
               "accepted",
               "declined",
@@ -5128,6 +5134,7 @@
           "status": {
             "type": "string",
             "enum": [
+              "awaiting_payment",
               "pending",
               "accepted",
               "declined",
@@ -5367,12 +5374,56 @@
           },
           "bookings_count": {
             "type": "number"
+          },
+          "cancellation_record": {
+            "type": "object",
+            "properties": {
+              "late_cancellations": {
+                "type": "number"
+              },
+              "travel_fee_charges": {
+                "type": "object",
+                "properties": {
+                  "count": {
+                    "type": "number"
+                  },
+                  "total": {
+                    "type": "number"
+                  },
+                  "uncollected": {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "number"
+                      },
+                      "total": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "count",
+                      "total"
+                    ]
+                  }
+                },
+                "required": [
+                  "count",
+                  "total",
+                  "uncollected"
+                ]
+              }
+            },
+            "required": [
+              "late_cancellations",
+              "travel_fee_charges"
+            ]
           }
         },
         "required": [
           "user",
           "provider_profile",
-          "bookings_count"
+          "bookings_count",
+          "cancellation_record"
         ]
       },
       "SuspendUserRequest": {
@@ -5964,6 +6015,35 @@
                       "null"
                     ]
                   },
+                  "patient_fee": {
+                    "type": [
+                      "object",
+                      "null"
+                    ],
+                    "properties": {
+                      "amount": {
+                        "type": "number"
+                      },
+                      "reason": {
+                        "type": "string",
+                        "enum": [
+                          "late_cancellation",
+                          "no_show"
+                        ]
+                      },
+                      "collected": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "amount",
+                      "reason",
+                      "collected"
+                    ]
+                  },
+                  "late_cancellation": {
+                    "type": "boolean"
+                  },
                   "completed_at": {
                     "type": [
                       "string",
@@ -5977,6 +6057,8 @@
                   "patient_notes",
                   "cancellation_reason",
                   "cancelled_by",
+                  "patient_fee",
+                  "late_cancellation",
                   "completed_at"
                 ]
               }
@@ -6306,6 +6388,17 @@
               "refund_amount": {
                 "type": "number"
               },
+              "refund_bearer": {
+                "type": "string",
+                "enum": [
+                  "provider",
+                  "platform",
+                  "split"
+                ]
+              },
+              "provider_share": {
+                "type": "number"
+              },
               "provider_action": {
                 "type": "string",
                 "enum": [
@@ -6344,6 +6437,8 @@
             "required": [
               "type",
               "refund_amount",
+              "refund_bearer",
+              "provider_share",
               "provider_action",
               "suspend_days",
               "message_to_patient",
@@ -6382,6 +6477,18 @@
             ]
           },
           "refund_amount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "refund_bearer": {
+            "type": "string",
+            "enum": [
+              "provider",
+              "platform",
+              "split"
+            ]
+          },
+          "provider_share": {
             "type": "integer",
             "minimum": 0
           },
@@ -6531,6 +6638,7 @@
               "status": {
                 "type": "string",
                 "enum": [
+                  "awaiting_payment",
                   "pending",
                   "accepted",
                   "declined",
@@ -12771,6 +12879,7 @@
             "schema": {
               "type": "string",
               "enum": [
+                "awaiting_payment",
                 "pending",
                 "accepted",
                 "declined",
@@ -13357,6 +13466,7 @@
             "schema": {
               "type": "string",
               "enum": [
+                "awaiting_payment",
                 "pending",
                 "accepted",
                 "declined",
@@ -15715,6 +15825,7 @@
             "schema": {
               "type": "string",
               "enum": [
+                "awaiting_payment",
                 "pending",
                 "accepted",
                 "declined",

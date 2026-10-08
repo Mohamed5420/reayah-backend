@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../helpers/app';
 import { useTestDatabase } from '../helpers/db';
 import { createUserWithToken } from '../helpers/fixtures';
-import { eventually } from '../helpers/notifications';
+import { clearQueuedPushes, eventually, queuedPushes } from '../helpers/notifications';
+import { registerBookingNotifications } from '../../src/services/notification/booking-notifications';
 import {
   createBookingWorld,
   tomorrowAt,
@@ -234,7 +235,7 @@ describe('money after payment', () => {
 });
 
 describe('the payment window', () => {
-  it('cancels a card booking left unpaid, and refunds a payment that lands afterwards', async () => {
+  it('an unpaid card booking expires after the window, and a payment that lands afterwards is refunded', async () => {
     await enableCards();
     const created = await bookWith('card');
     const bookingId: string = created.body.data.id;
@@ -245,7 +246,7 @@ describe('the payment window', () => {
     );
     expect(await Container.get(PaymentService).expireUnpaid()).toBe(1);
     const booking = await BookingModel.findById(bookingId).lean();
-    expect(booking).toMatchObject({ status: 'cancelled', cancellationReason: { code: 'payment_timeout' } });
+    expect(booking!.status).toBe('expired');
     expect((await PaymentModel.findById(paymentId).lean())!.status).toBe('expired');
 
     await webhook({
@@ -256,5 +257,198 @@ describe('the payment window', () => {
     });
     expect((await PaymentModel.findById(paymentId).lean())!.status).toBe('refunded');
     expect(gateway.refunds).toEqual([{ transactionId: 'tx-late', amount: booking!.price.total }]);
+  });
+});
+
+describe('awaiting payment (card / wallet bookings reach the provider only once paid)', () => {
+  it('stays invisible to the provider until the payment lands, then becomes a normal request', async () => {
+    registerBookingNotifications();
+    await enableCards();
+    clearQueuedPushes();
+    const created = await bookWith('card');
+    expect(created.body.data.status).toBe('awaiting_payment');
+    const bookingId: string = created.body.data.id;
+
+    expect((await world.providerApi(provider, 'get', `/bookings/${bookingId}`)).status).toBe(404);
+    expect((await world.providerApi(provider, 'get', '/bookings')).body.meta.total).toBe(0);
+    expect((await BookingModel.findById(bookingId).lean())!.assignmentDeadline).toBeNull();
+    expect(queuedPushes().filter((p) => p.userId === provider.userId)).toEqual([]);
+
+    const total = (await BookingModel.findById(bookingId).lean())!.price.total;
+    await webhook({
+      payment_id: created.body.data.payment_action.payment_id,
+      transaction_id: 'tx-a',
+      status: 'paid',
+      amount: total,
+    });
+    const booking = await BookingModel.findById(bookingId).lean();
+    expect(booking).toMatchObject({ status: 'pending', paymentStatus: 'paid' });
+    expect(booking!.assignmentDeadline!.getTime()).toBeGreaterThan(Date.now());
+    expect((await world.providerApi(provider, 'get', `/bookings/${bookingId}`)).status).toBe(200);
+    await eventually(() =>
+      expect(
+        queuedPushes().some((p) => p.userId === provider.userId && p.data.type === 'booking_request'),
+      ).toBe(true),
+    );
+  });
+
+  it('holds the slot while unpaid; cancelling then is free and never reaches the provider', async () => {
+    registerBookingNotifications();
+    await enableCards();
+    const created = await bookWith('card');
+    const slot = (await BookingModel.findById(created.body.data.id).lean())!.scheduledStart.toISOString();
+    const other = await world.newPatient();
+    expect((await world.book(other, provider, { scheduled_start: slot })).status).toBe(409);
+
+    clearQueuedPushes();
+    const cancel = await as(patient.auth).post(`/bookings/${created.body.data.id}/cancel`, {
+      reason_code: 'changed_mind',
+    });
+    expect(cancel.body.data).toEqual({ status: 'cancelled', cancellation_fee: 0, refund_amount: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(queuedPushes().filter((p) => p.userId === provider.userId)).toEqual([]);
+  });
+});
+
+describe('travel-fee charges', () => {
+  it('cancelling a paid booking after "on the way" refunds all but the travel fee, which goes to the provider', async () => {
+    const { bookingId, total, paymentId } = await paidBooking();
+    await world.providerApi(provider, 'post', `/bookings/${bookingId}/accept`);
+    await world.providerApi(provider, 'post', `/bookings/${bookingId}/on-the-way`);
+    const fee = (await BookingModel.findById(bookingId).lean())!.price.travelFee;
+    expect(fee).toBeGreaterThan(0);
+
+    const cancel = await as(patient.auth).post(`/bookings/${bookingId}/cancel`, {
+      reason_code: 'changed_mind',
+    });
+    expect(cancel.body.data).toEqual({
+      status: 'cancelled',
+      cancellation_fee: fee,
+      refund_amount: total - fee,
+    });
+    await eventually(async () =>
+      expect(gateway.refunds).toEqual([{ transactionId: `tx-${bookingId}`, amount: total - fee }]),
+    );
+    await eventually(async () =>
+      expect(await WalletLedgerModel.find({ bookingId }).lean()).toEqual([
+        expect.objectContaining({ type: 'credit', amount: fee }),
+      ]),
+    );
+    expect((await PaymentModel.findById(paymentId).lean())!.status).toBe('partially_refunded');
+  });
+
+  it('a no-show on a paid booking refunds all but the travel fee; with the setting off, everything', async () => {
+    const { bookingId, total } = await paidBooking();
+    await world.providerApi(provider, 'post', `/bookings/${bookingId}/accept`);
+    await BookingModel.updateOne({ _id: bookingId }, { scheduledStart: new Date(Date.now() - 60_000) });
+    await world.providerApi(provider, 'post', `/bookings/${bookingId}/no-show`).expect(200);
+    const fee = (await BookingModel.findById(bookingId).lean())!.price.travelFee;
+    await eventually(async () =>
+      expect(gateway.refunds).toEqual([{ transactionId: `tx-${bookingId}`, amount: total - fee }]),
+    );
+
+    await Container.get(SettingsService).update({ travel_fee_on_no_show: false }, { actorId: null });
+    const second = await paidBooking();
+    await world.providerApi(provider, 'post', `/bookings/${second.bookingId}/accept`);
+    await BookingModel.updateOne(
+      { _id: second.bookingId },
+      { scheduledStart: new Date(Date.now() - 60_000) },
+    );
+    await world.providerApi(provider, 'post', `/bookings/${second.bookingId}/no-show`).expect(200);
+    await eventually(async () =>
+      expect(gateway.refunds).toContainEqual({
+        transactionId: `tx-${second.bookingId}`,
+        amount: second.total,
+      }),
+    );
+    expect((await BookingModel.findById(second.bookingId).lean())!.patientFee).toBeNull();
+  });
+
+  it('cash charges are not collected but show up for admins per patient, next to late cancellations', async () => {
+    const admin = await createUserWithToken(UserRole.ADMIN);
+    // A free late cancellation: accepted, an hour before the visit, provider not on the way yet.
+    const lateOne = await world.book(patient, provider, { scheduled_start: tomorrowAt('11:00') });
+    await world.providerApi(provider, 'post', `/bookings/${lateOne.body.data.id}/accept`);
+    await BookingModel.updateOne(
+      { _id: lateOne.body.data.id },
+      { scheduledStart: new Date(Date.now() + 3600_000), scheduledEnd: new Date(Date.now() + 2 * 3600_000) },
+    );
+    await as(patient.auth).post(`/bookings/${lateOne.body.data.id}/cancel`, { reason_code: 'wrong_time' });
+
+    const res = await world.book(patient, provider, { scheduled_start: tomorrowAt('16:00') });
+    const id = res.body.data.id;
+    await world.providerApi(provider, 'post', `/bookings/${id}/accept`);
+    await world.providerApi(provider, 'post', `/bookings/${id}/on-the-way`);
+    await as(patient.auth).post(`/bookings/${id}/cancel`, { reason_code: 'changed_mind' });
+    const fee = (await BookingModel.findById(id).lean())!.price.travelFee;
+    const detail = await as(admin.auth).get(`/admin/users/${patient.userId}`);
+    expect(detail.body.data.cancellation_record).toEqual({
+      late_cancellations: 1,
+      travel_fee_charges: { count: 1, total: fee, uncollected: { count: 1, total: fee } },
+    });
+    expect((await as(admin.auth).get(`/admin/bookings/${id}`)).body.data.booking.patient_fee).toEqual({
+      amount: fee,
+      reason: 'late_cancellation',
+      collected: false,
+    });
+    expect(
+      (await as(admin.auth).get(`/admin/bookings/${lateOne.body.data.id}`)).body.data.booking,
+    ).toMatchObject({
+      late_cancellation: true,
+      patient_fee: null,
+    });
+  });
+});
+
+describe('who bears a dispute refund', () => {
+  const completedPaid = async () => {
+    const paid = await paidBooking();
+    for (const step of ['accept', 'on-the-way', 'start', 'complete']) {
+      await world.providerApi(provider, 'post', `/bookings/${paid.bookingId}/${step}`);
+    }
+    const dispute = await as(patient.auth).post(`/bookings/${paid.bookingId}/dispute`, {
+      reason_code: 'late',
+    });
+    return { ...paid, disputeId: dispute.body.data.id as string };
+  };
+  const debits = async (bookingId: string) =>
+    (await WalletLedgerModel.find({ bookingId, type: 'debit' }).lean()).map((e) => e.amount);
+
+  it('defaults to the provider when they are warned, and debits their share', async () => {
+    const admin = await createUserWithToken(UserRole.ADMIN);
+    const { bookingId, disputeId } = await completedPaid();
+    const res = await as(admin.auth).post(`/admin/disputes/${disputeId}/resolve`, {
+      resolution: 'partial_refund',
+      refund_amount: 5000,
+      provider_action: 'warn',
+    });
+    expect(res.body.data.resolution).toMatchObject({ refund_bearer: 'provider', provider_share: 5000 });
+    expect(await debits(bookingId)).toEqual([-5000]);
+  });
+
+  it('platform by default without a provider action; split by amount when chosen', async () => {
+    const admin = await createUserWithToken(UserRole.ADMIN);
+    const first = await completedPaid();
+    await as(admin.auth).post(`/admin/disputes/${first.disputeId}/resolve`, {
+      resolution: 'partial_refund',
+      refund_amount: 5000,
+    });
+    expect(await debits(first.bookingId)).toEqual([]);
+
+    const second = await completedPaid();
+    const missing = await as(admin.auth).post(`/admin/disputes/${second.disputeId}/resolve`, {
+      resolution: 'partial_refund',
+      refund_amount: 6000,
+      refund_bearer: 'split',
+    });
+    expect(missing.status).toBe(422);
+    const split = await as(admin.auth).post(`/admin/disputes/${second.disputeId}/resolve`, {
+      resolution: 'partial_refund',
+      refund_amount: 6000,
+      refund_bearer: 'split',
+      provider_share: 2000,
+    });
+    expect(split.body.data.resolution).toMatchObject({ refund_bearer: 'split', provider_share: 2000 });
+    expect(await debits(second.bookingId)).toEqual([-2000]);
   });
 });

@@ -69,6 +69,18 @@ const bookingSchema = new Schema<IBooking>(
       default: null,
     },
     cancelledBy: { type: String, enum: [...Object.values(BookingActor), null], default: null },
+    lateCancellation: { type: Boolean, default: false },
+    patientFee: {
+      type: new Schema(
+        {
+          amount: money,
+          reason: { type: String, enum: ['late_cancellation', 'no_show'], required: true },
+          collected: { type: Boolean, required: true },
+        },
+        { _id: false },
+      ),
+      default: null,
+    },
     price: {
       unitPrice: money,
       subtotal: money,

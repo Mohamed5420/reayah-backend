@@ -374,7 +374,7 @@ describe('a provider can never be double-booked', () => {
 });
 
 describe('patient cancel and reschedule', () => {
-  it('cancel: free while pending; after acceptance only until 3 h before', async () => {
+  it('cancel: free until the visit starts; after "on the way" the travel fee is charged (cash: recorded only)', async () => {
     const provider = await newProvider();
     const patient = await newPatient();
     const pending = await book(patient, provider);
@@ -390,12 +390,36 @@ describe('patient cancel and reschedule', () => {
       { _id: accepted.body.data.id },
       { scheduledStart: new Date(Date.now() + 3600_000), scheduledEnd: new Date(Date.now() + 2 * 3600_000) },
     );
+    // An hour before the visit, still accepted: free.
     const late = await request(app)
       .post(`/api/v1/bookings/${accepted.body.data.id}/cancel`)
       .set('Authorization', patient.auth)
       .send({ reason_code: 'wrong_time' });
-    expect(late.status).toBe(409);
-    expect(late.body.error.code).toBe('CANCELLATION_NOT_ALLOWED');
+    expect(late.body.data).toEqual({ status: 'cancelled', cancellation_fee: 0, refund_amount: 0 });
+    // …but it goes on the patient's record as a late cancellation.
+    expect((await BookingModel.findById(accepted.body.data.id).lean())!.lateCancellation).toBe(true);
+    expect((await BookingModel.findById(pending.body.data.id).lean())!.lateCancellation).toBe(false);
+
+    // The provider already left: the patient owes the travel fee (cash → recorded, not collected).
+    const onTheWay = await book(patient, provider, { scheduled_start: tomorrowAt('14:00') });
+    const id = onTheWay.body.data.id;
+    await providerApi(provider, 'post', `/bookings/${id}/accept`).expect(200);
+    await providerApi(provider, 'post', `/bookings/${id}/on-the-way`).expect(200);
+    const charged = await request(app)
+      .post(`/api/v1/bookings/${id}/cancel`)
+      .set('Authorization', patient.auth)
+      .send({ reason_code: 'changed_mind' });
+    const booking = await BookingModel.findById(id).lean();
+    expect(charged.body.data).toEqual({
+      status: 'cancelled',
+      cancellation_fee: booking!.price.travelFee,
+      refund_amount: 0,
+    });
+    expect(booking!.patientFee).toEqual({
+      amount: booking!.price.travelFee,
+      reason: 'late_cancellation',
+      collected: false,
+    });
   });
 
   it('reschedule sends an accepted booking back to pending at the new time', async () => {

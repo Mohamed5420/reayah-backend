@@ -29,8 +29,12 @@ export interface Settings {
   cancellation_free_window_hours: number;
   /** Patients can report a problem up to this many hours after the visit (spec §5 `disputed`). */
   dispute_window_hours: number;
-  /** Card / wallet bookings must be paid within this many minutes of booking, or they are cancelled (M2.3). */
+  /** Card / wallet bookings wait in awaiting_payment this many minutes, then expire unpaid. */
   card_payment_window_minutes: number;
+  /** Patient cancels after the provider marked "on the way" → charged the booking's travel fee (to the provider). */
+  travel_fee_on_late_cancellation: boolean;
+  /** Provider records a no-show → the patient is charged the booking's travel fee (to the provider). */
+  travel_fee_on_no_show: boolean;
   /** Referral credit for each side, piastres. */
   referral_reward: number;
   /** Weekly payout batch day. */
@@ -52,6 +56,8 @@ export const SETTING_DEFAULTS: Settings = {
   cancellation_free_window_hours: 3,
   dispute_window_hours: 48,
   card_payment_window_minutes: 15,
+  travel_fee_on_late_cancellation: true,
+  travel_fee_on_no_show: true,
   referral_reward: 5000,
   payout_day: 'thursday',
   support_phone: '',
@@ -92,6 +98,8 @@ export const SETTING_VALIDATORS: { [K in SettingKey]: Validator<Settings[K]> } =
   cancellation_free_window_hours: intBetween(0, 7 * 24),
   dispute_window_hours: intBetween(1, 30 * 24),
   card_payment_window_minutes: intBetween(5, 24 * 60),
+  travel_fee_on_late_cancellation: isBoolean,
+  travel_fee_on_no_show: isBoolean,
   referral_reward: intBetween(0, 10_000_000),
   payout_day: (v): v is Weekday => WEEKDAYS.includes(v as Weekday),
   support_phone: isString,

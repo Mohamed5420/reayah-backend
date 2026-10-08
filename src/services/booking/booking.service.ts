@@ -37,6 +37,7 @@ import {
 } from './booking-transaction';
 import { QuoteService, type BookingDraft } from './quote.service';
 import { PaymentService } from '../payments/payment.service';
+import { patientFeeFor } from './patient-fees';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I
 
@@ -77,6 +78,7 @@ export class BookingService {
     const start = new Date(draft.scheduledStart);
     const end = new Date(draft.scheduledEnd);
     const responseMinutes = await this.settings.get('direct_request_response_minutes');
+    const awaitingPayment = input.paymentMethod !== PaymentMethod.CASH;
 
     return runBookingTransaction(async (tx) => {
       await lockProviderSchedule(draft.providerId, tx.session);
@@ -104,7 +106,9 @@ export class BookingService {
             quantity: draft.quantity,
             preferredGender: draft.preferredGender,
             assignmentMode: AssignmentMode.DIRECT,
-            assignmentDeadline: minutesFromNow(responseMinutes),
+            // Card / wallet: held in awaiting_payment, invisible to the provider; the response clock starts once paid.
+            status: awaitingPayment ? BookingStatus.AWAITING_PAYMENT : BookingStatus.PENDING,
+            assignmentDeadline: awaitingPayment ? null : minutesFromNow(responseMinutes),
             allowFallback: draft.allowFallback,
             patientNotes: input.patientNotes ?? null,
             price: draft.price,
@@ -113,12 +117,14 @@ export class BookingService {
         ],
         { session: tx.session },
       );
-      await recordHistory(tx, booking._id, null, BookingStatus.PENDING, BookingActor.PATIENT, userId, null);
-      tx.publish({
-        type: 'new_request',
-        booking: booking.toObject(),
-        providerProfileIds: [draft.providerId],
-      });
+      await recordHistory(tx, booking._id, null, booking.status, BookingActor.PATIENT, userId, null);
+      if (!awaitingPayment) {
+        tx.publish({
+          type: 'new_request',
+          booking: booking.toObject(),
+          providerProfileIds: [draft.providerId],
+        });
+      }
       return booking;
     });
   }
@@ -169,9 +175,7 @@ export class BookingService {
       timeline,
       provider: booking.providerProfileId ? (providers.get(String(booking.providerProfileId)) ?? null) : null,
       flags: {
-        canCancel:
-          canTransition(booking.status, BookingStatus.CANCELLED, BookingActor.PATIENT, booking.type) &&
-          (booking.status === BookingStatus.PENDING || withinFreeWindow(booking, freeWindowHours)),
+        canCancel: canTransition(booking.status, BookingStatus.CANCELLED, BookingActor.PATIENT, booking.type),
         canReschedule: canReschedule(booking, freeWindowHours),
         canReview: booking.status === BookingStatus.COMPLETED && !reviewed,
         canChat: chatOpen(booking),
@@ -180,22 +184,30 @@ export class BookingService {
     };
   }
 
-  /** Free while pending, and until `cancellation_free_window_hours` before the visit once accepted. */
+  /**
+   * Patients can cancel until the visit starts, free — except after the provider marked "on the way",
+   * when the booking's travel fee is charged (setting travel_fee_on_late_cancellation). A paid card /
+   * wallet booking is refunded right after, minus that fee.
+   */
   async cancel(userId: string, bookingId: string, reason: { code: string; text?: string | null }) {
     const booking = await this.getOwned(userId, bookingId);
     if (!canTransition(booking.status, BookingStatus.CANCELLED, BookingActor.PATIENT, booking.type)) {
       throw new InvalidStatusTransitionError();
     }
-    const freeWindowHours = await this.settings.get('cancellation_free_window_hours');
-    if (booking.status !== BookingStatus.PENDING && !withinFreeWindow(booking, freeWindowHours)) {
-      throw new CancellationNotAllowedError();
-    }
+    const patientFee =
+      booking.status === BookingStatus.ON_THE_WAY ? await patientFeeFor(booking, 'late_cancellation') : null;
+    // Accepted, inside the free window, provider not on the way yet: free, but on the patient's record.
+    const lateCancellation =
+      booking.status === BookingStatus.ACCEPTED &&
+      !withinFreeWindow(booking, await this.settings.get('cancellation_free_window_hours'));
     await runBookingTransaction(async (tx) => {
       await transitionBooking(tx, booking, BookingStatus.CANCELLED, BookingActor.PATIENT, {
         changedBy: userId,
         set: {
           cancellationReason: { code: reason.code, text: reason.text ?? null },
           cancelledBy: BookingActor.PATIENT,
+          patientFee,
+          lateCancellation,
         },
         note: reason.code,
       });
@@ -205,12 +217,11 @@ export class BookingService {
         { session: tx.session },
       );
     });
-    // Cancelling is free (no fee rules yet). A paid card / wallet booking is refunded in full by the
-    // payment refund listener right after this commit.
+    const fee = patientFee?.amount ?? 0;
     return {
       status: BookingStatus.CANCELLED,
-      cancellationFee: 0,
-      refundAmount: booking.paymentStatus === PaymentStatus.PAID ? booking.price.total : 0,
+      cancellationFee: fee,
+      refundAmount: booking.paymentStatus === PaymentStatus.PAID ? booking.price.total - fee : 0,
     };
   }
 

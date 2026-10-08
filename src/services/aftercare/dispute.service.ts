@@ -5,7 +5,16 @@ import { DisputeModel } from '../../database/models/aftercare/aftercare.models';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
 import { BookingActor, BookingStatus, PaymentStatus } from '../../interfaces/IBooking';
 import { PaymentService } from '../payments/payment.service';
-import { DisputeResolution, DisputeStatus, ProviderAction, type IDispute } from '../../interfaces/IAftercare';
+import { LedgerService } from '../ledger/ledger.service';
+import { withTransaction } from '../../database/transaction';
+import { LedgerEntryType, LedgerOwnerType } from '../../interfaces/ILedger';
+import {
+  DisputeResolution,
+  DisputeStatus,
+  ProviderAction,
+  RefundBearer,
+  type IDispute,
+} from '../../interfaces/IAftercare';
 import { NotificationType } from '../../interfaces/INotification';
 import type { Pagination } from '../../utils/response/pagination';
 import { ConflictError, NotFoundError, ValidationError } from '../../utils/types-errors';
@@ -20,6 +29,10 @@ import { StorageService } from '../storage/storage.service';
 export type ResolveDisputeInput = {
   resolution: DisputeResolution;
   refundAmount?: number;
+  /** Who pays the refund. Default: the provider when they are warned or suspended, else the platform. */
+  refundBearer?: RefundBearer;
+  /** With `split`: how much the provider bears (piastres). */
+  providerShare?: number;
   providerAction: ProviderAction;
   suspendDays?: number | null;
   messageToPatient?: string | null;
@@ -132,9 +145,33 @@ export class DisputeService {
       throw new ValidationError({ refund_amount: ['validation.refund_amount'] });
     }
 
+    // Who bears the refund. The provider's part comes out of their share of the booking (never more).
+    const refundBearer =
+      input.refundBearer ??
+      (input.providerAction === ProviderAction.NONE ? RefundBearer.PLATFORM : RefundBearer.PROVIDER);
+    if (
+      refundBearer === RefundBearer.SPLIT &&
+      (input.providerShare === undefined || input.providerShare > refundAmount)
+    ) {
+      throw new ValidationError({ provider_share: ['validation.provider_share'] });
+    }
+    const providerShare =
+      refundAmount === 0 || !booking.providerProfileId
+        ? 0
+        : Math.min(
+            refundBearer === RefundBearer.PROVIDER
+              ? refundAmount
+              : refundBearer === RefundBearer.SPLIT
+                ? input.providerShare!
+                : 0,
+            booking.price.providerPayout,
+          );
+
     const resolution: IDispute['resolution'] = {
       type: input.resolution,
       refundAmount,
+      refundBearer,
+      providerShare,
       providerAction: input.providerAction,
       suspendDays: input.providerAction === ProviderAction.SUSPEND ? (input.suspendDays ?? null) : null,
       messageToPatient: input.messageToPatient ?? null,
@@ -155,6 +192,25 @@ export class DisputeService {
         booking._id,
         { amount: refundAmount, reason: `dispute:${disputeId}` },
         context,
+      );
+    }
+
+    // The provider's part becomes a debit on their ledger: deducted from a card booking's credited share,
+    // or owed back for a cash booking (they collected the money).
+    if (providerShare > 0 && booking.providerProfileId) {
+      const providerProfileId = booking.providerProfileId;
+      await withTransaction((session) =>
+        Container.get(LedgerService).record(
+          {
+            ownerType: LedgerOwnerType.PROVIDER,
+            ownerId: providerProfileId,
+            bookingId: booking._id,
+            type: LedgerEntryType.DEBIT,
+            amount: -providerShare,
+            note: `dispute refund: ${booking.referenceCode}`,
+          },
+          session,
+        ),
       );
     }
 

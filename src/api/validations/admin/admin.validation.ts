@@ -115,6 +115,19 @@ export const AdminSchemas = {
       user: adminUser,
       provider_profile: providerSummary.nullable(),
       bookings_count: z.number(),
+      /** Travel-fee charges on cash bookings (late cancellation / no-show) not collected — repeat cases show here. */
+      /**
+       * Patients: free late cancellations (accepted, within the free window, before "on the way"), and
+       * travel-fee charges (cancelled after "on the way" / no-show) incl. cash ones not collected.
+       */
+      cancellation_record: z.object({
+        late_cancellations: z.number(),
+        travel_fee_charges: z.object({
+          count: z.number(),
+          total: z.number(),
+          uncollected: z.object({ count: z.number(), total: z.number() }),
+        }),
+      }),
     })
     .openapi('AdminUserDetail'),
   suspendBody: z
@@ -242,6 +255,15 @@ export const AdminSchemas = {
         patient_notes: z.string().nullable(),
         cancellation_reason: z.object({ code: z.string(), text: z.string().nullable() }).nullable(),
         cancelled_by: z.string().nullable(),
+        /** Travel-fee charge for a late cancellation / no-show; collected = kept from a card refund. */
+        patient_fee: z
+          .object({
+            amount: z.number(),
+            reason: z.enum(['late_cancellation', 'no_show']),
+            collected: z.boolean(),
+          })
+          .nullable(),
+        late_cancellation: z.boolean(),
         completed_at: z.string().nullable(),
       }),
       history: z.array(

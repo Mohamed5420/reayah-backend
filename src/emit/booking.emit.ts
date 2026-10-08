@@ -1,5 +1,6 @@
 import { ProviderProfileModel } from '../database/models/provider/provider-profile.model';
 import { bookingEvents } from '../events/booking.events';
+import { BookingStatus } from '../interfaces/IBooking';
 import { bookingRoom, getIOIfReady, userRoom } from '../helper/socket';
 
 /** Socket event names (spec §7.12). */
@@ -28,7 +29,8 @@ export const registerBookingSocketEvents = () => {
 
     if (event.type === 'status_changed') {
       const recipients = [String(event.booking.patientUserId)];
-      if (event.booking.providerProfileId) {
+      // A provider never saw a booking that was still awaiting payment (once paid they get new_request).
+      if (event.booking.providerProfileId && event.from !== BookingStatus.AWAITING_PAYMENT) {
         recipients.push(...(await providerUserIds([String(event.booking.providerProfileId)])));
       }
       io.to([...recipients.map(userRoom), bookingRoom(bookingId)]).emit(BookingSocketEvents.STATUS_CHANGED, {
