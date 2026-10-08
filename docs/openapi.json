@@ -419,7 +419,47 @@
             ]
           },
           "organization": {
-            "type": "null"
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "nursing_center",
+                  "clinic",
+                  "lab",
+                  "elderly_care",
+                  "other"
+                ]
+              },
+              "verification_status": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "pending",
+                  "changes_requested",
+                  "approved",
+                  "rejected",
+                  "suspended"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "type",
+              "verification_status"
+            ]
           },
           "unread_notifications": {
             "type": "number"
@@ -2863,6 +2903,68 @@
           "documents_count"
         ]
       },
+      "OrganizationQueueItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "organization"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "organization_type": {
+            "type": "string",
+            "enum": [
+              "nursing_center",
+              "clinic",
+              "lab",
+              "elderly_care",
+              "other"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "changes_requested",
+              "approved",
+              "rejected",
+              "suspended"
+            ]
+          },
+          "submitted_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "documents_count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "name",
+          "phone",
+          "organization_type",
+          "status",
+          "submitted_at",
+          "documents_count"
+        ]
+      },
       "VerificationDetail": {
         "type": "object",
         "properties": {
@@ -3102,6 +3204,284 @@
           "services",
           "availability",
           "onboarding"
+        ]
+      },
+      "OrganizationReviewDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "nursing_center",
+              "clinic",
+              "lab",
+              "elderly_care",
+              "other"
+            ]
+          },
+          "commercial_register_no": {
+            "type": "string"
+          },
+          "tax_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "address_text": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "logo_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verification_status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "changes_requested",
+              "approved",
+              "rejected",
+              "suspended"
+            ]
+          },
+          "rejection_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "admin_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "submitted_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "organization"
+            ]
+          },
+          "owner": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "full_name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "full_name",
+              "phone"
+            ]
+          },
+          "commission_rate": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationDocument"
+            }
+          },
+          "service_areas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationServiceArea"
+            }
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderService"
+            }
+          },
+          "onboarding": {
+            "type": "object",
+            "properties": {
+              "info_completed": {
+                "type": "boolean"
+              },
+              "documents_uploaded": {
+                "type": "boolean"
+              },
+              "areas_selected": {
+                "type": "boolean"
+              },
+              "services_set": {
+                "type": "boolean"
+              },
+              "can_submit": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "info_completed",
+              "documents_uploaded",
+              "areas_selected",
+              "services_set",
+              "can_submit"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "commercial_register_no",
+          "tax_id",
+          "description",
+          "phone",
+          "address_text",
+          "logo_url",
+          "verification_status",
+          "rejection_reason",
+          "admin_message",
+          "submitted_at",
+          "reviewed_at",
+          "created_at",
+          "updated_at",
+          "kind",
+          "owner",
+          "commission_rate",
+          "documents",
+          "service_areas",
+          "services",
+          "onboarding"
+        ]
+      },
+      "OrganizationDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "commercial_register",
+              "tax_card"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "matching",
+              "not_matching"
+            ]
+          },
+          "mime": {
+            "type": "string"
+          },
+          "file_url": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "review_note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "uploaded_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "status",
+          "mime",
+          "file_url",
+          "expires_at",
+          "review_note",
+          "uploaded_at"
+        ]
+      },
+      "OrganizationServiceArea": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProviderServiceArea"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "is_active": {
+                "type": "boolean"
+              },
+              "team_size": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "is_active",
+              "team_size"
+            ]
+          }
         ]
       },
       "Home": {
@@ -8781,6 +9161,420 @@
           }
         },
         "additionalProperties": false
+      },
+      "Organization": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "nursing_center",
+              "clinic",
+              "lab",
+              "elderly_care",
+              "other"
+            ]
+          },
+          "commercial_register_no": {
+            "type": "string"
+          },
+          "tax_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "address_text": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "logo_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verification_status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "changes_requested",
+              "approved",
+              "rejected",
+              "suspended"
+            ]
+          },
+          "rejection_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "admin_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "submitted_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "onboarding": {
+            "type": "object",
+            "properties": {
+              "info_completed": {
+                "type": "boolean"
+              },
+              "documents_uploaded": {
+                "type": "boolean"
+              },
+              "areas_selected": {
+                "type": "boolean"
+              },
+              "services_set": {
+                "type": "boolean"
+              },
+              "can_submit": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "info_completed",
+              "documents_uploaded",
+              "areas_selected",
+              "services_set",
+              "can_submit"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "commercial_register_no",
+          "tax_id",
+          "description",
+          "phone",
+          "address_text",
+          "logo_url",
+          "verification_status",
+          "rejection_reason",
+          "admin_message",
+          "submitted_at",
+          "reviewed_at",
+          "onboarding",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "CreateOrganization": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "nursing_center",
+              "clinic",
+              "lab",
+              "elderly_care",
+              "other"
+            ]
+          },
+          "commercial_register_no": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50
+          },
+          "tax_id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\+?\\d{7,15}$"
+          },
+          "address_text": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "commercial_register_no",
+          "tax_id"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateOrganization": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "nursing_center",
+              "clinic",
+              "lab",
+              "elderly_care",
+              "other"
+            ]
+          },
+          "commercial_register_no": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50
+          },
+          "tax_id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\+?\\d{7,15}$"
+          },
+          "address_text": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300
+          }
+        },
+        "additionalProperties": false
+      },
+      "AttachOrganizationDocument": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "commercial_register",
+              "tax_card"
+            ]
+          },
+          "file_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "example": "2030-12-31"
+          }
+        },
+        "required": [
+          "type",
+          "file_key"
+        ],
+        "additionalProperties": false
+      },
+      "AdminOrganizationListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "nursing_center",
+              "clinic",
+              "lab",
+              "elderly_care",
+              "other"
+            ]
+          },
+          "verification_status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "changes_requested",
+              "approved",
+              "rejected",
+              "suspended"
+            ]
+          },
+          "owner": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "full_name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "full_name",
+              "phone"
+            ]
+          },
+          "commission_rate": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "service_areas_count": {
+            "type": "number"
+          },
+          "services_count": {
+            "type": "number"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "verification_status",
+          "owner",
+          "commission_rate",
+          "service_areas_count",
+          "services_count",
+          "created_at"
+        ]
+      },
+      "AdminUpdateOrganization": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "nursing_center",
+              "clinic",
+              "lab",
+              "elderly_care",
+              "other"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\+?\\d{7,15}$"
+          },
+          "address_text": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300
+          },
+          "commission_rate": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "additionalProperties": false
       }
     },
     "parameters": {}
@@ -13538,7 +14332,7 @@
     },
     "/api/v1/admin/verifications": {
       "get": {
-        "summary": "Verification queue, oldest submission first (organizations: Phase 3)",
+        "summary": "Verification queue (providers or organizations), oldest submission first",
         "tags": [
           "Admin — Verification"
         ],
@@ -13611,7 +14405,14 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/VerificationQueueItem"
+                        "anyOf": [
+                          {
+                            "$ref": "#/components/schemas/VerificationQueueItem"
+                          },
+                          {
+                            "$ref": "#/components/schemas/OrganizationQueueItem"
+                          }
+                        ]
                       }
                     },
                     "meta": {
@@ -13641,7 +14442,7 @@
     },
     "/api/v1/admin/verifications/{id}": {
       "get": {
-        "summary": "Full submission with signed document URLs, coverage, services and checklist",
+        "summary": "Full submission (provider or organization) with signed document URLs, coverage, services and checklist",
         "tags": [
           "Admin — Verification"
         ],
@@ -13671,7 +14472,14 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/VerificationDetail"
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/VerificationDetail"
+                        },
+                        {
+                          "$ref": "#/components/schemas/OrganizationReviewDetail"
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -13726,7 +14534,14 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/VerificationDetail"
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/VerificationDetail"
+                        },
+                        {
+                          "$ref": "#/components/schemas/OrganizationReviewDetail"
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -13792,7 +14607,9 @@
                         "syndicate_card",
                         "national_id_front",
                         "national_id_back",
-                        "certificate"
+                        "certificate",
+                        "commercial_register",
+                        "tax_card"
                       ]
                     },
                     "default": []
@@ -13814,7 +14631,14 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/VerificationDetail"
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/VerificationDetail"
+                        },
+                        {
+                          "$ref": "#/components/schemas/OrganizationReviewDetail"
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -13839,7 +14663,7 @@
     },
     "/api/v1/admin/verifications/{id}/reject": {
       "post": {
-        "summary": "Reject (the provider can fix and resubmit)",
+        "summary": "Reject (the provider / organization can fix and resubmit)",
         "tags": [
           "Admin — Verification"
         ],
@@ -13880,7 +14704,9 @@
                         "syndicate_card",
                         "national_id_front",
                         "national_id_back",
-                        "certificate"
+                        "certificate",
+                        "commercial_register",
+                        "tax_card"
                       ]
                     },
                     "default": []
@@ -13902,7 +14728,14 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/VerificationDetail"
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/VerificationDetail"
+                        },
+                        {
+                          "$ref": "#/components/schemas/OrganizationReviewDetail"
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -13993,7 +14826,14 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/ProviderDocument"
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/ProviderDocument"
+                        },
+                        {
+                          "$ref": "#/components/schemas/OrganizationDocument"
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -21056,6 +21896,870 @@
         "responses": {
           "204": {
             "description": "Success"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org": {
+      "post": {
+        "summary": "Create my organization (owners, once). It starts as a draft until submitted for verification.",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganization"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Organization"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "My organization, with its verification status and onboarding checklist",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Organization"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update my organization. Name, type, commercial register and tax id are locked once submitted (until changes are requested or it is rejected).",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganization"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Organization"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/logo": {
+      "post": {
+        "summary": "Upload the organization logo (JPG or PNG, max 10 MB); replaces the previous one",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Organization"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/documents": {
+      "get": {
+        "summary": "Commercial register and tax card, with review status",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrganizationDocument"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Attach a commercial register / tax card uploaded with purpose `org_document` (replaces that type)",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachOrganizationDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationDocument"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/documents/{id}": {
+      "delete": {
+        "summary": "Remove a document (not once the admin accepted it)",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/submit-verification": {
+      "post": {
+        "summary": "Submit for admin review (422 names each missing item: info, documents, areas, services)",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Organization"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/service-areas": {
+      "get": {
+        "summary": "Areas served, travel fee per area and team size per area (approved staff covering it)",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrganizationServiceArea"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Replace the areas served. Travel fee can't exceed the area's cap; every bad entry is reported.",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "areas": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "area_id": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{24}$/i",
+                          "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                        },
+                        "travel_fee": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "default": 0,
+                          "example": 25000
+                        },
+                        "is_active": {
+                          "type": "boolean",
+                          "default": true
+                        }
+                      },
+                      "required": [
+                        "area_id"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 100
+                  }
+                },
+                "required": [
+                  "areas"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrganizationServiceArea"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/services": {
+      "get": {
+        "summary": "Services the organization offers, with its prices",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProviderService"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Replace services & prices (within the admin min / max per service)",
+        "tags": [
+          "Owner — Organization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "services": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "service_id": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{24}$/i",
+                          "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                        },
+                        "price": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "example": 25000
+                        },
+                        "is_active": {
+                          "type": "boolean",
+                          "default": true
+                        }
+                      },
+                      "required": [
+                        "service_id",
+                        "price"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "maxItems": 100
+                  }
+                },
+                "required": [
+                  "services"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProviderService"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/organizations": {
+      "get": {
+        "summary": "Organizations, newest first",
+        "tags": [
+          "Admin — Organizations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "pending",
+                "changes_requested",
+                "approved",
+                "rejected",
+                "suspended"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "search",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminOrganizationListItem"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/organizations/{id}": {
+      "get": {
+        "summary": "Organization details: info, owner, documents, areas with team size, services, commission rate",
+        "tags": [
+          "Admin — Organizations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationReviewDetail"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Edit an organization / set a custom commission rate (null = platform rate). Audited.",
+        "tags": [
+          "Admin — Organizations"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUpdateOrganization"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationReviewDetail"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
           },
           "default": {
             "description": "Error (see `error.code`)",

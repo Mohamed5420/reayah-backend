@@ -1,3 +1,4 @@
+import { OrganizationType } from '../../../interfaces/IOrganization';
 import { EGYPT_MOBILE, OTP } from '../../../services/auth/auth.constants';
 import {
   DevicePlatform,
@@ -59,7 +60,15 @@ const me = z
         is_accepting_bookings: z.boolean(),
       })
       .nullable(),
-    organization: z.null(),
+    /** Owners: their organization (null until created with POST /org). */
+    organization: z
+      .object({
+        id: objectId,
+        name: z.string(),
+        type: z.enum(OrganizationType),
+        verification_status: z.enum(VerificationStatus),
+      })
+      .nullable(),
     unread_notifications: z.number(),
   })
   .openapi('Me');

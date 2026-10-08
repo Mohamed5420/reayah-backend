@@ -5,7 +5,13 @@ import { CheckAppStatusMiddleware } from '../../middlewares/app';
 import { AdminGuard } from '../../middlewares/auth';
 import { ProviderSchemas } from '../../validations/provider/provider.validation';
 import { parseDateOnly } from '../../validations/auth/auth.validation';
-import { type z } from '../../validations/zod';
+import { z } from '../../validations/zod';
+import { OrganizationSchemas } from '../../validations/organization/organization.validation';
+import { presentOrgDocument, presentOrgQueueItem } from '../../presenters/organization.presenter';
+import { OrganizationAdminService } from '../../../services/organization';
+import { OrganizationDocumentType } from '../../../interfaces/IOrganization';
+import { ProviderDocumentType } from '../../../interfaces/IProvider';
+import { buildOrgReviewDetail } from '../organization/org-review';
 import {
   presentProviderDocument,
   presentQueueItem,
@@ -27,24 +33,44 @@ const tags = ['Admin — Verification'];
 const auth = true;
 const review = ProviderSchemas.idParams;
 
+/** The queue serves providers and organizations; ids tell them apart. */
+const reviewDetail = z.union([ProviderSchemas.reviewDetail, OrganizationSchemas.reviewDetail]);
+const documentTypes = z.enum([
+  ...Object.values(ProviderDocumentType),
+  ...Object.values(OrganizationDocumentType),
+]);
+const requestChangesBody = z.object({
+  message: z.string().trim().min(1).max(1000),
+  /** Provider or organization document types, depending on the submission. */
+  documents: z.array(documentTypes).default([]),
+});
+const rejectBody = z.object({
+  reason: z.string().trim().min(1).max(1000),
+  documents: z.array(documentTypes).default([]),
+});
+
 const r = {
   queue: defineRoute({
     method: 'get',
     path: '/admin/verifications',
-    summary: 'Verification queue, oldest submission first (organizations: Phase 3)',
+    summary: 'Verification queue (providers or organizations), oldest submission first',
     tags,
     auth,
     request: { query: ProviderSchemas.queueQuery },
-    response: { schema: ProviderSchemas.queueItem, paginated: true },
+    response: {
+      schema: z.union([ProviderSchemas.queueItem, OrganizationSchemas.queueItem]),
+      paginated: true,
+    },
   }),
   detail: defineRoute({
     method: 'get',
     path: '/admin/verifications/:id',
-    summary: 'Full submission with signed document URLs, coverage, services and checklist',
+    summary:
+      'Full submission (provider or organization) with signed document URLs, coverage, services and checklist',
     tags,
     auth,
     request: { params: review },
-    response: { schema: ProviderSchemas.reviewDetail },
+    response: { schema: reviewDetail },
   }),
   approve: defineRoute({
     method: 'post',
@@ -53,7 +79,7 @@ const r = {
     tags,
     auth,
     request: { params: review },
-    response: { schema: ProviderSchemas.reviewDetail },
+    response: { schema: reviewDetail },
   }),
   requestChanges: defineRoute({
     method: 'post',
@@ -61,17 +87,17 @@ const r = {
     summary: 'Send back for changes; the listed documents must be re-uploaded',
     tags,
     auth,
-    request: { params: review, body: ProviderSchemas.requestChangesBody },
-    response: { schema: ProviderSchemas.reviewDetail },
+    request: { params: review, body: requestChangesBody },
+    response: { schema: reviewDetail },
   }),
   reject: defineRoute({
     method: 'post',
     path: '/admin/verifications/:id/reject',
-    summary: 'Reject (the provider can fix and resubmit)',
+    summary: 'Reject (the provider / organization can fix and resubmit)',
     tags,
     auth,
-    request: { params: review, body: ProviderSchemas.rejectBody },
-    response: { schema: ProviderSchemas.reviewDetail },
+    request: { params: review, body: rejectBody },
+    response: { schema: reviewDetail },
   }),
   reviewDocument: defineRoute({
     method: 'post',
@@ -80,7 +106,7 @@ const r = {
     tags,
     auth,
     request: { params: review, body: ProviderSchemas.documentReviewBody },
-    response: { schema: ProviderSchemas.document },
+    response: { schema: z.union([ProviderSchemas.document, OrganizationSchemas.document]) },
   }),
 };
 
@@ -93,6 +119,7 @@ export default class AdminVerificationController implements IBaseController {
   private documents = Container.get(ProviderDocumentService);
   private coverage = Container.get(ProviderCoverageService);
   private locations = Container.get(LocationService);
+  private organizations = Container.get(OrganizationAdminService);
 
   constructor() {
     this.initializeRoutes();
@@ -121,6 +148,10 @@ export default class AdminVerificationController implements IBaseController {
     try {
       const query = req.query as unknown as z.infer<typeof ProviderSchemas.queueQuery>;
       const pagination = parsePagination(req.query);
+      if (query.type === 'organization') {
+        const orgs = await this.organizations.queue(query.status, pagination);
+        return HttpResponse.paginated(res, orgs.data.map(presentOrgQueueItem), pagination, orgs.total);
+      }
       const { data, total } = await this.verification.queue(
         { type: query.type, status: query.status },
         pagination,
@@ -146,7 +177,11 @@ export default class AdminVerificationController implements IBaseController {
 
   private async approve(req: Request, res: Response, next: NextFunction) {
     try {
-      await this.verification.approve(req.params.id, auditContextFrom(req));
+      if (await this.organizations.isOrganization(req.params.id)) {
+        await this.organizations.approve(req.params.id, auditContextFrom(req));
+      } else {
+        await this.verification.approve(req.params.id, auditContextFrom(req));
+      }
       return HttpResponse.ok(res, await this.reviewDetail(req));
     } catch (err) {
       next(err);
@@ -155,8 +190,20 @@ export default class AdminVerificationController implements IBaseController {
 
   private async requestChanges(req: Request, res: Response, next: NextFunction) {
     try {
-      const body = req.body as z.infer<typeof ProviderSchemas.requestChangesBody>;
-      await this.verification.requestChanges(req.params.id, body, auditContextFrom(req));
+      const body = req.body as z.infer<typeof requestChangesBody>;
+      if (await this.organizations.isOrganization(req.params.id)) {
+        await this.organizations.requestChanges(
+          req.params.id,
+          { message: body.message, documents: orgDocuments(body.documents) },
+          auditContextFrom(req),
+        );
+      } else {
+        await this.verification.requestChanges(
+          req.params.id,
+          { message: body.message, documents: providerDocuments(body.documents) },
+          auditContextFrom(req),
+        );
+      }
       return HttpResponse.ok(res, await this.reviewDetail(req));
     } catch (err) {
       next(err);
@@ -165,8 +212,20 @@ export default class AdminVerificationController implements IBaseController {
 
   private async reject(req: Request, res: Response, next: NextFunction) {
     try {
-      const body = req.body as z.infer<typeof ProviderSchemas.rejectBody>;
-      await this.verification.reject(req.params.id, body, auditContextFrom(req));
+      const body = req.body as z.infer<typeof rejectBody>;
+      if (await this.organizations.isOrganization(req.params.id)) {
+        await this.organizations.reject(
+          req.params.id,
+          { reason: body.reason, documents: orgDocuments(body.documents) },
+          auditContextFrom(req),
+        );
+      } else {
+        await this.verification.reject(
+          req.params.id,
+          { reason: body.reason, documents: providerDocuments(body.documents) },
+          auditContextFrom(req),
+        );
+      }
       return HttpResponse.ok(res, await this.reviewDetail(req));
     } catch (err) {
       next(err);
@@ -176,21 +235,23 @@ export default class AdminVerificationController implements IBaseController {
   private async reviewDocument(req: Request, res: Response, next: NextFunction) {
     try {
       const body = req.body as z.infer<typeof ProviderSchemas.documentReviewBody>;
-      const document = await this.verification.reviewDocument(
+      const input = {
+        status: body.status,
+        note: body.note,
+        // undefined = leave the expiry as is; null = clear it.
+        expiresAt:
+          body.expires_at === undefined ? undefined : body.expires_at ? parseDateOnly(body.expires_at) : null,
+      };
+      const orgDocument = await this.organizations.reviewDocument(
         req.params.id,
-        {
-          status: body.status,
-          note: body.note,
-          // undefined = leave the expiry as is; null = clear it.
-          expiresAt:
-            body.expires_at === undefined
-              ? undefined
-              : body.expires_at
-                ? parseDateOnly(body.expires_at)
-                : null,
-        },
+        input,
         auditContextFrom(req),
       );
+      if (orgDocument) {
+        const [{ fileUrl }] = await this.documents.withUrls([orgDocument]);
+        return HttpResponse.ok(res, presentOrgDocument(orgDocument, fileUrl));
+      }
+      const document = await this.verification.reviewDocument(req.params.id, input, auditContextFrom(req));
       const [{ fileUrl }] = await this.documents.withUrls([document]);
       return HttpResponse.ok(res, presentProviderDocument(document, fileUrl));
     } catch (err) {
@@ -199,6 +260,9 @@ export default class AdminVerificationController implements IBaseController {
   }
 
   private async reviewDetail(req: Request) {
+    if (await this.organizations.isOrganization(req.params.id)) {
+      return buildOrgReviewDetail(req.params.id, resolveLanguage(req));
+    }
     const { profile, user, checklist } = await this.verification.getForReview(req.params.id);
     const [documents, places, catalog] = await Promise.all([
       this.documents.list(profile._id),
@@ -216,3 +280,10 @@ export default class AdminVerificationController implements IBaseController {
     });
   }
 }
+
+const PROVIDER_DOCUMENT_TYPES: string[] = Object.values(ProviderDocumentType);
+const providerDocuments = (types: string[]) =>
+  types.filter((t): t is ProviderDocumentType => PROVIDER_DOCUMENT_TYPES.includes(t));
+const ORGANIZATION_DOCUMENT_TYPES: string[] = Object.values(OrganizationDocumentType);
+const orgDocuments = (types: string[]) =>
+  types.filter((t): t is OrganizationDocumentType => ORGANIZATION_DOCUMENT_TYPES.includes(t));

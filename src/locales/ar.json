@@ -104,7 +104,10 @@
     "package_subscription_not_found": "الاشتراك في الباقة غير موجود",
     "packages_unavailable": "الباقات غير متاحة حالياً",
     "banner_not_found": "البانر غير موجود",
-    "credit_changed": "تغير رصيدك منذ عرض السعر، اطلب عرض سعر جديد"
+    "credit_changed": "تغير رصيدك منذ عرض السعر، اطلب عرض سعر جديد",
+    "organization_not_found": "لم يتم إنشاء المؤسسة بعد",
+    "organization_exists": "لديك مؤسسة بالفعل",
+    "organization_fields_locked": "لا يمكن تعديل الاسم أو النوع أو السجل التجاري أو البطاقة الضريبية بعد إرسال الطلب للمراجعة"
   },
   "validation": {
     "invalid_value": "قيمة غير صالحة",
@@ -160,7 +163,8 @@
     "percent_value": "النسبة يجب أن تكون بين 1 و 100",
     "valid_to_after_from": "تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية",
     "banner_value": "القيمة لا تتوافق مع نوع الإجراء",
-    "promo_code_format": "الكود من 2 إلى 32 حرفاً أو رقماً إنجليزياً"
+    "promo_code_format": "الكود من 2 إلى 32 حرفاً أو رقماً إنجليزياً",
+    "onboarding_org_info": "أكمل بيانات المؤسسة"
   },
   "address": {
     "floor": "الدور {{floor}}",
@@ -337,6 +341,18 @@
     "referral_reward_referrer": {
       "title": "مكافأة دعوة صديق",
       "body": "أكمل صديقك أول زيارة، وأضفنا لك {{amount}} جنيه"
+    },
+    "org_verification_approved": {
+      "title": "تم توثيق مؤسستك",
+      "body": "يمكنك الآن إضافة فريقك واستقبال الحجوزات"
+    },
+    "org_verification_changes_requested": {
+      "title": "مطلوب تعديلات على طلب توثيق المؤسسة",
+      "body": "{{message}}"
+    },
+    "org_verification_rejected": {
+      "title": "تم رفض طلب توثيق المؤسسة",
+      "body": "{{reason}}"
     }
   },
   "packages": {

@@ -238,8 +238,8 @@ Put on hold by product decision: no video work at this stage. Until it resumes, 
 ## Phase 3 — Organizations
 
 ### M3.1 Organization setup & verification (§4.4, §7.11 setup)
-- [ ] `organizations` (owner role), documents (`commercial_register`, `tax_card`), submit/verify through the existing admin verification queue.
-- [ ] Org service areas with travel fee + computed team size per area; org services & prices.
+- [x] `organizations` (owner role), documents (`commercial_register`, `tax_card`), submit/verify through the existing admin verification queue. *(One organization per owner account and per commercial register number. Same flow as providers: draft → pending → approved / changes_requested / rejected; name, type, commercial register and tax id lock once submitted. `/admin/verifications?type=organization` and the same approve / request-changes / reject / document-review routes (ids tell providers and organizations apart). `GET /me` returns the owner's organization. Also `/admin/organizations` list / details / edit with a custom `commission_rate` (stored now, used for org bookings in M3.3). Address is text only.)*
+- [x] Org service areas with travel fee + computed team size per area; org services & prices. *(Team size = approved staff of the organization covering the area and taking bookings — 0 until M3.2 invites. An organization may offer nurse and doctor services. Org packages (`/org/packages`) moved to M3.4.)*
 
 ### M3.2 Team management
 - [ ] Staff invites by SMS → invitee becomes `provider_staff` linked to the org (still needs document verification).

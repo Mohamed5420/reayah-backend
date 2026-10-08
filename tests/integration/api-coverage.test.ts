@@ -14,9 +14,11 @@ createTestApp(); // registers every route
 
 /** Spec endpoints that belong to later milestones (docs/BUILD_PLAN.md). First match wins. */
 const DEFERRED: Array<[RegExp, string]> = [
+  [/^\w+ \/org\/staff/, 'M3.2 — Team management'],
+  [/^\w+ \/org\/bookings/, 'M3.3 — Org bookings & assignment'],
   [
-    /^\w+ \/org\b|^\w+ \/subscription-plans|^\w+ \/admin\/(organizations|subscription-plans)/,
-    'M3 — Organizations',
+    /^\w+ \/org\/(dashboard|reports|invoices|earnings|ledger|payouts|payout-method|subscription|packages)|^\w+ \/subscription-plans|^\w+ \/admin\/subscription-plans/,
+    'M3.4 — Org dashboard, finance & subscriptions',
   ],
   [/^\w+ \/admin\/analytics|^POST \/admin\/notifications\/broadcast/, 'M3.5 — Advanced admin'],
 ];

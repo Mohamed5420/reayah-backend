@@ -24,6 +24,8 @@ import PaymentController from './payment/payment.controller';
 import FinanceController from './finance/finance.controller';
 import MarketingController from './marketing/marketing.controller';
 import AdminMarketingController from './admin/admin-marketing.controller';
+import OrganizationController from './organization/organization.controller';
+import AdminOrganizationController from './admin/admin-organization.controller';
 
 /**
  * Register every controller here. Each one is instantiated once at boot
@@ -55,6 +57,8 @@ const controllerClasses: Array<new () => IBaseController> = [
   FinanceController,
   MarketingController,
   AdminMarketingController,
+  OrganizationController,
+  AdminOrganizationController,
 ];
 
 export const getGlobalControllers = (): IBaseController[] => controllerClasses.map((C) => new C());

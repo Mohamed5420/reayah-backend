@@ -2912,10 +2912,10 @@
       "name": "Admin — Verification",
       "item": [
         {
-          "name": "Verification queue, oldest submission first (organizations: Phase 3)",
+          "name": "Verification queue (providers or organizations), oldest submission first",
           "request": {
             "method": "GET",
-            "description": "Verification queue, oldest submission first (organizations: Phase 3)",
+            "description": "Verification queue (providers or organizations), oldest submission first",
             "header": [
               {
                 "key": "Accept-Language",
@@ -2958,10 +2958,10 @@
           }
         },
         {
-          "name": "Full submission with signed document URLs, coverage, services and checklist",
+          "name": "Full submission (provider or organization) with signed document URLs, coverage, services and checklist",
           "request": {
             "method": "GET",
-            "description": "Full submission with signed document URLs, coverage, services and checklist",
+            "description": "Full submission (provider or organization) with signed document URLs, coverage, services and checklist",
             "header": [
               {
                 "key": "Accept-Language",
@@ -3062,10 +3062,10 @@
           }
         },
         {
-          "name": "Reject (the provider can fix and resubmit)",
+          "name": "Reject (the provider / organization can fix and resubmit)",
           "request": {
             "method": "POST",
-            "description": "Reject (the provider can fix and resubmit)",
+            "description": "Reject (the provider / organization can fix and resubmit)",
             "header": [
               {
                 "key": "Accept-Language",
@@ -7050,6 +7050,491 @@
                   "value": "665f1c2b9e1d2a4c3b9e8f1a"
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner — Organization",
+      "item": [
+        {
+          "name": "Create my organization (owners, once). It starts as a draft until submitted for verification.",
+          "request": {
+            "method": "POST",
+            "description": "Create my organization (owners, once). It starts as a draft until submitted for verification.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"string\",\n  \"type\": \"nursing_center\",\n  \"commercial_register_no\": \"string\",\n  \"tax_id\": \"string\",\n  \"description\": \"string\",\n  \"phone\": \"string\",\n  \"address_text\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "My organization, with its verification status and onboarding checklist",
+          "request": {
+            "method": "GET",
+            "description": "My organization, with its verification status and onboarding checklist",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Update my organization. Name, type, commercial register and tax id are locked once submitted (until changes are requested or it is rejected).",
+          "request": {
+            "method": "PATCH",
+            "description": "Update my organization. Name, type, commercial register and tax id are locked once submitted (until changes are requested or it is rejected).",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"string\",\n  \"type\": \"nursing_center\",\n  \"commercial_register_no\": \"string\",\n  \"tax_id\": \"string\",\n  \"description\": \"string\",\n  \"phone\": \"string\",\n  \"address_text\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Upload the organization logo (JPG or PNG, max 10 MB); replaces the previous one",
+          "request": {
+            "method": "POST",
+            "description": "Upload the organization logo (JPG or PNG, max 10 MB); replaces the previous one",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/logo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "logo"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Commercial register and tax card, with review status",
+          "request": {
+            "method": "GET",
+            "description": "Commercial register and tax card, with review status",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "documents"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Attach a commercial register / tax card uploaded with purpose `org_document` (replaces that type)",
+          "request": {
+            "method": "POST",
+            "description": "Attach a commercial register / tax card uploaded with purpose `org_document` (replaces that type)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "documents"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"commercial_register\",\n  \"file_key\": \"string\",\n  \"expires_at\": \"2030-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove a document (not once the admin accepted it)",
+          "request": {
+            "method": "DELETE",
+            "description": "Remove a document (not once the admin accepted it)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/documents/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "documents",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit for admin review (422 names each missing item: info, documents, areas, services)",
+          "request": {
+            "method": "POST",
+            "description": "Submit for admin review (422 names each missing item: info, documents, areas, services)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/submit-verification",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "submit-verification"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Areas served, travel fee per area and team size per area (approved staff covering it)",
+          "request": {
+            "method": "GET",
+            "description": "Areas served, travel fee per area and team size per area (approved staff covering it)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/service-areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "service-areas"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Replace the areas served. Travel fee can't exceed the area's cap; every bad entry is reported.",
+          "request": {
+            "method": "PUT",
+            "description": "Replace the areas served. Travel fee can't exceed the area's cap; every bad entry is reported.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/service-areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "service-areas"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"areas\": [\n    {\n      \"area_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n      \"travel_fee\": 25000,\n      \"is_active\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Services the organization offers, with its prices",
+          "request": {
+            "method": "GET",
+            "description": "Services the organization offers, with its prices",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "services"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Replace services & prices (within the admin min / max per service)",
+          "request": {
+            "method": "PUT",
+            "description": "Replace services & prices (within the admin min / max per service)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "services"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"services\": [\n    {\n      \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n      \"price\": 25000,\n      \"is_active\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Organizations",
+      "item": [
+        {
+          "name": "Organizations, newest first",
+          "request": {
+            "method": "GET",
+            "description": "Organizations, newest first",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/organizations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "organizations"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "string",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Organization details: info, owner, documents, areas with team size, services, commission rate",
+          "request": {
+            "method": "GET",
+            "description": "Organization details: info, owner, documents, areas with team size, services, commission rate",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/organizations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "organizations",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Edit an organization / set a custom commission rate (null = platform rate). Audited.",
+          "request": {
+            "method": "PATCH",
+            "description": "Edit an organization / set a custom commission rate (null = platform rate). Audited.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/organizations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "organizations",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"string\",\n  \"type\": \"nursing_center\",\n  \"description\": \"string\",\n  \"phone\": \"string\",\n  \"address_text\": \"string\",\n  \"commission_rate\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         }

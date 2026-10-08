@@ -131,7 +131,7 @@ export class ProviderCoverageService {
   }
 
   /** Catalog entries for the provider's services, including ones an admin deactivated since. */
-  async describeServices(profile: IProviderProfile) {
+  async describeServices(profile: { services: Array<{ serviceId: Types.ObjectId }> }) {
     const ids = profile.services.map((s) => s.serviceId);
     const [services, active] = await Promise.all([
       CatalogServiceModel.find({ _id: { $in: ids } })

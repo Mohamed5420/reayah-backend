@@ -42,3 +42,15 @@ Also:
 - **Who can access:** the patient (their packages, credit and referral stats); admins (package sales counts, promo use counts). Providers see only that a visit is covered by a package (the amount to collect).
 - **Retention:** package purchases and credit entries are financial records, kept like payments. Referral records are kept for the life of the referring account (the phone hash stays so a number can't be referred twice).
 - **Home banners:** marketing images uploaded by admins — no personal data.
+
+## 5. Organizations (M3.1)
+
+- **Data we collect → new row:**
+
+| Data | About whom | Examples | Why we need it | Sensitive? |
+|---|---|---|---|---|
+| Organization details | Service owners (nursing centers, clinics, labs, elderly-care companies) and their owner | Name, type, commercial register number, tax id, description, contact phone, business address (text), logo, commercial register and tax card scans, service areas, prices | Verifying the business before it can receive bookings; showing it to patients | Business data; the scans may show the owner's personal details |
+
+- **Where it's stored:** main database (`organizations`, `organization_documents`); scans and logo in private storage.
+- **Who can access:** the owner; Reaya+ admins (verification and organization management). The custom commission rate is visible to admins only.
+- **Retention:** kept while the organization's account exists; verification records follow the provider documents rule.

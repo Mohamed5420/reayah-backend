@@ -71,7 +71,7 @@ export const presentVerificationStatus = (p: IProviderProfile, documents: IProvi
 });
 
 export const presentServiceAreas = (
-  p: IProviderProfile,
+  p: { serviceAreas: Array<{ areaId: unknown; travelFee: number }> },
   places: Map<string, AreaDescription>,
   lang: Language,
 ) =>
@@ -88,7 +88,7 @@ export const presentServiceAreas = (
   });
 
 export const presentProviderServices = (
-  p: IProviderProfile,
+  p: { services: Array<{ serviceId: unknown; price: number; isActive: boolean }> },
   catalog: Map<string, { service: ICatalogService; available: boolean }>,
   lang: Language,
 ) =>

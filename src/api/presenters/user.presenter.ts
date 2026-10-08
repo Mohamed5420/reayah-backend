@@ -1,5 +1,6 @@
 import type { IUser } from '../../interfaces/IUser';
 import type { IProviderProfile } from '../../interfaces/IProfiles';
+import type { IOrganization } from '../../interfaces/IOrganization';
 
 /** Maps users to the API shapes in auth.validation.ts. */
 
@@ -17,11 +18,13 @@ export const presentMe = ({
   providerProfile,
   avatarUrl,
   unreadNotifications,
+  organization = null,
 }: {
   user: IUser;
   providerProfile: IProviderProfile | null;
   avatarUrl: string | null;
   unreadNotifications: number;
+  organization?: Pick<IOrganization, '_id' | 'name' | 'type' | 'verificationStatus'> | null;
 }) => ({
   id: String(user._id),
   phone: user.phone,
@@ -41,6 +44,14 @@ export const presentMe = ({
         is_accepting_bookings: providerProfile.isAcceptingBookings,
       }
     : null,
-  organization: null, // organizations: Phase 3
+  // Owners: their organization (null until POST /org).
+  organization: organization
+    ? {
+        id: String(organization._id),
+        name: organization.name,
+        type: organization.type,
+        verification_status: organization.verificationStatus,
+      }
+    : null,
   unread_notifications: unreadNotifications,
 });

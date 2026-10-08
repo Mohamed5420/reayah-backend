@@ -4,7 +4,7 @@
 
 Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi.json` (Swagger UI at `/docs` outside production).
 
-**Implemented:** 175 · **Deferred:** 47 (each to a named Phase 2 / 3 milestone)
+**Implemented:** 189 · **Deferred:** 33 (each to a named Phase 2 / 3 milestone)
 
 ## 7.2 Me / Account (all roles)
 
@@ -148,46 +148,46 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 
 | Method | Path | Status |
 |---|---|---|
-| `POST` | `/org` | ⏳ M3 — Organizations |
-| `GET` | `/org` | ⏳ M3 — Organizations |
-| `PATCH` | `/org` | ⏳ M3 — Organizations |
-| `POST` | `/org/logo` | ⏳ M3 — Organizations |
-| `GET` | `/org/documents` | ⏳ M3 — Organizations |
-| `POST` | `/org/documents` | ⏳ M3 — Organizations |
-| `POST` | `/org/submit-verification` | ⏳ M3 — Organizations |
-| `GET` | `/org/service-areas` | ⏳ M3 — Organizations |
-| `PUT` | `/org/service-areas` | ⏳ M3 — Organizations |
-| `GET` | `/org/dashboard` | ⏳ M3 — Organizations |
-| `GET` | `/org/staff` | ⏳ M3 — Organizations |
-| `POST` | `/org/staff/invite` | ⏳ M3 — Organizations |
-| `GET` | `/org/staff/invites` | ⏳ M3 — Organizations |
-| `DELETE` | `/org/staff/invites/{id}` | ⏳ M3 — Organizations |
-| `GET` | `/org/staff/{id}` | ⏳ M3 — Organizations |
-| `PATCH` | `/org/staff/{id}` | ⏳ M3 — Organizations |
-| `DELETE` | `/org/staff/{id}` | ⏳ M3 — Organizations |
-| `PUT` | `/org/staff/{id}/availability` | ⏳ M3 — Organizations |
-| `PUT` | `/org/staff/{id}/service-areas` | ⏳ M3 — Organizations |
-| `GET` | `/org/bookings` | ⏳ M3 — Organizations |
-| `GET` | `/org/bookings/{id}` | ⏳ M3 — Organizations |
-| `POST` | `/org/bookings/{id}/assign` | ⏳ M3 — Organizations |
-| `POST` | `/org/bookings/{id}/reassign` | ⏳ M3 — Organizations |
-| `GET` | `/org/bookings/{id}/eligible-staff` | ⏳ M3 — Organizations |
-| `POST` | `/org/bookings/{id}/broadcast` | ⏳ M3 — Organizations |
-| `POST` | `/org/bookings/{id}/decline` | ⏳ M3 — Organizations |
-| `POST` | `/org/bookings/{id}/cancel` | ⏳ M3 — Organizations |
-| `GET` | `/org/services` | ⏳ M3 — Organizations |
-| `PUT` | `/org/services` | ⏳ M3 — Organizations |
-| `GET` | `/org/packages` | ⏳ M3 — Organizations |
-| `POST` | `/org/packages` | ⏳ M3 — Organizations |
-| `PATCH` | `/org/packages/{id}` | ⏳ M3 — Organizations |
-| `DELETE` | `/org/packages/{id}` | ⏳ M3 — Organizations |
-| `GET` | `/org/reports` | ⏳ M3 — Organizations |
-| `GET` | `/org/invoices` | ⏳ M3 — Organizations |
-| `GET` | `/org/invoices/{id}/pdf` | ⏳ M3 — Organizations |
-| `PUT` | `/org/payout-method` | ⏳ M3 — Organizations |
-| `GET` | `/org/subscription` | ⏳ M3 — Organizations |
-| `GET` | `/subscription-plans` | ⏳ M3 — Organizations |
-| `POST` | `/org/subscription` | ⏳ M3 — Organizations |
+| `POST` | `/org` | ✅ Built |
+| `GET` | `/org` | ✅ Built |
+| `PATCH` | `/org` | ✅ Built |
+| `POST` | `/org/logo` | ✅ Built |
+| `GET` | `/org/documents` | ✅ Built |
+| `POST` | `/org/documents` | ✅ Built |
+| `POST` | `/org/submit-verification` | ✅ Built |
+| `GET` | `/org/service-areas` | ✅ Built |
+| `PUT` | `/org/service-areas` | ✅ Built |
+| `GET` | `/org/dashboard` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `GET` | `/org/staff` | ⏳ M3.2 — Team management |
+| `POST` | `/org/staff/invite` | ⏳ M3.2 — Team management |
+| `GET` | `/org/staff/invites` | ⏳ M3.2 — Team management |
+| `DELETE` | `/org/staff/invites/{id}` | ⏳ M3.2 — Team management |
+| `GET` | `/org/staff/{id}` | ⏳ M3.2 — Team management |
+| `PATCH` | `/org/staff/{id}` | ⏳ M3.2 — Team management |
+| `DELETE` | `/org/staff/{id}` | ⏳ M3.2 — Team management |
+| `PUT` | `/org/staff/{id}/availability` | ⏳ M3.2 — Team management |
+| `PUT` | `/org/staff/{id}/service-areas` | ⏳ M3.2 — Team management |
+| `GET` | `/org/bookings` | ⏳ M3.3 — Org bookings & assignment |
+| `GET` | `/org/bookings/{id}` | ⏳ M3.3 — Org bookings & assignment |
+| `POST` | `/org/bookings/{id}/assign` | ⏳ M3.3 — Org bookings & assignment |
+| `POST` | `/org/bookings/{id}/reassign` | ⏳ M3.3 — Org bookings & assignment |
+| `GET` | `/org/bookings/{id}/eligible-staff` | ⏳ M3.3 — Org bookings & assignment |
+| `POST` | `/org/bookings/{id}/broadcast` | ⏳ M3.3 — Org bookings & assignment |
+| `POST` | `/org/bookings/{id}/decline` | ⏳ M3.3 — Org bookings & assignment |
+| `POST` | `/org/bookings/{id}/cancel` | ⏳ M3.3 — Org bookings & assignment |
+| `GET` | `/org/services` | ✅ Built |
+| `PUT` | `/org/services` | ✅ Built |
+| `GET` | `/org/packages` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `POST` | `/org/packages` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `PATCH` | `/org/packages/{id}` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `DELETE` | `/org/packages/{id}` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `GET` | `/org/reports` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `GET` | `/org/invoices` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `GET` | `/org/invoices/{id}/pdf` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `PUT` | `/org/payout-method` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `GET` | `/org/subscription` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `GET` | `/subscription-plans` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `POST` | `/org/subscription` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
 
 ## 7.12 Chat (patient ↔ provider, per booking)
 
@@ -238,9 +238,9 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `GET` | `/admin/providers` | ✅ Built |
 | `GET` | `/admin/providers/{id}` | ✅ Built |
 | `PATCH` | `/admin/providers/{id}` | ✅ Built |
-| `GET` | `/admin/organizations` | ⏳ M3 — Organizations |
-| `GET` | `/admin/organizations/{id}` | ⏳ M3 — Organizations |
-| `PATCH` | `/admin/organizations/{id}` | ⏳ M3 — Organizations |
+| `GET` | `/admin/organizations` | ✅ Built |
+| `GET` | `/admin/organizations/{id}` | ✅ Built |
+| `PATCH` | `/admin/organizations/{id}` | ✅ Built |
 | `GET` | `/admin/bookings` | ✅ Built |
 | `GET` | `/admin/bookings/{id}` | ✅ Built |
 | `POST` | `/admin/bookings/{id}/status` | ✅ Built |
@@ -276,8 +276,8 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `POST` | `/admin/notifications/broadcast` | ⏳ M3.5 — Advanced admin |
 | `GET` | `/admin/packages` | ✅ Built |
 | `POST` | `/admin/packages` | ✅ Built |
-| `GET` | `/admin/subscription-plans` | ⏳ M3 — Organizations |
-| `POST` | `/admin/subscription-plans` | ⏳ M3 — Organizations |
+| `GET` | `/admin/subscription-plans` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
+| `POST` | `/admin/subscription-plans` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
 | `GET` | `/admin/payments` | ✅ Built |
 | `GET` | `/admin/payouts` | ✅ Built |
 | `POST` | `/admin/payouts/generate` | ✅ Built |
@@ -292,6 +292,7 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `GET` | `/admin/admins` | ✅ Built |
 | `POST` | `/admin/admins` | ✅ Built |
 | `PATCH` | `/admin/admins/{id}` | ✅ Built |
+
 ## Deferred milestones (no endpoints of their own)
 
 | Milestone | Status | What waits for it |
