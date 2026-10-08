@@ -3746,7 +3746,28 @@
             ]
           },
           "payment_action": {
-            "type": "null"
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "payment_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "checkout_url": {
+                "type": "string"
+              },
+              "expires_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "payment_id",
+              "checkout_url",
+              "expires_at"
+            ]
           }
         },
         "required": [
@@ -6636,6 +6657,235 @@
             "maxLength": 300
           }
         },
+        "additionalProperties": false
+      },
+      "PaymentInitiated": {
+        "type": "object",
+        "properties": {
+          "payment_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "checkout_url": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "payment_id",
+          "checkout_url",
+          "expires_at"
+        ]
+      },
+      "InitiatePayment": {
+        "type": "object",
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "booking"
+            ]
+          },
+          "reference_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "wallet"
+            ]
+          }
+        },
+        "required": [
+          "purpose",
+          "reference_id"
+        ],
+        "additionalProperties": false
+      },
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "booking_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "booking"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "EGP"
+            ]
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "wallet"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "paid",
+              "failed",
+              "expired",
+              "partially_refunded",
+              "refunded"
+            ]
+          },
+          "checkout_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "paid_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "refunded_amount": {
+            "type": "number"
+          },
+          "instrument": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "brand": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "last4": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "brand",
+              "last4"
+            ]
+          },
+          "failure_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "booking_id",
+          "purpose",
+          "amount",
+          "currency",
+          "method",
+          "status",
+          "checkout_url",
+          "expires_at",
+          "paid_at",
+          "refunded_amount",
+          "instrument",
+          "failure_reason",
+          "created_at"
+        ]
+      },
+      "Refund": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "payment_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "booking_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "succeeded",
+              "failed"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "payment_id",
+          "booking_id",
+          "amount",
+          "reason",
+          "status",
+          "created_at"
+        ]
+      },
+      "RefundRequest": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 25000
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ],
         "additionalProperties": false
       }
     },
@@ -16481,6 +16731,458 @@
                       "required": [
                         "read"
                       ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/initiate": {
+      "post": {
+        "summary": "Start a card / wallet checkout for my unpaid booking (also returned by POST /bookings). Open checkout_url; the result arrives by webhook.",
+        "tags": [
+          "Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "Idempotency-Key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitiatePayment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PaymentInitiated"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/{id}": {
+      "get": {
+        "summary": "Payment status — poll after returning from the checkout (the webhook decides \"paid\")",
+        "tags": [
+          "Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Payment"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/payments": {
+      "get": {
+        "summary": "My payments, newest first (receipts)",
+        "tags": [
+          "Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Payment"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/payments/{id}/return": {
+      "get": {
+        "summary": "The checkout's return URL: redirects the browser back into the app (reaya://payment-result?payment_id=…)",
+        "tags": [
+          "Payments"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "302 redirect to the app"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/payments/{gateway}": {
+      "post": {
+        "summary": "Gateway callback (signature-verified, idempotent). Not for apps.",
+        "tags": [
+          "Payments"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            },
+            "required": true,
+            "name": "gateway",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "received": {
+                          "type": "boolean",
+                          "enum": [
+                            true
+                          ]
+                        }
+                      },
+                      "required": [
+                        "received"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/payments": {
+      "get": {
+        "summary": "All payments, newest first",
+        "tags": [
+          "Admin — Finance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "paid",
+                "failed",
+                "expired",
+                "partially_refunded",
+                "refunded"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "card",
+                "wallet"
+              ]
+            },
+            "required": false,
+            "name": "method",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Payment"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/bookings/{id}/refund": {
+      "post": {
+        "summary": "Refund (part of) a booking's card / wallet payment through the gateway. Audited.",
+        "tags": [
+          "Admin — Finance"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Refund"
                     }
                   },
                   "required": [

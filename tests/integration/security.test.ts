@@ -41,6 +41,8 @@ const PUBLIC_ROUTES = new Set([
   'POST /auth/register', // carries its own short-lived registration token
   'POST /auth/refresh', // carries the refresh token
   'POST /auth/logout', // carries the refresh token
+  'POST /webhooks/payments/:gateway', // the gateway's callback, authenticated by its signature
+  'GET /payments/:id/return', // browser bounce back into the app; reveals nothing
 ]);
 
 type MountedRoute = { method: string; path: string; handlers: RequestHandler[] };

@@ -4,7 +4,7 @@
 
 Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi.json` (Swagger UI at `/docs` outside production).
 
-**Implemented:** 142 · **Deferred:** 80 (each to a named Phase 2 / 3 milestone)
+**Implemented:** 148 · **Deferred:** 74 (each to a named Phase 2 / 3 milestone)
 
 ## 7.2 Me / Account (all roles)
 
@@ -211,10 +211,10 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 
 | Method | Path | Status |
 |---|---|---|
-| `POST` | `/payments/initiate` | ⏳ M2.3 — Payments |
-| `GET` | `/payments/{id}` | ⏳ M2.3 — Payments |
-| `POST` | `/webhooks/payments/{gateway}` | ⏳ M2.3 — Payments |
-| `GET` | `/me/payments` | ⏳ M2.3 — Payments |
+| `POST` | `/payments/initiate` | ✅ Built |
+| `GET` | `/payments/{id}` | ✅ Built |
+| `POST` | `/webhooks/payments/{gateway}` | ✅ Built |
+| `GET` | `/me/payments` | ✅ Built |
 
 ## 7.15 Admin (role: admin, web panel)
 
@@ -245,7 +245,7 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `GET` | `/admin/bookings/{id}` | ✅ Built |
 | `POST` | `/admin/bookings/{id}/status` | ✅ Built |
 | `POST` | `/admin/bookings/{id}/reassign` | ✅ Built |
-| `POST` | `/admin/bookings/{id}/refund` | ⏳ M2.3 — Payments |
+| `POST` | `/admin/bookings/{id}/refund` | ✅ Built |
 | `GET` | `/admin/disputes` | ✅ Built |
 | `GET` | `/admin/disputes/{id}` | ✅ Built |
 | `POST` | `/admin/disputes/{id}/resolve` | ✅ Built |
@@ -278,7 +278,7 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `POST` | `/admin/packages` | ⏳ M2.5 — Packages, promos, referrals |
 | `GET` | `/admin/subscription-plans` | ⏳ M3 — Organizations |
 | `POST` | `/admin/subscription-plans` | ⏳ M3 — Organizations |
-| `GET` | `/admin/payments` | ⏳ M2.3 — Payments |
+| `GET` | `/admin/payments` | ✅ Built |
 | `GET` | `/admin/payouts` | ⏳ M2.4 — Earnings & payouts |
 | `POST` | `/admin/payouts/generate` | ⏳ M2.4 — Earnings & payouts |
 | `POST` | `/admin/payouts/{id}/mark-paid` | ⏳ M2.4 — Earnings & payouts |

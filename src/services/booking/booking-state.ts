@@ -12,13 +12,14 @@ const TRANSITIONS: Partial<Record<BookingStatus, Partial<Record<BookingStatus, B
     [S.ACCEPTED]: [PROVIDER, ADMIN], // admin: only through reassign (it picks the provider)
     [S.DECLINED]: [PROVIDER],
     [S.EXPIRED]: [SYSTEM],
-    [S.CANCELLED]: [PATIENT, ADMIN],
+    // SYSTEM: an unpaid card / wallet booking whose payment window passed (M2.3).
+    [S.CANCELLED]: [PATIENT, ADMIN, SYSTEM],
   },
   [S.ACCEPTED]: {
     [S.ON_THE_WAY]: [PROVIDER],
     [S.IN_PROGRESS]: [PROVIDER],
     [S.PENDING]: [PATIENT],
-    [S.CANCELLED]: [PATIENT, PROVIDER, ADMIN],
+    [S.CANCELLED]: [PATIENT, PROVIDER, ADMIN, SYSTEM],
     [S.NO_SHOW]: [PROVIDER, ADMIN],
   },
   [S.ON_THE_WAY]: {

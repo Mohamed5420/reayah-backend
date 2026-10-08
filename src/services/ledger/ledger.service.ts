@@ -2,7 +2,7 @@ import type { ClientSession, Types } from 'mongoose';
 import { Service } from 'typedi';
 import { WalletBalanceModel, WalletLedgerModel } from '../../database/models/ledger/wallet.model';
 import { LedgerEntryType, LedgerOwnerType } from '../../interfaces/ILedger';
-import { PaymentMethod, type IBooking } from '../../interfaces/IBooking';
+import { PaymentMethod, PaymentStatus, type IBooking } from '../../interfaces/IBooking';
 
 /**
  * Provider / organization money (spec §4.8). Every movement is an append-only ledger entry; the
@@ -36,10 +36,26 @@ export class LedgerService {
 
   /**
    * On completion (spec §4.8): with cash, the provider collected the whole total, so the platform's
-   * commission becomes a debit to settle. Card/wallet bookings (Phase 2) will credit the provider's share instead.
+   * commission becomes a debit to settle. With a paid card / wallet booking the platform holds the
+   * money, so the provider is credited their share (subtotal − commission + travel fee).
    */
   async recordCompletion(booking: IBooking, session: ClientSession) {
-    if (booking.paymentMethod !== PaymentMethod.CASH || !booking.providerProfileId) return;
+    if (!booking.providerProfileId) return;
+    if (booking.paymentMethod !== PaymentMethod.CASH) {
+      if (booking.paymentStatus !== PaymentStatus.PAID || booking.price.providerPayout === 0) return;
+      await this.record(
+        {
+          ownerType: LedgerOwnerType.PROVIDER,
+          ownerId: booking.providerProfileId,
+          bookingId: booking._id,
+          type: LedgerEntryType.CREDIT,
+          amount: booking.price.providerPayout,
+          note: booking.referenceCode,
+        },
+        session,
+      );
+      return;
+    }
     if (booking.price.commissionAmount === 0) return;
     await this.record(
       {

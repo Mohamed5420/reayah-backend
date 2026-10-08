@@ -16,6 +16,8 @@ import { presentDispute, presentReview } from '../../presenters/aftercare.presen
 import { defineRoute, type DefinedRoute } from '../../../docs/openapi';
 import { BookingService, QuoteService, type QuoteInput } from '../../../services/booking';
 import { StorageService } from '../../../services/storage';
+import { PaymentService } from '../../../services/payments/payment.service';
+import { PaymentMethod } from '../../../interfaces/IBooking';
 import { DisputeService, ReviewService } from '../../../services/aftercare';
 import { UserModel } from '../../../database/models/user/user.model';
 import { ProviderProfileModel } from '../../../database/models/provider/provider-profile.model';
@@ -121,6 +123,7 @@ export default class BookingController implements IBaseController {
   private bookings = Container.get(BookingService);
   private quotes = Container.get(QuoteService);
   private storage = Container.get(StorageService);
+  private payments = Container.get(PaymentService);
   private reviews = Container.get(ReviewService);
   private disputes = Container.get(DisputeService);
 
@@ -189,7 +192,16 @@ export default class BookingController implements IBaseController {
         paymentMethod: body.payment_method,
         patientNotes: body.patient_notes,
       });
-      return HttpResponse.created(res, presentCreated(booking));
+      // Card / wallet: start the checkout right away. If the gateway is down the booking still stands
+      // and the app can retry with POST /payments/initiate.
+      let payment = null;
+      if (booking.paymentMethod !== PaymentMethod.CASH) {
+        payment = await this.payments
+          .initiateForBooking(req.user!.id, String(booking._id))
+          .then((p) => ({ id: String(p._id), checkoutUrl: p.checkoutUrl, expiresAt: p.expiresAt }))
+          .catch(() => null);
+      }
+      return HttpResponse.created(res, presentCreated(booking, payment));
     } catch (err) {
       next(err);
     }

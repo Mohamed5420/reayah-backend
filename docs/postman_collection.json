@@ -5658,6 +5658,275 @@
           }
         }
       ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Start a card / wallet checkout for my unpaid booking (also returned by POST /bookings). Open checkout_url; the result arrives by webhook.",
+          "request": {
+            "method": "POST",
+            "description": "Start a card / wallet checkout for my unpaid booking (also returned by POST /bookings). Open checkout_url; the result arrives by webhook.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/initiate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "initiate"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"purpose\": \"booking\",\n  \"reference_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"method\": \"card\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Payment status — poll after returning from the checkout (the webhook decides \"paid\")",
+          "request": {
+            "method": "GET",
+            "description": "Payment status — poll after returning from the checkout (the webhook decides \"paid\")",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "My payments, newest first (receipts)",
+          "request": {
+            "method": "GET",
+            "description": "My payments, newest first (receipts)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "The checkout's return URL: redirects the browser back into the app (reaya://payment-result?payment_id=…)",
+          "request": {
+            "method": "GET",
+            "description": "The checkout's return URL: redirects the browser back into the app (reaya://payment-result?payment_id=…)",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/:id/return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                ":id",
+                "return"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Gateway callback (signature-verified, idempotent). Not for apps.",
+          "request": {
+            "method": "POST",
+            "description": "Gateway callback (signature-verified, idempotent). Not for apps.",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/payments/:gateway",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "payments",
+                ":gateway"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "gateway",
+                  "value": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin — Finance",
+      "item": [
+        {
+          "name": "All payments, newest first",
+          "request": {
+            "method": "GET",
+            "description": "All payments, newest first",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                },
+                {
+                  "key": "method",
+                  "value": "card",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Refund (part of) a booking's card / wallet payment through the gateway. Audited.",
+          "request": {
+            "method": "POST",
+            "description": "Refund (part of) a booking's card / wallet payment through the gateway. Audited.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/bookings/:id/refund",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "bookings",
+                ":id",
+                "refund"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 25000,\n  \"reason\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   ]
 }

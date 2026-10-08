@@ -204,11 +204,13 @@ Goal: a patient can book a verified nurse for a home visit in a covered area, pa
 - [x] Decision: one conversation per booking and provider. On an admin reassign the old one closes: read-only for the patient (`?conversation_id=`), no access for either provider, kept for admins (`GET /admin/bookings/{id}/conversations`, audited).
 
 ### M2.3 Card & wallet payments (§4.8, §7.14)
-- [ ] `PaymentGateway` interface + implementation for the chosen gateway (decision 1).
-- [ ] `/payments/initiate` (Idempotency-Key), `/payments/{id}`, `/me/payments`.
-- [ ] Webhook: signature check, idempotent, **source of truth** for `paid`.
-- [ ] Refunds (admin booking refund, dispute resolution, cancellations).
-- [ ] Ledger: card/wallet bookings credit the provider's share on completion.
+- [x] `PaymentGateway` interface + implementation for the chosen gateway (decision 1). *(Paymob: Intention API + Unified Checkout, cards + mobile wallets; `services/payments/gateways`. A `fake` gateway for development/tests, refused in production. Adding Fawry = one more class.)*
+- [x] `/payments/initiate` (Idempotency-Key), `/payments/{id}`, `/me/payments`. *(Card / wallet bookings behind the `card_payment` flag; `POST /bookings` returns the checkout as `payment_action`; `/payments/{id}/return` bounces the browser to `reaya://payment-result`.)*
+- [x] Webhook: signature check, idempotent, **source of truth** for `paid`. *(Paymob HMAC-SHA512 over the documented 20 fields; amount must match; repeats are no-ops; a payment landing after the booking closed, or a second payment, is refunded automatically.)*
+- [x] Refunds (admin booking refund, dispute resolution, cancellations). *(Any cancel / decline / expiry of a paid booking refunds in full; `POST /admin/bookings/{id}/refund` (partial allowed, audited); dispute refunds go through the gateway for paid bookings. Amounts are reserved atomically so refunds never exceed the payment.)*
+- [x] Ledger: card/wallet bookings credit the provider's share on completion. *(Plus `GET /admin/payments`.)*
+- [ ] Before launch: Paymob live merchant account (commercial register, tax card, owner ID, bank account), live keys + integration ids, webhook URL set in the dashboard, and one real sandbox payment end to end (not run yet — no sandbox keys).
+- [ ] Open questions for the product team: (1) unpaid card bookings are cancelled after `card_payment_window_minutes` (15) — or hold the request from the provider until paid? (2) a refund after a completed visit (disputes) is currently absorbed by the platform — should it also debit the provider's credit? (3) cancellation fees (none today).
 
 ### M2.4 Earnings & payouts (§7.10 earnings, §7.15 finance)
 - [ ] Provider earnings, ledger, payouts, payout method (independent providers only).

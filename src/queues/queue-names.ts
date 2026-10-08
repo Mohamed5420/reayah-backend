@@ -13,4 +13,6 @@ export enum MaintenanceJob {
   SUSPENSION_EXPIRY = 'suspension-expiry',
   /** Documents expiring within 30 days → provider notice; expired license → pause (spec §4.4, decision 14). */
   DOCUMENT_EXPIRY = 'document-expiry',
+  /** Cancels card / wallet bookings still unpaid after the payment window (M2.3). */
+  PAYMENT_EXPIRY = 'payment-expiry',
 }

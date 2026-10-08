@@ -3,7 +3,8 @@ import { Types } from 'mongoose';
 import { BookingModel } from '../../database/models/booking/booking.model';
 import { DisputeModel } from '../../database/models/aftercare/aftercare.models';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
-import { BookingActor, BookingStatus } from '../../interfaces/IBooking';
+import { BookingActor, BookingStatus, PaymentStatus } from '../../interfaces/IBooking';
+import { PaymentService } from '../payments/payment.service';
 import { DisputeResolution, DisputeStatus, ProviderAction, type IDispute } from '../../interfaces/IAftercare';
 import { NotificationType } from '../../interfaces/INotification';
 import type { Pagination } from '../../utils/response/pagination';
@@ -147,6 +148,15 @@ export class DisputeService {
       { new: true, lean: true },
     );
     if (!updated) throw new ConflictError('errors.dispute_resolved');
+
+    // Card / wallet bookings: the refund goes back through the gateway. Cash: recorded only (settled offline).
+    if (refundAmount > 0 && booking.paymentStatus === PaymentStatus.PAID) {
+      await Container.get(PaymentService).refundBooking(
+        booking._id,
+        { amount: refundAmount, reason: `dispute:${disputeId}` },
+        context,
+      );
+    }
 
     const providerUserId = dispute.providerProfileId
       ? (await ProviderProfileModel.findById(dispute.providerProfileId).select('userId').lean())?.userId

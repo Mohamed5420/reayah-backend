@@ -54,6 +54,27 @@ export const env = {
 
   firebaseServiceAccountPath: optional('FIREBASE_SERVICE_ACCOUNT_PATH'),
 
+  /**
+   * Card / wallet payments (M2.3). `PAYMENT_GATEWAY` picks the provider for new payments; the `fake`
+   * one (development, tests, staging before real keys) is refused in production.
+   */
+  payments: {
+    gateway: optional('PAYMENT_GATEWAY', 'fake'),
+    /** Public base URL of this API — the gateway calls `<this>/api/v1/webhooks/payments/<gateway>`. */
+    publicApiUrl: optional('PUBLIC_API_URL', 'http://localhost:3000'),
+    /** Where the app wants the customer back after checkout (`?payment_id=` is appended). */
+    appReturnUrl: optional('APP_PAYMENT_RETURN_URL', 'reaya://payment-result'),
+    paymob: {
+      apiUrl: optional('PAYMOB_API_URL', 'https://accept.paymob.com'),
+      checkoutUrl: optional('PAYMOB_CHECKOUT_URL', 'https://eg.checkout.paymob.com/'),
+      secretKey: optional('PAYMOB_SECRET_KEY'),
+      publicKey: optional('PAYMOB_PUBLIC_KEY'),
+      hmacSecret: optional('PAYMOB_HMAC_SECRET'),
+      cardIntegrationId: Number(optional('PAYMOB_CARD_INTEGRATION_ID', '0')),
+      walletIntegrationId: Number(optional('PAYMOB_WALLET_INTEGRATION_ID', '0')),
+    },
+  },
+
   /** Per-IP request limits (Redis-backed, so shared by all instances). */
   rateLimit: {
     perMinute: Number(optional('RATE_LIMIT_PER_MINUTE', '300')),

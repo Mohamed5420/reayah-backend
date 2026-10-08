@@ -61,10 +61,11 @@ servers cover launch traffic with room for failover; scale by adding API servers
 2. **Domain**: the domain name and access to its DNS (to add `api.` and `api-staging.` records).
 3. **SMS provider**: the chosen company, an account, API credentials and an approved sender name ("Reaya" / "رعاية"). Needed for production sign-in; staging works without it.
 4. **Firebase**: the project used by the mobile apps → a service account JSON (Project settings → Service accounts).
-5. **GitHub**: the repository on GitHub with Actions enabled, and the default branch named `main`.
-6. **Sentry** (optional): an organization and project → its DSN.
-7. **Admin accounts**: names and mobile numbers of the first admins.
-8. **Budget approval** for the monthly estimate above.
+5. **Paymob**: sandbox keys now (secret key, public key, HMAC secret, card and wallet integration ids from the dashboard); live keys once the merchant account is approved. In the dashboard, set the transaction callback to `https://api.<domain>/api/v1/webhooks/payments/paymob`.
+6. **GitHub**: the repository on GitHub with Actions enabled, and the default branch named `main`.
+7. **Sentry** (optional): an organization and project → its DSN.
+8. **Admin accounts**: names and mobile numbers of the first admins.
+9. **Budget approval** for the monthly estimate above.
 
 I generate the rest myself (JWT secret, encryption key, database and Redis passwords) and store them in the
 host's secret manager or your password manager — the encryption key needs a copy outside the server.

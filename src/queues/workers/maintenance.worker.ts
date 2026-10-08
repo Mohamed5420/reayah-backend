@@ -4,6 +4,7 @@ import { BookingDeadlineService } from '../../services/booking/booking-deadline.
 import { BookingReminderService } from '../../services/booking/booking-reminder.service';
 import { AccountService } from '../../services/moderation/account.service';
 import { DocumentExpiryService } from '../../services/provider/document-expiry.service';
+import { PaymentService } from '../../services/payments/payment.service';
 import { redisConnection } from '../../config/redis.config';
 import { MaintenanceJob, QueueName } from '../queue-names';
 import { recordHeartbeat } from '../heartbeat';
@@ -24,6 +25,9 @@ export const runMaintenanceJob = async (name: string) => {
       break;
     case MaintenanceJob.SUSPENSION_EXPIRY:
       await Container.get(AccountService).liftExpired();
+      break;
+    case MaintenanceJob.PAYMENT_EXPIRY:
+      await Container.get(PaymentService).expireUnpaid();
       break;
     case MaintenanceJob.DOCUMENT_EXPIRY:
       await Container.get(DocumentExpiryService).processDaily();

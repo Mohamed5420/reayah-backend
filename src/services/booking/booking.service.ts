@@ -15,6 +15,7 @@ import {
   BookingStatus,
   OfferStatus,
   PaymentMethod,
+  PaymentStatus,
   type IBooking,
 } from '../../interfaces/IBooking';
 import type { Pagination } from '../../utils/response/pagination';
@@ -35,6 +36,7 @@ import {
   transitionBooking,
 } from './booking-transaction';
 import { QuoteService, type BookingDraft } from './quote.service';
+import { PaymentService } from '../payments/payment.service';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I
 
@@ -58,8 +60,12 @@ export class BookingService {
     userId: string,
     input: { quoteToken: string; paymentMethod: PaymentMethod; patientNotes?: string | null },
   ) {
-    if (input.paymentMethod !== PaymentMethod.CASH) {
-      // Card and wallet payments arrive in Phase 2.
+    // Card / wallet (M2.3): only with the card_payment flag on and a gateway configured. The patient then
+    // pays through the checkout returned with the booking, within card_payment_window_minutes.
+    if (
+      input.paymentMethod !== PaymentMethod.CASH &&
+      !(await Container.get(PaymentService).cardPaymentsEnabled())
+    ) {
       throw new ValidationError({ payment_method: ['validation.payment_method_unavailable'] });
     }
     const draft = this.quotes.verifyToken(input.quoteToken, userId);
@@ -199,8 +205,13 @@ export class BookingService {
         { session: tx.session },
       );
     });
-    // Cancellation fees and refunds: Phase 2 (card payments). Cash bookings cancel at no cost.
-    return { status: BookingStatus.CANCELLED, cancellationFee: 0, refundAmount: 0 };
+    // Cancelling is free (no fee rules yet). A paid card / wallet booking is refunded in full by the
+    // payment refund listener right after this commit.
+    return {
+      status: BookingStatus.CANCELLED,
+      cancellationFee: 0,
+      refundAmount: booking.paymentStatus === PaymentStatus.PAID ? booking.price.total : 0,
+    };
   }
 
   /** New time with the same provider; the booking goes back to pending until they accept again. */

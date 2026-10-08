@@ -83,7 +83,14 @@
     "report_not_found": "تقرير الزيارة غير موجود",
     "report_edit_window": "انتهت مدة تعديل التقرير (24 ساعة)",
     "chat_closed": "المحادثة متاحة من قبول الحجز حتى 24 ساعة بعد انتهاء الزيارة",
-    "conversation_not_found": "المحادثة غير موجودة"
+    "conversation_not_found": "المحادثة غير موجودة",
+    "payments_unavailable": "الدفع بالبطاقة غير متاح حالياً، اختر الدفع نقداً",
+    "payment_already_paid": "تم دفع هذا الحجز بالفعل",
+    "payment_not_allowed": "لا يمكن دفع هذا الحجز إلكترونياً",
+    "payment_window_passed": "انتهت مهلة الدفع لهذا الحجز",
+    "payment_not_found": "عملية الدفع غير موجودة",
+    "invalid_signature": "توقيع غير صالح",
+    "refund_not_allowed": "لا يوجد مبلغ مدفوع يمكن استرداده لهذا الحجز"
   },
   "validation": {
     "invalid_value": "قيمة غير صالحة",
@@ -253,6 +260,10 @@
     "chat_message": {
       "title": "رسالة جديدة",
       "body": "{{sender}} أرسل رسالة بخصوص {{service}}"
+    },
+    "payment_refunded": {
+      "title": "تم استرداد المبلغ",
+      "body": "تم رد {{amount}} جنيه إلى وسيلة الدفع الخاصة بك"
     }
   }
 }

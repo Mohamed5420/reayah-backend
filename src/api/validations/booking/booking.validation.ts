@@ -94,7 +94,10 @@ export const BookingSchemas = {
       status: z.enum(BookingStatus),
       payment_method: z.enum(PaymentMethod),
       payment_status: z.enum(PaymentStatus),
-      payment_action: z.null(),
+      /** Card / wallet: open checkout_url in a WebView and pay before expires_at. null for cash. */
+      payment_action: z
+        .object({ payment_id: objectId, checkout_url: z.string(), expires_at: z.string() })
+        .nullable(),
     })
     .openapi('BookingCreated'),
   listQuery: paginationQuery.extend({

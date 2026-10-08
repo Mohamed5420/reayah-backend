@@ -33,13 +33,22 @@ export const presentQuote = (q: {
   expires_at: q.expiresAt.toISOString(),
 });
 
-export const presentCreated = (b: IBooking) => ({
+export const presentCreated = (
+  b: IBooking,
+  payment: { id: string; checkoutUrl: string | null; expiresAt: Date } | null = null,
+) => ({
   id: String(b._id),
   reference_code: b.referenceCode,
   status: b.status,
   payment_method: b.paymentMethod,
   payment_status: b.paymentStatus,
-  payment_action: null, // card / wallet checkout: Phase 2
+  payment_action: payment?.checkoutUrl
+    ? {
+        payment_id: payment.id,
+        checkout_url: payment.checkoutUrl,
+        expires_at: payment.expiresAt.toISOString(),
+      }
+    : null,
 });
 
 export const presentListItem = (b: IBooking, provider: ProviderCardInfo | undefined, lang: Language) => ({
