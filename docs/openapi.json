@@ -5655,7 +5655,8 @@
               "package_expiry",
               "promo",
               "account",
-              "dispute"
+              "dispute",
+              "announcement"
             ]
           },
           "title": {
@@ -5861,6 +5862,68 @@
           "metadata",
           "ip",
           "created_at"
+        ]
+      },
+      "AdminAnalytics": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": [
+              "bookings",
+              "completed_visits",
+              "gmv",
+              "revenue",
+              "cancellation_rate",
+              "active_providers",
+              "new_patients",
+              "new_providers",
+              "new_organizations"
+            ]
+          },
+          "group_by": {
+            "type": "string",
+            "enum": [
+              "day",
+              "week",
+              "month"
+            ]
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "period": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "period",
+                "value"
+              ]
+            }
+          }
+        },
+        "required": [
+          "metric",
+          "group_by",
+          "from",
+          "to",
+          "total",
+          "series"
         ]
       },
       "AdminAttention": {
@@ -6100,6 +6163,20 @@
               "admin"
             ]
           },
+          "admin_role": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "super_admin",
+              "verifier",
+              "support",
+              "finance",
+              "marketing",
+              null
+            ]
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -6128,6 +6205,7 @@
           "email",
           "gender",
           "role",
+          "admin_role",
           "status",
           "language",
           "last_login_at",
@@ -6721,11 +6799,22 @@
             "type": "string",
             "minLength": 2,
             "maxLength": 100
+          },
+          "admin_role": {
+            "type": "string",
+            "enum": [
+              "super_admin",
+              "verifier",
+              "support",
+              "finance",
+              "marketing"
+            ]
           }
         },
         "required": [
           "phone",
-          "full_name"
+          "full_name",
+          "admin_role"
         ],
         "additionalProperties": false
       },
@@ -6738,11 +6827,18 @@
               "active",
               "suspended"
             ]
+          },
+          "admin_role": {
+            "type": "string",
+            "enum": [
+              "super_admin",
+              "verifier",
+              "support",
+              "finance",
+              "marketing"
+            ]
           }
         },
-        "required": [
-          "status"
-        ],
         "additionalProperties": false
       },
       "AdminBookingDetail": {
@@ -9554,6 +9650,188 @@
             "example": "2026-10-05T14:00:00Z"
           }
         },
+        "additionalProperties": false
+      },
+      "Broadcast": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "marketing",
+              "announcement"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "segment": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "patient",
+                  "provider",
+                  "provider_staff",
+                  "owner",
+                  null
+                ]
+              },
+              "area_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "role",
+              "area_ids"
+            ]
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "sending",
+              "sent"
+            ]
+          },
+          "audience": {
+            "type": "number"
+          },
+          "sent_count": {
+            "type": "number"
+          },
+          "finished_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "body",
+          "reason",
+          "segment",
+          "created_by",
+          "status",
+          "audience",
+          "sent_count",
+          "finished_at",
+          "created_at"
+        ]
+      },
+      "BroadcastPreview": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "audience": {
+            "type": "number"
+          },
+          "push_audience": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "dry_run",
+          "audience",
+          "push_audience"
+        ]
+      },
+      "BroadcastRequest": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "marketing",
+              "announcement"
+            ],
+            "default": "marketing"
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "patient",
+              "provider",
+              "provider_staff",
+              "owner",
+              null
+            ],
+            "default": null
+          },
+          "area_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "maxItems": 200,
+            "default": []
+          },
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "body": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 300
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 5,
+            "maxLength": 500,
+            "default": null
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ],
         "additionalProperties": false
       },
       "Organization": {
@@ -19098,6 +19376,104 @@
         }
       }
     },
+    "/api/v1/admin/analytics": {
+      "get": {
+        "summary": "Time series: bookings, completed visits, GMV, revenue, cancellation rate, active providers, sign-ups — by Cairo day / week / month, zero-filled",
+        "tags": [
+          "Admin — Dashboard"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "bookings",
+                "completed_visits",
+                "gmv",
+                "revenue",
+                "cancellation_rate",
+                "active_providers",
+                "new_patients",
+                "new_providers",
+                "new_organizations"
+              ]
+            },
+            "required": true,
+            "name": "metric",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-09-01"
+            },
+            "required": true,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-09-30"
+            },
+            "required": true,
+            "name": "to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month"
+              ],
+              "default": "day"
+            },
+            "required": false,
+            "name": "group_by",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminAnalytics"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/attention": {
       "get": {
         "summary": "Needs attention: requests nobody took (last 24 h), open disputes, documents expired or expiring within 30 days",
@@ -20055,7 +20431,7 @@
         }
       },
       "post": {
-        "summary": "Create an admin account (they sign in with phone + OTP)",
+        "summary": "Create an admin account with a sub-role (they sign in with phone + OTP). Super admins only.",
         "tags": [
           "Admin — Admin accounts"
         ],
@@ -20107,7 +20483,7 @@
     },
     "/api/v1/admin/admins/{id}": {
       "patch": {
-        "summary": "Disable / re-enable another admin (not yourself, not the last active one). Sub-roles: TBD.",
+        "summary": "Change another admin’s sub-role and / or disable / re-enable them (not yourself). Super admins only.",
         "tags": [
           "Admin — Admin accounts"
         ],
@@ -23619,6 +23995,138 @@
         "responses": {
           "204": {
             "description": "Success"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/notifications/broadcast": {
+      "post": {
+        "summary": "Push to a segment. marketing (default; super_admin + marketing): in-app for all, push only with promotions on, broadcast_marketing_daily_max a day. announcement (super_admin only, reason required): always pushed, broadcast_announcement_daily_max a day, never for offers. Suspended / deleted accounts and admins are skipped. dry_run: true → audience size only (200). Otherwise 202: sent in batches by a job. Audited.",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Broadcast"
+                        },
+                        {
+                          "$ref": "#/components/schemas/BroadcastPreview"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/notifications/broadcasts": {
+      "get": {
+        "summary": "Broadcasts sent so far, newest first, with progress",
+        "tags": [
+          "Admin — Marketing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Broadcast"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
           },
           "default": {
             "description": "Error (see `error.code`)",

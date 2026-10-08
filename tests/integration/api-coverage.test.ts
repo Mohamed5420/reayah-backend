@@ -13,9 +13,7 @@ import { buildOpenApiDocument } from '../../src/docs/openapi';
 createTestApp(); // registers every route
 
 /** Spec endpoints that belong to later milestones (docs/BUILD_PLAN.md). First match wins. */
-const DEFERRED: Array<[RegExp, string]> = [
-  [/^\w+ \/admin\/analytics|^POST \/admin\/notifications\/broadcast/, 'M3.5 — Advanced admin'],
-];
+const DEFERRED: Array<[RegExp, string]> = [];
 
 /** Milestones put on hold (docs/BUILD_PLAN.md) whose spec surface is fields and enums, not endpoints. */
 const DEFERRED_MILESTONES = [

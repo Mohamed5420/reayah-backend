@@ -1,6 +1,6 @@
 import type { Types } from 'mongoose';
 import type { Language } from '../utils/i18n';
-import type { Gender, UserRole, UserStatus } from './enums';
+import type { AdminRole, Gender, UserRole, UserStatus } from './enums';
 import type { INotificationSettings } from './INotification';
 
 export { UserRole, UserStatus } from './enums';
@@ -22,6 +22,8 @@ export interface IUser {
   lastLoginAt: Date | null;
   /** Referral code entered at sign-up; rewarded after the first completed booking (Phase 2). */
   referredByCode: string | null;
+  /** Admins only: their sub-role (null for everyone else; older admin accounts count as super_admin). */
+  adminRole: AdminRole | null;
   /** This user's own code to invite others (created on first GET /me/referral). */
   referralCode: string | null;
   deletionRequestedAt: Date | null;
@@ -38,4 +40,6 @@ export interface IAuthUser {
   role: UserRole;
   /** Saved language, used when the request has no supported `Accept-Language`. */
   language?: Language;
+  /** Admins: their sub-role, read from the database on each request. */
+  adminRole?: AdminRole | null;
 }

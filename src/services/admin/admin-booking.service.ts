@@ -68,8 +68,10 @@ export class AdminBookingService {
   }
 
   /** Full details. Showing the patient's notes is audited (they may describe the patient's condition). */
-  async detail(bookingId: string, context: AuditContext) {
+  async detail(bookingId: string, context: AuditContext, withNotes = true) {
     const booking = await this.get(bookingId);
+    // Admin roles that may not read health text (finance) get the booking without the notes, unaudited.
+    if (!withNotes) booking.patientNotes = null;
     if (booking.patientNotes) await auditNotesRead(context, booking);
     const [history, offers] = await Promise.all([
       BookingStatusHistoryModel.find({ bookingId: booking._id }).sort({ createdAt: 1 }).lean(),

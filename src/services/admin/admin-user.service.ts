@@ -3,7 +3,7 @@ import { Types, type FilterQuery } from 'mongoose';
 import { UserModel } from '../../database/models/user/user.model';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
 import { BookingModel } from '../../database/models/booking/booking.model';
-import { ProviderType, UserRole, UserStatus, VerificationStatus } from '../../interfaces/enums';
+import { AdminRole, ProviderType, UserRole, UserStatus, VerificationStatus } from '../../interfaces/enums';
 import type { IUser } from '../../interfaces/IUser';
 import type { IProviderProfile } from '../../interfaces/IProfiles';
 import { invalidateCacheNamespace } from '../../utils/cache/cache';
@@ -179,18 +179,19 @@ export class AdminUserService {
   }
 
   /** POST /admin/admins — same rules as `npm run admin:create`: the phone mustn't belong to another account. */
-  async createAdmin(input: { phone: string; fullName: string }, context: AuditContext) {
+  async createAdmin(input: { phone: string; fullName: string; adminRole: AdminRole }, context: AuditContext) {
     if (await UserModel.exists({ phone: input.phone })) throw new ConflictError('errors.phone_taken');
     const admin = await UserModel.create({
       phone: input.phone,
       fullName: input.fullName,
       role: UserRole.ADMIN,
+      adminRole: input.adminRole,
     });
     await this.audit.log(context, {
       action: 'admin.create',
       entityType: 'user',
       entityId: String(admin._id),
-      metadata: { phone: input.phone },
+      metadata: { phone: input.phone, adminRole: input.adminRole },
     });
     return admin.toObject();
   }
@@ -198,7 +199,7 @@ export class AdminUserService {
   /** PATCH /admin/admins/{id} — disable (suspend) or re-enable another admin. Admin sub-roles are still TBD. */
   async updateAdmin(
     adminId: string,
-    input: { status: UserStatus.ACTIVE | UserStatus.SUSPENDED },
+    input: { status?: UserStatus.ACTIVE | UserStatus.SUSPENDED; admin_role?: AdminRole },
     context: AuditContext,
   ) {
     if (adminId === context.actorId) throw new ConflictError('errors.cannot_moderate_self');
@@ -206,16 +207,17 @@ export class AdminUserService {
       ? await UserModel.findOne({ _id: adminId, role: UserRole.ADMIN })
       : null;
     if (!admin) throw new NotFoundError('errors.user_not_found');
-    // No "last admin" check needed: the caller is an active admin and can't disable themselves.
-    const from = admin.status;
-    admin.status = input.status;
+    // No "last super admin" check needed: only super admins manage admins, and not themselves.
+    const from = { status: admin.status, adminRole: admin.adminRole ?? AdminRole.SUPER_ADMIN };
+    if (input.status) admin.status = input.status;
+    if (input.admin_role) admin.adminRole = input.admin_role;
     await admin.save();
     if (input.status === UserStatus.SUSPENDED) await this.tokens.revokeAllForUser(adminId);
     await this.audit.log(context, {
       action: 'admin.update',
       entityType: 'user',
       entityId: adminId,
-      metadata: { from, to: input.status },
+      metadata: { from, to: { status: admin.status, adminRole: admin.adminRole } },
     });
     return admin.toObject();
   }

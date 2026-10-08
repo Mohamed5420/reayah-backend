@@ -9,6 +9,7 @@ const notificationSchema = new Schema<INotification>(
     body: { type: String, required: true },
     data: { type: Map, of: String, default: {} },
     readAt: { type: Date, default: null },
+    dedupeKey: { type: String, default: undefined },
   },
   { timestamps: { createdAt: true, updatedAt: false }, versionKey: false },
 );
@@ -16,6 +17,11 @@ const notificationSchema = new Schema<INotification>(
 // Inbox (newest first) and the unread badge.
 notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, readAt: 1 });
+// At most once per user for keyed messages (a broadcast resumed after a crash skips who already has it).
+notificationSchema.index(
+  { userId: 1, dedupeKey: 1 },
+  { unique: true, partialFilterExpression: { dedupeKey: { $type: 'string' } } },
+);
 // The inbox keeps 180 days.
 notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 180 * 24 * 3600 });
 

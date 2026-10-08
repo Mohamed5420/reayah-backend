@@ -53,7 +53,8 @@ We collect identity and contact data from everyone, health data about patients, 
 | Referrals | Patients and providers | Who invited whom, a one-way keyed hash of the invited phone number, reward status | Paying referral rewards once per phone number | No (the phone is stored only as a hash) |
 | In-app credit | Patients | Credit earned from referrals, used on and given back from bookings | Applying credit to bookings | No (financial) |
 | Device and session data | Everyone | Push notification token, phone platform, app version, sign-in sessions, IP address on sign-in and admin actions | Notifications; security; abuse prevention | No |
-| Notifications | Everyone | In-app messages about bookings, payments and the account | Keeping both sides informed | No |
+| Notifications | Everyone | In-app messages about bookings, payments and the account; offers and service announcements from admin broadcasts (offers are pushed only to users with promotions on) | Keeping both sides informed | No |
+| Broadcasts | Everyone (as recipients) | The message an admin sent, the segment (role, areas), who sent it, the reason (announcements), how many it reached; each recipient gets a normal in-app notification | Offers and service announcements | No (no list of recipients is stored) |
 | Moderation records | Patients and providers | Suspensions, warnings, reasons | Platform safety | No |
 | Audit log | Admins, and anyone whose medical data was opened | Who did what, when, from which IP; never the medical values themselves | Legal accountability | No |
 
@@ -92,7 +93,7 @@ Health data, identity numbers and payout account numbers are encrypted inside th
 
 ## Who can access what
 
-Each person sees only their own data, providers see a patient's details only for their own bookings and only for a limited time, and admins see everything but every sensitive view is logged.
+Each person sees only their own data, providers see a patient's details only for their own bookings and only for a limited time, and admins see what their admin role needs (super admins see everything), with every sensitive view logged.
 
 | Who | What they can see | Limits |
 | --- | --- | --- |
@@ -106,7 +107,12 @@ Each person sees only their own data, providers see a patient's details only for
 | Owner of another organization (fallback) | A request offered to them after the original organization's deadline: service, time, area, preferred gender and price | No patient details unless they take it by assigning a staff member; then as above |
 | Staff member (nurse / doctor of an organization) | As a provider, for bookings assigned to them by their owner (or accepted from the owner's "send to all") | Can't set their own areas, services or prices; no payouts screen (earnings go to the organization); loses access to a booking and its chat as soon as they're reassigned or removed |
 | Other users | A provider's public profile: name, photo, experience, rating, reviews (first name + initial) | No personal data of patients |
-| Reaya+ admin | All accounts, bookings, chats, disputes, provider and organization documents, payments, payouts of providers and organizations (with the full payout account number in the payout queue), plans, each patient's cancellation record, package sales and promo use counts, organizations' commission rates | Every action logged; viewing booking notes, dispute descriptions or a booking's chats (including closed ones) is logged; admin roles with narrower access are planned but not yet defined |
+| Reaya+ admin — every role | Dashboard and analytics (counts and totals only, no names), the lists of services and areas | Every action logged |
+| Super admin | Everything below, plus admin accounts, settings, the audit log, plans and the service catalog; service announcements to all users | Every action logged; viewing booking notes, dispute descriptions or a booking's chats (including closed ones) is logged |
+| Verifier admin | Verification queue: provider and organization identity documents and licences; provider, organization and user records (read); can suspend a provider's listing | Every action logged; no payments, payouts, chats, booking notes or dispute descriptions |
+| Support admin | Users (suspend, warn), bookings with their notes, a booking's chats (including closed ones), disputes with their descriptions, reviews | Every action logged; viewing notes, dispute descriptions or chats is logged; no payments or payouts |
+| Finance admin | Payments, refunds, payouts of providers and organizations (with the full payout account number in the payout queue), commission dues, ledger adjustments, financial exports, organizations' commission rates, bookings and disputes for money questions | Every action logged; booking notes and dispute descriptions are hidden from this role; no chats |
+| Marketing admin | Promo codes, banners, packages and plan list; marketing broadcasts to a segment (by role and area) with the audience size | Every action logged; sees counts only, never who is in a segment; no bookings, users or payments |
 | Automated jobs | Bookings, payments, packages and documents: reminders, expiring requests and unpaid checkouts, weekly payouts, package expiry notices, expiring licenses | No human access |
 | Service providers | What the "Where the data is stored" table lists | Bound by their terms; data processing agreements still to be signed |
 | Engineers running the servers | Database and backups (encrypted fields stay unreadable without the separate key) | To be restricted to named people; access policy TBD |
@@ -170,4 +176,5 @@ We need these answers before launch; the first two decide where we host.
 | 8 Oct 2026 | M3.3 | Organization bookings: what owners see (operational details; patient name, phone and address after assignment; never notes or medical data); fallback offers to other organizations; staff lose access when reassigned or removed. |
 | 8 Oct 2026 | M3.4 | Organization finances: earnings, payouts (encrypted account details), plans billed from earnings, monthly statement PDFs, dashboard and reports (aggregates, no patient names), organizations' own packages. |
 | 8 Oct 2026 | M3.4 | Unpaid plan fees are tracked per month (no personal data); an organization unpaid for 21 days is moved to the free plan. |
+| 8 Oct 2026 | M3.5 | Admin roles (super admin, verifier, support, finance, marketing) with narrower access — booking notes and dispute descriptions only for super admin and support; admin analytics (aggregates only); broadcasts (marketing ones respect the promotions setting; service announcements always reach everyone, super admin only, with a reason). |
 | 8 Oct 2026 | — | This file became the source of truth (previously a shared online document); a Word copy is generated from it. |

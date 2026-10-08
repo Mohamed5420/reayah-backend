@@ -41,6 +41,10 @@ export interface Settings {
   plan_fee_notice_days: number;
   /** Organizations: still unpaid this many days after it was charged → moved to the free default plan. */
   plan_fee_downgrade_days: number;
+  /** Admin marketing broadcasts allowed per Cairo day (M3.5). */
+  broadcast_marketing_daily_max: number;
+  /** Admin service announcements allowed per Cairo day (M3.5). */
+  broadcast_announcement_daily_max: number;
   /** Tell patients this many days before their package expires. */
   package_expiry_notice_days: number;
   /** Weekly payout batch day. */
@@ -74,6 +78,8 @@ export const SETTING_DEFAULTS: Settings = {
   package_expiry_notice_days: 3,
   plan_fee_notice_days: 14,
   plan_fee_downgrade_days: 21,
+  broadcast_marketing_daily_max: 3,
+  broadcast_announcement_daily_max: 1,
   payout_day: 'thursday',
   payout_min_amount: 10000,
   max_commission_due: 100000,
@@ -122,6 +128,8 @@ export const SETTING_VALIDATORS: { [K in SettingKey]: Validator<Settings[K]> } =
   package_expiry_notice_days: intBetween(0, 60),
   plan_fee_notice_days: intBetween(1, 90),
   plan_fee_downgrade_days: intBetween(1, 120),
+  broadcast_marketing_daily_max: intBetween(0, 20),
+  broadcast_announcement_daily_max: intBetween(0, 10),
   payout_day: (v): v is Weekday => WEEKDAYS.includes(v as Weekday),
   payout_min_amount: intBetween(0, 100_000_00),
   max_commission_due: intBetween(0, 100_000_00),

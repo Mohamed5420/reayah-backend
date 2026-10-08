@@ -1,3 +1,5 @@
+import { ANALYTICS_GROUPS, ANALYTICS_METRICS } from '../../../services/admin/admin-analytics.service';
+import { AdminRole } from '../../../interfaces/enums';
 import { Gender, ProviderType, UserRole, UserStatus, VerificationStatus } from '../../../interfaces/enums';
 import { BookingStatus, BookingType, PaymentMethod, PaymentStatus } from '../../../interfaces/IBooking';
 import { DisputeStatus } from '../../../interfaces/IAftercare';
@@ -27,6 +29,8 @@ const adminUser = z
     email: z.string().nullable(),
     gender: z.enum(Gender).nullable(),
     role: z.enum(UserRole),
+    /** Admins only (decision M3.5). */
+    admin_role: z.enum(AdminRole).nullable(),
     status: z.enum(UserStatus),
     language: z.string(),
     last_login_at: z.string().nullable(),
@@ -66,6 +70,27 @@ const adminBooking = z
 
 export const AdminSchemas = {
   idParams: z.object({ id: objectId }),
+
+  // ---- Analytics (M3.5) ----
+  analyticsQuery: z.strictObject({
+    metric: z.enum(ANALYTICS_METRICS),
+    /** Cairo calendar dates, inclusive. Max 92 days by day, 366 by week, ~3 years by month. */
+    from: z.iso.date().openapi({ example: '2026-09-01' }),
+    to: z.iso.date().openapi({ example: '2026-09-30' }),
+    group_by: z.enum(ANALYTICS_GROUPS).default('day'),
+  }),
+  analytics: z
+    .object({
+      metric: z.enum(ANALYTICS_METRICS),
+      group_by: z.enum(ANALYTICS_GROUPS),
+      from: z.string(),
+      to: z.string(),
+      /** Whole range: a sum, the overall rate (cancellation_rate, %), or distinct providers (active_providers). */
+      total: z.number(),
+      /** One point per period, keyed by its first Cairo day (weeks start on Saturday); empty periods are 0. */
+      series: z.array(z.object({ period: z.string(), value: z.number() })),
+    })
+    .openapi('AdminAnalytics'),
 
   // ---- Dashboard ----
   dashboard: z
@@ -222,10 +247,15 @@ export const AdminSchemas = {
     .strictObject({
       phone: z.string().trim().regex(EGYPT_MOBILE, { error: 'validation.phone' }),
       full_name: z.string().trim().min(2).max(100),
+      admin_role: z.enum(AdminRole),
     })
     .openapi('CreateAdminRequest'),
   adminPatch: z
-    .strictObject({ status: z.enum([UserStatus.ACTIVE, UserStatus.SUSPENDED]) })
+    .strictObject({
+      status: z.enum([UserStatus.ACTIVE, UserStatus.SUSPENDED]).optional(),
+      /** Change the sub-role. */
+      admin_role: z.enum(AdminRole).optional(),
+    })
     .openapi('AdminAccountPatch'),
 
   // ---- Bookings ----

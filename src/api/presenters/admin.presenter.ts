@@ -1,3 +1,4 @@
+import { AdminRole, UserRole } from '../../interfaces/enums';
 import type { IUser } from '../../interfaces/IUser';
 import type { IProviderProfile } from '../../interfaces/IProfiles';
 import type { IProviderDocument } from '../../interfaces/IProvider';
@@ -29,6 +30,7 @@ export const presentAdminUser = (u: IUser) => ({
   email: u.email,
   gender: u.gender,
   role: u.role,
+  admin_role: u.role === UserRole.ADMIN ? (u.adminRole ?? AdminRole.SUPER_ADMIN) : null,
   status: u.status,
   language: u.language,
   last_login_at: iso(u.lastLoginAt),

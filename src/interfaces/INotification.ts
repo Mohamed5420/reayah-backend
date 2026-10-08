@@ -18,6 +18,8 @@ export enum NotificationType {
   ACCOUNT = 'account',
   /** Not in the spec list: dispute outcomes. */
   DISPUTE = 'dispute',
+  /** Not in the spec list: admin service announcements (M3.5) — always pushed, no opt-out. */
+  ANNOUNCEMENT = 'announcement',
 }
 
 /** Spec §7.13 `/me/notification-settings`. Turning one off silences its push; the in-app list keeps everything. */
@@ -50,5 +52,7 @@ export interface INotification {
   /** Deep-link ids, all strings (FCM `data` only carries strings). */
   data: Record<string, string>;
   readAt: Date | null;
+  /** Set when a message must reach each user at most once (e.g. `broadcast:<id>`); unique per user. */
+  dedupeKey?: string | null;
   createdAt: Date;
 }

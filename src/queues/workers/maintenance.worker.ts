@@ -7,6 +7,7 @@ import { DocumentExpiryService } from '../../services/provider/document-expiry.s
 import { PaymentService } from '../../services/payments/payment.service';
 import { PayoutService } from '../../services/payouts/payout.service';
 import { PackageService } from '../../services/marketing/package.service';
+import { BroadcastService } from '../../services/marketing/broadcast.service';
 import { StaffService } from '../../services/organization/staff.service';
 import { SubscriptionService } from '../../services/organization/subscription.service';
 import { StatementService } from '../../services/organization/statement.service';
@@ -43,6 +44,9 @@ export const runMaintenanceJob = async (name: string) => {
       break;
     case MaintenanceJob.ORG_STATEMENTS:
       await Container.get(StatementService).runDaily();
+      break;
+    case MaintenanceJob.BROADCASTS:
+      await Container.get(BroadcastService).processDue();
       break;
     case MaintenanceJob.STAFF_INVITE_PURGE:
       await Container.get(StaffService).purgeLapsed();

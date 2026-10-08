@@ -4,7 +4,8 @@ import { Container } from 'typedi';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../helpers/app';
 import { useTestDatabase } from '../helpers/db';
-import { createUserWithToken } from '../helpers/fixtures';
+import { createUser, createUserWithToken } from '../helpers/fixtures';
+import { signTestToken } from '../helpers/app';
 import {
   createBookingWorld,
   tomorrowAt,
@@ -20,7 +21,7 @@ import { UserModel } from '../../src/database/models/user/user.model';
 import { UserSuspensionModel } from '../../src/database/models/aftercare/aftercare.models';
 import { WalletLedgerModel } from '../../src/database/models/ledger/wallet.model';
 import { AuditLogModel } from '../../src/database/models/audit-log/audit-log.model';
-import { UserRole, UserStatus, VerificationStatus } from '../../src/interfaces/enums';
+import { AdminRole, UserRole, UserStatus, VerificationStatus } from '../../src/interfaces/enums';
 import { DocumentReviewStatus, ProviderDocumentType } from '../../src/interfaces/IProvider';
 import { AccountService } from '../../src/services/moderation';
 import { DocumentExpiryService } from '../../src/services/provider';
@@ -72,6 +73,60 @@ describe('access', () => {
       expect((await as(patient.auth).get(path)).status, path).toBe(403);
       expect((await request(app).get(`/api/v1${path}`)).status, path).toBe(401);
     }
+  });
+});
+
+describe('admin sub-roles', () => {
+  const adminAs = async (adminRole: AdminRole) => {
+    const user = await createUser({ role: UserRole.ADMIN, adminRole });
+    const id = String(user._id);
+    return { id, auth: `Bearer ${signTestToken({ id, role: UserRole.ADMIN })}` };
+  };
+
+  it('each role reaches only its own areas; admin accounts and settings are super admin only', async () => {
+    const [verifier, support, finance, marketing] = await Promise.all(
+      [AdminRole.VERIFIER, AdminRole.SUPPORT, AdminRole.FINANCE, AdminRole.MARKETING].map(adminAs),
+    );
+    const status = async (who: { auth: string }, path: string) => (await as(who.auth).get(path)).status;
+    for (const who of [verifier, support, finance, marketing]) {
+      expect(await status(who, '/admin/dashboard')).toBe(200);
+      expect(await status(who, '/admin/admins')).toBe(403);
+      expect(await status(who, '/admin/settings')).toBe(403);
+      expect(await status(who, '/admin/audit-logs')).toBe(403);
+    }
+    expect(await status(verifier, '/admin/verifications')).toBe(200);
+    expect(await status(finance, '/admin/verifications')).toBe(403);
+    expect(await status(support, '/admin/bookings')).toBe(200);
+    expect(await status(marketing, '/admin/bookings')).toBe(403);
+    expect(await status(finance, '/admin/payouts')).toBe(200);
+    expect(await status(support, '/admin/payouts')).toBe(403);
+    expect(await status(marketing, '/admin/promo-codes')).toBe(200);
+    expect(await status(finance, '/admin/promo-codes')).toBe(403);
+
+    const denied = await as(finance.auth).post(`/admin/users/${patient.userId}/suspend`, {
+      reason: 'مخالفة متكررة لشروط الاستخدام',
+      duration_days: null,
+    });
+    expect(denied.status).toBe(403);
+    expect(denied.body.error.code).toBe('FORBIDDEN');
+  });
+
+  it('a role change applies on the next request', async () => {
+    const support = await adminAs(AdminRole.SUPPORT);
+    expect((await as(support.auth).get('/admin/bookings')).status).toBe(200);
+    await as(admin.auth).patch(`/admin/admins/${support.id}`, { admin_role: 'marketing' }).expect(200);
+    expect((await as(support.auth).get('/admin/bookings')).status).toBe(403);
+  });
+
+  it('finance sees bookings without the patient notes (and no notes read is audited)', async () => {
+    const id = await bookAt('10:00');
+    const finance = await adminAs(AdminRole.FINANCE);
+    const asFinance = await as(finance.auth).get(`/admin/bookings/${id}`);
+    expect(asFinance.status).toBe(200);
+    expect(asFinance.body.data.booking.patient_notes).toBeNull();
+    expect(await AuditLogModel.exists({ actorId: finance.id })).toBeNull();
+    const asSupport = await as((await adminAs(AdminRole.SUPPORT)).auth).get(`/admin/bookings/${id}`);
+    expect(asSupport.body.data.booking.patient_notes).toBe('المريض لا يستطيع الحركة');
   });
 });
 
@@ -342,12 +397,22 @@ describe('settings, audit log and admin accounts', () => {
     const created = await as(admin.auth).post('/admin/admins', {
       phone: '+201099887766',
       full_name: 'سارة أحمد',
+      admin_role: 'support',
     });
     expect(created.status).toBe(201);
-    expect(created.body.data).toMatchObject({ role: 'admin', status: 'active' });
+    expect(created.body.data).toMatchObject({ role: 'admin', admin_role: 'support', status: 'active' });
     expect(
-      (await as(admin.auth).post('/admin/admins', { phone: '+201099887766', full_name: 'تكرار' })).status,
+      (
+        await as(admin.auth).post('/admin/admins', {
+          phone: '+201099887766',
+          full_name: 'تكرار',
+          admin_role: 'finance',
+        })
+      ).status,
     ).toBe(409);
+    expect(
+      (await as(admin.auth).post('/admin/admins', { phone: '+201099887700', full_name: 'بلا دور' })).status,
+    ).toBe(422);
     expect((await as(admin.auth).get('/admin/admins')).body.data).toHaveLength(2);
 
     expect((await as(admin.auth).patch(`/admin/admins/${admin.id}`, { status: 'suspended' })).status).toBe(
@@ -362,6 +427,14 @@ describe('settings, audit log and admin accounts', () => {
     ).toBeTruthy();
     const enabled = await as(admin.auth).patch(`/admin/admins/${created.body.data.id}`, { status: 'active' });
     expect(enabled.body.data.status).toBe('active');
+    const promoted = await as(admin.auth).patch(`/admin/admins/${created.body.data.id}`, {
+      admin_role: 'finance',
+    });
+    expect(promoted.body.data).toMatchObject({ admin_role: 'finance', status: 'active' });
+    // Existing admins (no sub-role stored) are super admins.
+    expect(
+      (await as(admin.auth).get('/admin/admins')).body.data.find((a: { id: string }) => a.id === admin.id),
+    ).toMatchObject({ admin_role: 'super_admin' });
     // Patients aren't admins.
     expect(
       (await as(admin.auth).patch(`/admin/admins/${patient.userId}`, { status: 'suspended' })).status,

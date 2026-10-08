@@ -1,10 +1,13 @@
 import { Schema, model, type Model } from 'mongoose';
 import {
   BannerAction,
+  BroadcastStatus,
+  BroadcastType,
   PackageSubscriptionStatus,
   PromoType,
   ReferralStatus,
   type IBanner,
+  type IBroadcast,
   type IPackage,
   type IPackageSubscription,
   type IPromoCode,
@@ -169,3 +172,35 @@ bannerSchema.plugin(softDeletePlugin);
 bannerSchema.index({ isActive: 1, sortOrder: 1 });
 
 export const BannerModel = model<IBanner, BannerModelType>('Banner', bannerSchema);
+
+// ── Broadcasts ──
+
+const broadcastSchema = new Schema<IBroadcast>(
+  {
+    type: { type: String, enum: Object.values(BroadcastType), required: true },
+    title: { type: String, required: true, trim: true },
+    body: { type: String, required: true, trim: true },
+    reason: { type: String, default: null },
+    segment: {
+      role: { type: String, enum: ['patient', 'provider', 'provider_staff', 'owner', null], default: null },
+      areaIds: { type: [Schema.Types.ObjectId], ref: 'Area', default: [] },
+    },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    day: { type: String, required: true },
+    seq: { type: Number, required: true },
+    status: { type: String, enum: Object.values(BroadcastStatus), default: BroadcastStatus.QUEUED },
+    audience: { type: Number, default: 0 },
+    sentCount: { type: Number, default: 0 },
+    cursor: { type: Schema.Types.ObjectId, default: null },
+    lockedUntil: { type: Date, default: null },
+    finishedAt: { type: Date, default: null },
+  },
+  baseSchemaOptions,
+);
+broadcastSchema.plugin(softDeletePlugin);
+// The daily cap: one record per (type, Cairo day, n).
+broadcastSchema.index({ type: 1, day: 1, seq: 1 }, { unique: true });
+broadcastSchema.index({ status: 1, lockedUntil: 1 });
+broadcastSchema.index({ createdAt: -1 });
+
+export const BroadcastModel = model<IBroadcast>('Broadcast', broadcastSchema);

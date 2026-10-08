@@ -260,10 +260,12 @@ Put on hold by product decision: no video work at this stage. Until it resumes, 
 - [x] Org packages (moved here from M3.1). *(Decision: sold upfront like platform packages; booked with that organization only; each completed visit earns the per-visit value minus the organization's commission (+ travel fee); unused visits stay with the platform.)*
 
 ### M3.5 Advanced admin & analytics
-- [ ] `/admin/analytics` time series, admin sub-roles (`super_admin | verifier | support | finance`) mapped to permissions, segment push broadcasts.
+- [x] Admin sub-roles mapped to permissions. *(Decision: `super_admin` (everything: admin accounts, settings, audit log, plans, catalog writes), `verifier` (verification queue and documents; providers / organizations read; suspend a listing), `support` (users suspend / warn, bookings force status / reassign, disputes, reviews, booking chats and notes, audited), `finance` (payments, refunds, payouts, commission dues, ledger adjustments, exports, org commission rate), `marketing` (promo codes, banners, packages, marketing broadcasts); everyone gets the dashboard, analytics and the read-only lists they need. Existing admins became `super_admin`. One central table (`admin-permissions.ts`) keyed on route + method; a route with no rule is super_admin only. Booking notes and dispute descriptions are hidden from roles other than super_admin / support.)*
+- [x] `/admin/analytics` time series. *(Bookings, completed visits, GMV, revenue, cancellation rate, active providers, new patients / providers / organizations; by Cairo day / week (from Saturday) / month, zero-filled; max 92 days by day.)*
+- [x] Segment push broadcasts (`role` + `area_ids`). *(Decision: two types. **marketing** (default; super_admin + marketing): in-app for everyone in the segment, push only with promotions on, `broadcast_marketing_daily_max` (3) a Cairo day. **announcement** (maintenance, policy, important updates; super_admin only, reason required): always pushed regardless of the promotions setting, `broadcast_announcement_daily_max` (1) a day, never for offers. Both skip suspended / deleted accounts and admins, preview the audience (`dry_run`), and are audited. Sent in resumable batches by the `broadcasts` maintenance job.)*
 - [ ] Insurance partnerships — scope to be defined.
 
-**Phase 3 exit:** an organization onboards, invites staff, receives a booking, assigns or broadcasts it, and sees it in reports and invoices; an unassigned booking falls back to other providers after the deadline.
+**Phase 3 exit:** an organization onboards, invites staff, receives a booking, assigns or broadcasts it, and sees it in reports and invoices; an unassigned booking falls back to other providers after the deadline. *(Covered end to end by `tests/integration/phase3-exit.test.ts`. Insurance partnerships stay open until their scope is defined.)*
 
 ---
 

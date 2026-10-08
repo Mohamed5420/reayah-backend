@@ -4,7 +4,7 @@
 
 Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi.json` (Swagger UI at `/docs` outside production).
 
-**Implemented:** 220 · **Deferred:** 2 (each to a named Phase 2 / 3 milestone)
+**Implemented:** 222 · **Deferred:** 0 (each to a named Phase 2 / 3 milestone)
 
 ## 7.2 Me / Account (all roles)
 
@@ -222,7 +222,7 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 |---|---|---|
 | `GET` | `/admin/dashboard` | ✅ Built |
 | `GET` | `/admin/attention` | ✅ Built |
-| `GET` | `/admin/analytics` | ⏳ M3.5 — Advanced admin |
+| `GET` | `/admin/analytics` | ✅ Built |
 | `GET` | `/admin/verifications` | ✅ Built |
 | `GET` | `/admin/verifications/{id}` | ✅ Built |
 | `POST` | `/admin/verifications/{id}/approve` | ✅ Built |
@@ -273,7 +273,7 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `POST` | `/admin/banners` | ✅ Built |
 | `PATCH` | `/admin/banners/{id}` | ✅ Built |
 | `DELETE` | `/admin/banners/{id}` | ✅ Built |
-| `POST` | `/admin/notifications/broadcast` | ⏳ M3.5 — Advanced admin |
+| `POST` | `/admin/notifications/broadcast` | ✅ Built |
 | `GET` | `/admin/packages` | ✅ Built |
 | `POST` | `/admin/packages` | ✅ Built |
 | `GET` | `/admin/subscription-plans` | ✅ Built |

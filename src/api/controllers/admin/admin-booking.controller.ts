@@ -2,7 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import { Container } from 'typedi';
 import type IBaseController from '../interfaces/base-controller.interface';
 import { CheckAppStatusMiddleware } from '../../middlewares/app';
-import { AdminGuard } from '../../middlewares/auth';
+import { AdminGuard, canReadHealthText } from '../../middlewares/auth';
 import { AdminSchemas } from '../../validations/admin/admin.validation';
 import { AftercareSchemas } from '../../validations/aftercare/aftercare.validation';
 import { paginationQuery, z } from '../../validations/zod';
@@ -211,11 +211,21 @@ export default class AdminBookingController implements IBaseController {
   }
 
   private async bookingDetail(req: Request) {
-    return presentAdminBookingDetail(await this.bookings.detail(req.params.id, auditContextFrom(req)));
+    return presentAdminBookingDetail(
+      await this.bookings.detail(
+        req.params.id,
+        auditContextFrom(req),
+        canReadHealthText(req.user!.adminRole),
+      ),
+    );
   }
 
   private async disputeDetail(id: string, req: Request) {
-    const { dispute, booking, attachments } = await this.disputes.getForAdmin(id, auditContextFrom(req));
+    const { dispute, booking, attachments } = await this.disputes.getForAdmin(
+      id,
+      auditContextFrom(req),
+      canReadHealthText(req.user!.adminRole),
+    );
     return presentAdminDispute(dispute, booking?.referenceCode ?? null, attachments);
   }
 

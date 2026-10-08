@@ -28,4 +28,6 @@ export enum MaintenanceJob {
   SUBSCRIPTION_BILLING = 'subscription-billing',
   /** Last month's statements for organizations (M3.4); a no-op once made. */
   ORG_STATEMENTS = 'org-statements',
+  /** Sends queued admin broadcasts in batches (M3.5). */
+  BROADCASTS = 'broadcasts',
 }

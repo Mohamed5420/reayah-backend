@@ -4,15 +4,17 @@ import type IBaseController from '../interfaces/base-controller.interface';
 import { CheckAppStatusMiddleware } from '../../middlewares/app';
 import { AdminGuard } from '../../middlewares/auth';
 import { MarketingSchemas } from '../../validations/marketing/marketing.validation';
-import { z } from '../../validations/zod';
+import { paginationQuery, z } from '../../validations/zod';
 import {
   presentAdminBanner,
   presentAdminPackage,
   presentAdminPromo,
+  presentBroadcast,
 } from '../../presenters/marketing.presenter';
 import { defineRoute, type DefinedRoute } from '../../../docs/openapi';
 import {
   BannerService,
+  BroadcastService,
   PackageAdminService,
   PromoAdminService,
   type BannerInput,
@@ -130,6 +132,28 @@ const r = {
     request: { params },
     response: { status: 204 },
   }),
+  broadcast: defineRoute({
+    method: 'post',
+    path: '/admin/notifications/broadcast',
+    summary:
+      'Push to a segment. marketing (default; super_admin + marketing): in-app for all, push only with promotions on, broadcast_marketing_daily_max a day. announcement (super_admin only, reason required): always pushed, broadcast_announcement_daily_max a day, never for offers. Suspended / deleted accounts and admins are skipped. dry_run: true → audience size only (200). Otherwise 202: sent in batches by a job. Audited.',
+    tags,
+    auth,
+    request: { body: MarketingSchemas.broadcastBody },
+    response: {
+      status: 202,
+      schema: z.union([MarketingSchemas.broadcast, MarketingSchemas.broadcastPreview]),
+    },
+  }),
+  listBroadcasts: defineRoute({
+    method: 'get',
+    path: '/admin/notifications/broadcasts',
+    summary: 'Broadcasts sent so far, newest first, with progress',
+    tags,
+    auth,
+    request: { query: paginationQuery },
+    response: { schema: MarketingSchemas.broadcast, paginated: true },
+  }),
 };
 
 /** Dates arrive as ISO strings; the services take Dates (null clears). */
@@ -147,6 +171,7 @@ export default class AdminMarketingController implements IBaseController {
   private promos = Container.get(PromoAdminService);
   private packages = Container.get(PackageAdminService);
   private banners = Container.get(BannerService);
+  private broadcasts = Container.get(BroadcastService);
 
   constructor() {
     this.initializeRoutes();
@@ -210,6 +235,28 @@ export default class AdminMarketingController implements IBaseController {
     this.mount(r.deleteBanner, async (req, res) => {
       await this.banners.remove(req.params.id, auditContextFrom(req));
       return HttpResponse.noContent(res);
+    });
+
+    this.mount(r.broadcast, async (req, res) => {
+      const body = req.body as z.infer<typeof MarketingSchemas.broadcastBody>;
+      const input = {
+        type: body.type,
+        title: body.title,
+        body: body.body,
+        reason: body.reason,
+        segment: { role: body.role, areaIds: body.area_ids },
+      };
+      if (body.dry_run) {
+        const { audience, pushAudience } = await this.broadcasts.preview(input);
+        return HttpResponse.ok(res, { dry_run: true, audience, push_audience: pushAudience });
+      }
+      const broadcast = await this.broadcasts.create(input, req.user!.adminRole, auditContextFrom(req));
+      return HttpResponse.accepted(res, presentBroadcast(broadcast));
+    });
+    this.mount(r.listBroadcasts, async (req, res) => {
+      const pagination = parsePagination(req.query);
+      const { data, total } = await this.broadcasts.list(pagination);
+      return HttpResponse.paginated(res, data.map(presentBroadcast), pagination, total);
     });
   }
 

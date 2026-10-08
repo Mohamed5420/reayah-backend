@@ -1,6 +1,7 @@
 import {
   perVisitValue,
   type IBanner,
+  type IBroadcast,
   type IPackage,
   type IPackageSubscription,
   type IPromoCode,
@@ -82,6 +83,21 @@ export const presentAdminPackage = (p: IPackage & { soldCount: number }) => ({
   is_active: p.isActive,
   sort_order: p.sortOrder,
   sold_count: p.soldCount,
+});
+
+export const presentBroadcast = (b: IBroadcast) => ({
+  id: String(b._id),
+  type: b.type,
+  title: b.title,
+  body: b.body,
+  reason: b.reason,
+  segment: { role: b.segment.role, area_ids: b.segment.areaIds.map(String) },
+  created_by: String(b.createdBy),
+  status: b.status,
+  audience: b.audience,
+  sent_count: b.sentCount,
+  finished_at: b.finishedAt?.toISOString() ?? null,
+  created_at: b.createdAt.toISOString(),
 });
 
 export const presentAdminBanner = (b: IBanner, imageUrl: string) => ({

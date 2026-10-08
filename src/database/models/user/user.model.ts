@@ -1,6 +1,6 @@
 import { Schema, model, type Model } from 'mongoose';
 import { type IUser } from '../../../interfaces/IUser';
-import { Gender, UserRole, UserStatus } from '../../../interfaces/enums';
+import { AdminRole, Gender, UserRole, UserStatus } from '../../../interfaces/enums';
 import { SUPPORTED_LANGUAGES } from '../../../utils/i18n';
 import { baseSchemaOptions, uniqueAmongActive } from '../../schema-options';
 import { softDeletePlugin, type SoftDeleteMethods } from '../../plugins/soft-delete.plugin';
@@ -25,6 +25,7 @@ const userSchema = new Schema<IUser, UserModelType, SoftDeleteMethods>(
     lastLoginAt: { type: Date, default: null },
     referredByCode: { type: String, default: null },
     referralCode: { type: String, default: null },
+    adminRole: { type: String, enum: [...Object.values(AdminRole), null], default: null },
     deletionRequestedAt: { type: Date, default: null },
     isOnline: { type: Boolean, default: false },
     notificationSettings: {

@@ -11,7 +11,7 @@ import { parseArgs } from 'node:util';
 import { Container } from 'typedi';
 import { connectDB, disconnectDB } from '../database';
 import { UserModel } from '../database/models/user/user.model';
-import { UserRole } from '../interfaces/enums';
+import { AdminRole, UserRole } from '../interfaces/enums';
 import { EGYPT_MOBILE } from '../services/auth/auth.constants';
 import { AuditService, SYSTEM_AUDIT_CONTEXT } from '../services/audit';
 
@@ -37,7 +37,12 @@ const main = async () => {
       return;
     }
 
-    const admin = await UserModel.create({ phone, fullName: name, role: UserRole.ADMIN });
+    const admin = await UserModel.create({
+      phone,
+      fullName: name,
+      role: UserRole.ADMIN,
+      adminRole: AdminRole.SUPER_ADMIN,
+    });
     await Container.get(AuditService).log(SYSTEM_AUDIT_CONTEXT, {
       action: 'admin.create',
       entityType: 'user',

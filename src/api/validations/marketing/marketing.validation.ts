@@ -1,5 +1,11 @@
 import { PaymentMethod } from '../../../interfaces/IBooking';
-import { BannerAction, PackageSubscriptionStatus, PromoType } from '../../../interfaces/IMarketing';
+import {
+  BannerAction,
+  BroadcastStatus,
+  BroadcastType,
+  PackageSubscriptionStatus,
+  PromoType,
+} from '../../../interfaces/IMarketing';
 import { booleanQuery, nameAr, nameEn, objectId, paginationQuery, piastres, timestamps, z } from '../zod';
 
 const instant = z.iso.datetime({ offset: true }).openapi({ example: '2026-10-05T14:00:00Z' });
@@ -152,8 +158,56 @@ const adminBanner = z
   .openapi('AdminBanner');
 
 /** Packages, promo codes, referrals and banners (spec §7.9, §7.2 /me/referral, §7.15 marketing). */
+const broadcastRole = z.enum(['patient', 'provider', 'provider_staff', 'owner']);
+
 export const MarketingSchemas = {
   idParams: z.object({ id: objectId }),
+
+  // ---- Broadcasts (M3.5) ----
+  broadcastBody: z
+    .strictObject({
+      /** marketing (default): offers / news, respects the promotions setting. announcement: super_admin only. */
+      type: z.enum(BroadcastType).default(BroadcastType.MARKETING),
+      /** Omit for everyone except admins. */
+      role: broadcastRole.nullable().default(null),
+      /** Only users in these areas (patients by saved address, providers / owners by service area). */
+      area_ids: z.array(objectId).max(200).default([]),
+      title: z.string().trim().min(2).max(80),
+      body: z.string().trim().min(2).max(300),
+      /** Required for announcements. */
+      reason: z.string().trim().min(5).max(500).nullable().default(null),
+      /** true = only count the audience, send nothing. */
+      dry_run: z.boolean().default(false),
+    })
+    .refine((b) => b.type !== BroadcastType.ANNOUNCEMENT || Boolean(b.reason), {
+      error: 'validation.required',
+      path: ['reason'],
+    })
+    .openapi('BroadcastRequest'),
+  broadcastPreview: z
+    .object({
+      dry_run: z.literal(true),
+      audience: z.number(),
+      /** Who also gets the push (marketing: those with promotions on). */
+      push_audience: z.number(),
+    })
+    .openapi('BroadcastPreview'),
+  broadcast: z
+    .object({
+      id: z.string(),
+      type: z.enum(BroadcastType),
+      title: z.string(),
+      body: z.string(),
+      reason: z.string().nullable(),
+      segment: z.object({ role: broadcastRole.nullable(), area_ids: z.array(z.string()) }),
+      created_by: z.string(),
+      status: z.enum(BroadcastStatus),
+      audience: z.number(),
+      sent_count: z.number(),
+      finished_at: z.string().nullable(),
+      created_at: z.string(),
+    })
+    .openapi('Broadcast'),
 
   packagesQuery: z.object({ service_id: objectId.optional(), area_id: objectId.optional() }),
   package: packageView,

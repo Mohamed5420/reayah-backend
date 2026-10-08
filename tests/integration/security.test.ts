@@ -9,6 +9,7 @@ import { useTestDatabase } from '../helpers/db';
 import { createUserWithToken } from '../helpers/fixtures';
 import { buildOpenApiDocument, routeCatalog } from '../../src/docs/openapi';
 import { IsAuthenticatedMiddleware } from '../../src/api/middlewares/auth/is-authenticated.middleware';
+import { AdminPermissionMiddleware } from '../../src/api/middlewares/auth/admin-permissions';
 import { RequireActiveAccountMiddleware } from '../../src/api/middlewares/auth/require-active-account.middleware';
 import { decryptField, isEncrypted } from '../../src/utils/crypto/field-encryption';
 import { UserRole } from '../../src/interfaces/enums';
@@ -113,6 +114,12 @@ describe('authentication on every route', () => {
 });
 
 describe('role guards', () => {
+  it('every admin route checks the admin sub-role (AdminGuard), not just the admin role', () => {
+    const admin = mountedRoutes(app).filter((r) => r.path.startsWith('/admin/'));
+    expect(admin.length).toBeGreaterThan(40);
+    for (const route of admin) expect(route.handlers, key(route)).toContain(AdminPermissionMiddleware);
+  });
+
   it('admin routes refuse every other role; provider routes refuse patients', async () => {
     const patient = await createUserWithToken(UserRole.PATIENT);
     const provider = await createUserWithToken(UserRole.PROVIDER);

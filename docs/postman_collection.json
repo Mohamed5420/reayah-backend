@@ -4515,6 +4515,52 @@
           }
         },
         {
+          "name": "Time series: bookings, completed visits, GMV, revenue, cancellation rate, active providers, sign-ups — by Cairo day / week / month, zero-filled",
+          "request": {
+            "method": "GET",
+            "description": "Time series: bookings, completed visits, GMV, revenue, cancellation rate, active providers, sign-ups — by Cairo day / week / month, zero-filled",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/analytics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "metric",
+                  "value": "bookings",
+                  "disabled": false
+                },
+                {
+                  "key": "from",
+                  "value": "2026-09-01",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-09-30",
+                  "disabled": false
+                },
+                {
+                  "key": "group_by",
+                  "value": "day",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
           "name": "Needs attention: requests nobody took (last 24 h), open disputes, documents expired or expiring within 30 days",
           "request": {
             "method": "GET",
@@ -5050,10 +5096,10 @@
           }
         },
         {
-          "name": "Create an admin account (they sign in with phone + OTP)",
+          "name": "Create an admin account with a sub-role (they sign in with phone + OTP). Super admins only.",
           "request": {
             "method": "POST",
-            "description": "Create an admin account (they sign in with phone + OTP)",
+            "description": "Create an admin account with a sub-role (they sign in with phone + OTP). Super admins only.",
             "header": [
               {
                 "key": "Accept-Language",
@@ -5074,7 +5120,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"string\",\n  \"full_name\": \"string\"\n}",
+              "raw": "{\n  \"phone\": \"string\",\n  \"full_name\": \"string\",\n  \"admin_role\": \"super_admin\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5084,10 +5130,10 @@
           }
         },
         {
-          "name": "Disable / re-enable another admin (not yourself, not the last active one). Sub-roles: TBD.",
+          "name": "Change another admin’s sub-role and / or disable / re-enable them (not yourself). Super admins only.",
           "request": {
             "method": "PATCH",
-            "description": "Disable / re-enable another admin (not yourself, not the last active one). Sub-roles: TBD.",
+            "description": "Change another admin’s sub-role and / or disable / re-enable them (not yourself). Super admins only.",
             "header": [
               {
                 "key": "Accept-Language",
@@ -5114,7 +5160,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"active\"\n}",
+              "raw": "{\n  \"status\": \"active\",\n  \"admin_role\": \"super_admin\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7060,6 +7106,78 @@
                   "value": "665f1c2b9e1d2a4c3b9e8f1a"
                 }
               ]
+            }
+          }
+        },
+        {
+          "name": "Push to a segment. marketing (default; super_admin + marketing): in-app for all, push only with promotions on, broadcast_marketing_daily_max a day. announcement (super_admin only, reason required): always pushed, broadcast_announcement_daily_max a day, never for offers. Suspended / deleted accounts and admins are skipped. dry_run: true → audience size only (200). Otherwise 202: sent in batches by a job. Audited.",
+          "request": {
+            "method": "POST",
+            "description": "Push to a segment. marketing (default; super_admin + marketing): in-app for all, push only with promotions on, broadcast_marketing_daily_max a day. announcement (super_admin only, reason required): always pushed, broadcast_announcement_daily_max a day, never for offers. Suspended / deleted accounts and admins are skipped. dry_run: true → audience size only (200). Otherwise 202: sent in batches by a job. Audited.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/broadcast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "notifications",
+                "broadcast"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"marketing\",\n  \"role\": null,\n  \"area_ids\": [],\n  \"title\": \"string\",\n  \"body\": \"string\",\n  \"reason\": null,\n  \"dry_run\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Broadcasts sent so far, newest first, with progress",
+          "request": {
+            "method": "GET",
+            "description": "Broadcasts sent so far, newest first, with progress",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/notifications/broadcasts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "notifications",
+                "broadcasts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
             }
           }
         }

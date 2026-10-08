@@ -7,7 +7,7 @@ import { AdminSchemas } from '../../validations/admin/admin.validation';
 import { paginationQuery, type z } from '../../validations/zod';
 import { presentAttention, presentAuditEntry } from '../../presenters/admin.presenter';
 import { defineRoute, type DefinedRoute } from '../../../docs/openapi';
-import { AdminDashboardService } from '../../../services/admin';
+import { AdminAnalyticsService, AdminDashboardService } from '../../../services/admin';
 import { AuditService, auditContextFrom } from '../../../services/audit';
 import { SettingsService } from '../../../services/settings';
 import { HttpResponse } from '../../../utils/response/http-response';
@@ -24,6 +24,16 @@ const r = {
     tags: ['Admin — Dashboard'],
     auth,
     response: { schema: AdminSchemas.dashboard },
+  }),
+  analytics: defineRoute({
+    method: 'get',
+    path: '/admin/analytics',
+    summary:
+      'Time series: bookings, completed visits, GMV, revenue, cancellation rate, active providers, sign-ups — by Cairo day / week / month, zero-filled',
+    tags: ['Admin — Dashboard'],
+    auth,
+    request: { query: AdminSchemas.analyticsQuery },
+    response: { schema: AdminSchemas.analytics },
   }),
   attention: defineRoute({
     method: 'get',
@@ -68,6 +78,7 @@ export default class AdminSystemController implements IBaseController {
   router = Router();
 
   private dashboard = Container.get(AdminDashboardService);
+  private analytics = Container.get(AdminAnalyticsService);
   private settings = Container.get(SettingsService);
   private audit = Container.get(AuditService);
 
@@ -93,6 +104,16 @@ export default class AdminSystemController implements IBaseController {
         top_areas: d.topAreas.map((a) => ({ area_name: a.areaName, bookings: a.bookings })),
         recent_activity: d.recentActivity.map(presentAuditEntry),
       };
+    });
+    this.mount(r.analytics, async (req) => {
+      const q = req.query as unknown as z.infer<typeof AdminSchemas.analyticsQuery>;
+      const { groupBy, ...rest } = await this.analytics.series({
+        metric: q.metric,
+        from: q.from,
+        to: q.to,
+        groupBy: q.group_by,
+      });
+      return { ...rest, group_by: groupBy };
     });
     this.mount(r.attention, async () => presentAttention(await this.dashboard.attention()));
     this.mount(r.settings, () => this.settings.getAll());

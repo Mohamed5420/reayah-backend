@@ -8,6 +8,19 @@ export enum UserRole {
   ADMIN = 'admin',
 }
 
+/**
+ * Admin sub-roles (spec §7.15; decision M3.5). super_admin: everything; verifier: verification;
+ * support: users, bookings, disputes, reviews, booking chats; finance: payments, refunds, payouts, dues,
+ * adjustments, exports; marketing: promo codes, banners, packages, marketing pushes.
+ */
+export enum AdminRole {
+  SUPER_ADMIN = 'super_admin',
+  VERIFIER = 'verifier',
+  SUPPORT = 'support',
+  FINANCE = 'finance',
+  MARKETING = 'marketing',
+}
+
 /** Roles a user can pick at `/auth/register`. Staff join via an organization invite; admins via `npm run admin:create`. */
 export const SELF_REGISTER_ROLES = [UserRole.PATIENT, UserRole.PROVIDER, UserRole.OWNER] as const;
 

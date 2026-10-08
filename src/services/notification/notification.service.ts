@@ -27,6 +27,8 @@ export type NotifyInput = {
   params?: Record<string, string | number> | ((lang: Language) => Record<string, string | number>);
   /** Deep-link ids (strings). `type` and `notification_id` are added automatically. */
   data?: Record<string, string>;
+  /** Each user gets this message at most once: users who already have one with this key are skipped. */
+  dedupeKey?: string;
 };
 
 /**
@@ -50,13 +52,21 @@ export class NotificationService {
       const params = typeof input.params === 'function' ? input.params(lang) : input.params;
       const title = t(`notifications.${input.template}.title` as TranslationKey, params, lang);
       const body = t(`notifications.${input.template}.body` as TranslationKey, params, lang);
-      const notification = await NotificationModel.create({
-        userId: user._id,
-        type: input.type,
-        title,
-        body,
-        data: input.data ?? {},
-      });
+      let notification;
+      try {
+        notification = await NotificationModel.create({
+          userId: user._id,
+          type: input.type,
+          title,
+          body,
+          data: input.data ?? {},
+          ...(input.dedupeKey ? { dedupeKey: input.dedupeKey } : {}),
+        });
+      } catch (err) {
+        // Already delivered under this key: no second record, socket event or push.
+        if (input.dedupeKey && (err as { code?: number }).code === 11000) continue;
+        throw err;
+      }
       created.push(notification.toObject({ flattenMaps: true }) as unknown as INotification);
       const data = { ...(input.data ?? {}), type: input.type, notification_id: String(notification._id) };
 

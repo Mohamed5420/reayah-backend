@@ -167,3 +167,47 @@ export interface IBanner {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export enum BroadcastType {
+  /** Offers, news: respects the promotions setting (in-app only for those who turned it off). */
+  MARKETING = 'marketing',
+  /** Maintenance, policy changes, important updates: always pushed. super_admin only; never for offers. */
+  ANNOUNCEMENT = 'announcement',
+}
+
+export enum BroadcastStatus {
+  QUEUED = 'queued',
+  SENDING = 'sending',
+  SENT = 'sent',
+}
+
+/** Who a broadcast goes to: one role (or everyone but admins), optionally only in some areas. */
+export interface IBroadcastSegment {
+  role: 'patient' | 'provider' | 'provider_staff' | 'owner' | null;
+  areaIds: Types.ObjectId[];
+}
+
+/** A push to a segment (spec §7.15 `/admin/notifications/broadcast`; decision M3.5). Sent in batches by a job. */
+export interface IBroadcast {
+  _id: Types.ObjectId;
+  type: BroadcastType;
+  title: string;
+  body: string;
+  /** Announcements only: why everyone must get it (kept for the audit). */
+  reason: string | null;
+  segment: IBroadcastSegment;
+  createdBy: Types.ObjectId;
+  /** Cairo date + the n-th broadcast of this type that day: unique, so the daily cap holds under races. */
+  day: string;
+  seq: number;
+  status: BroadcastStatus;
+  /** Audience size when it was created; `sentCount` grows as batches go out. */
+  audience: number;
+  sentCount: number;
+  /** Last user id handled: a retried run resumes after it. */
+  cursor: Types.ObjectId | null;
+  lockedUntil: Date | null;
+  finishedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}

@@ -119,8 +119,10 @@ export class DisputeService {
   }
 
   /** Admin view: decrypted in the presenter; every view is audited (the description may hold health details). */
-  async getForAdmin(disputeId: string, context: AuditContext) {
+  async getForAdmin(disputeId: string, context: AuditContext, withDescription = true) {
     const result = await this.get(disputeId);
+    // Admin roles that may not read health text (finance) get it without the description, unaudited.
+    if (!withDescription) return { ...result, dispute: { ...result.dispute, description: null } };
     await auditDisputeRead(context, disputeId);
     return result;
   }

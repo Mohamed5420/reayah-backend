@@ -121,7 +121,7 @@ const r = {
   createAdmin: defineRoute({
     method: 'post',
     path: '/admin/admins',
-    summary: 'Create an admin account (they sign in with phone + OTP)',
+    summary: 'Create an admin account with a sub-role (they sign in with phone + OTP). Super admins only.',
     tags: admins,
     auth,
     request: { body: AdminSchemas.adminCreateBody },
@@ -130,7 +130,8 @@ const r = {
   updateAdmin: defineRoute({
     method: 'patch',
     path: '/admin/admins/:id',
-    summary: 'Disable / re-enable another admin (not yourself, not the last active one). Sub-roles: TBD.',
+    summary:
+      'Change another admin’s sub-role and / or disable / re-enable them (not yourself). Super admins only.',
     tags: admins,
     auth,
     request: { params, body: AdminSchemas.adminPatch },
@@ -220,7 +221,7 @@ export default class AdminUserController implements IBaseController {
         const body = req.body as z.infer<typeof AdminSchemas.adminCreateBody>;
         return presentAdminUser(
           await this.service.createAdmin(
-            { phone: body.phone, fullName: body.full_name },
+            { phone: body.phone, fullName: body.full_name, adminRole: body.admin_role },
             auditContextFrom(req),
           ),
         );

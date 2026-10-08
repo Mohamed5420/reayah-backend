@@ -121,7 +121,12 @@
     "plan_staff_limit": "وصلت إلى الحد الأقصى لفريقك في باقتك ({{max}} أفراد). رقِّ الباقة أو أزل أحد الأفراد",
     "plan_already_current": "هذه باقتك الحالية بالفعل",
     "statement_not_found": "الكشف غير موجود",
-    "no_plan_fee_due": "لا توجد رسوم باقة مستحقة"
+    "no_plan_fee_due": "لا توجد رسوم باقة مستحقة",
+    "broadcast_no_audience": "لا يوجد مستخدمون في هذه الفئة",
+    "broadcast_daily_limit": "تم الوصول للحد اليومي لهذا النوع من الرسائل ({{max}})",
+    "analytics_range": "تاريخ النهاية يجب أن يكون بعد تاريخ البداية",
+    "analytics_range_too_long": "الفترة طويلة جدًا لهذا التجميع (الحد الأقصى {{days}} يومًا)",
+    "admin_permission": "صلاحياتك في لوحة التحكم لا تسمح بهذا الإجراء"
   },
   "validation": {
     "invalid_value": "قيمة غير صالحة",
@@ -442,6 +447,10 @@
     "plan_fee_paid": {
       "title": "تم سداد رسوم الباقة",
       "body": "تم استلام {{amount}} جنيه، شكراً لك"
+    },
+    "broadcast": {
+      "title": "{{title}}",
+      "body": "{{body}}"
     }
   },
   "packages": {
