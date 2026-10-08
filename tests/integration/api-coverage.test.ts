@@ -19,7 +19,6 @@ const DEFERRED: Array<[RegExp, string]> = [
     'M3 — Organizations',
   ],
   [/^\w+ \/admin\/analytics|^POST \/admin\/notifications\/broadcast/, 'M3.5 — Advanced admin'],
-  [/^\w+ \/conversations|^\w+ \/bookings\/\{\}\/messages/, 'M2.2 — Chat'],
   [
     /^\w+ \/payments|^\w+ \/webhooks\/payments|^GET \/me\/payments|^POST \/admin\/bookings\/\{\}\/refund|^GET \/admin\/payments/,
     'M2.3 — Payments',
@@ -89,7 +88,7 @@ describe('API coverage against the spec', () => {
       '',
       'Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi.json` (Swagger UI at `/docs` outside production).',
       '',
-      `**Implemented:** ${endpoints.filter((e) => e.done).length} · **Deferred:** ${endpoints.filter((e) => !e.done).length} (all to Phase 2 / 3 milestones)`,
+      `**Implemented:** ${endpoints.filter((e) => e.done).length} · **Deferred:** ${endpoints.filter((e) => !e.done).length} (each to a named Phase 2 / 3 milestone)`,
     ];
     let section = '';
     for (const e of endpoints) {
@@ -97,7 +96,7 @@ describe('API coverage against the spec', () => {
         section = e.section;
         lines.push('', `## ${section}`, '', '| Method | Path | Status |', '|---|---|---|');
       }
-      lines.push(`| \`${e.method}\` | \`${e.path}\` | ${e.done ? '✅ Phase 1' : `⏳ ${e.deferredTo}`} |`);
+      lines.push(`| \`${e.method}\` | \`${e.path}\` | ${e.done ? '✅ Built' : `⏳ ${e.deferredTo}`} |`);
     }
     const content = `${lines.join('\n')}\n`;
     const file = path.resolve(__dirname, '../../docs/API_COVERAGE.md');

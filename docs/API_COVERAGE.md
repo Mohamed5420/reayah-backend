@@ -4,92 +4,92 @@
 
 Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi.json` (Swagger UI at `/docs` outside production).
 
-**Implemented:** 138 · **Deferred:** 84 (all to Phase 2 / 3 milestones)
+**Implemented:** 142 · **Deferred:** 80 (each to a named Phase 2 / 3 milestone)
 
 ## 7.2 Me / Account (all roles)
 
 | Method | Path | Status |
 |---|---|---|
-| `GET` | `/me` | ✅ Phase 1 |
-| `PATCH` | `/me` | ✅ Phase 1 |
-| `POST` | `/me/avatar` | ✅ Phase 1 |
-| `POST` | `/me/devices` | ✅ Phase 1 |
-| `DELETE` | `/me/devices/{fcm_token}` | ✅ Phase 1 |
+| `GET` | `/me` | ✅ Built |
+| `PATCH` | `/me` | ✅ Built |
+| `POST` | `/me/avatar` | ✅ Built |
+| `POST` | `/me/devices` | ✅ Built |
+| `DELETE` | `/me/devices/{fcm_token}` | ✅ Built |
 | `GET` | `/me/referral` | ⏳ M2.5 — Packages, promos, referrals |
-| `DELETE` | `/me` | ✅ Phase 1 |
+| `DELETE` | `/me` | ✅ Built |
 
 ## 7.3 Lookups (public, cacheable)
 
 | Method | Path | Status |
 |---|---|---|
-| `GET` | `/governorates` | ✅ Phase 1 |
-| `GET` | `/governorates/{id}/areas` | ✅ Phase 1 |
-| `GET` | `/areas` | ✅ Phase 1 |
-| `GET` | `/service-categories` | ✅ Phase 1 |
-| `GET` | `/services` | ✅ Phase 1 |
-| `GET` | `/services/{id}` | ✅ Phase 1 |
-| `GET` | `/app-config` | ✅ Phase 1 |
+| `GET` | `/governorates` | ✅ Built |
+| `GET` | `/governorates/{id}/areas` | ✅ Built |
+| `GET` | `/areas` | ✅ Built |
+| `GET` | `/service-categories` | ✅ Built |
+| `GET` | `/services` | ✅ Built |
+| `GET` | `/services/{id}` | ✅ Built |
+| `GET` | `/app-config` | ✅ Built |
 
 ## 7.5 Patient — Addresses (role: patient)
 
 | Method | Path | Status |
 |---|---|---|
-| `GET` | `/addresses` | ✅ Phase 1 |
-| `POST` | `/addresses` | ✅ Phase 1 |
-| `PATCH` | `/addresses/{id}` | ✅ Phase 1 |
-| `DELETE` | `/addresses/{id}` | ✅ Phase 1 |
-| `POST` | `/addresses/{id}/default` | ✅ Phase 1 |
+| `GET` | `/addresses` | ✅ Built |
+| `POST` | `/addresses` | ✅ Built |
+| `PATCH` | `/addresses/{id}` | ✅ Built |
+| `DELETE` | `/addresses/{id}` | ✅ Built |
+| `POST` | `/addresses/{id}/default` | ✅ Built |
 
 ## 7.6 Patient — Profiles & Medical Records (role: patient)
 
 | Method | Path | Status |
 |---|---|---|
-| `GET` | `/patient-profiles` | ✅ Phase 1 |
-| `POST` | `/patient-profiles` | ✅ Phase 1 |
-| `GET` | `/patient-profiles/{id}` | ✅ Phase 1 |
-| `PATCH` | `/patient-profiles/{id}` | ✅ Phase 1 |
-| `DELETE` | `/patient-profiles/{id}` | ✅ Phase 1 |
-| `GET` | `/patient-profiles/{id}/conditions` | ✅ Phase 1 |
-| `POST` | `/patient-profiles/{id}/conditions` | ✅ Phase 1 |
-| `PATCH` | `/patient-profiles/{id}/conditions/{cid}` | ✅ Phase 1 |
-| `DELETE` | `/patient-profiles/{id}/conditions/{cid}` | ✅ Phase 1 |
-| `GET` | `/patient-profiles/{id}/medications` | ✅ Phase 1 |
-| `POST` | `/patient-profiles/{id}/medications` | ✅ Phase 1 |
-| `PATCH` | `/patient-profiles/{id}/medications/{mid}` | ✅ Phase 1 |
-| `DELETE` | `/patient-profiles/{id}/medications/{mid}` | ✅ Phase 1 |
-| `GET` | `/patient-profiles/{id}/allergies` | ✅ Phase 1 |
-| `POST` | `/patient-profiles/{id}/allergies` | ✅ Phase 1 |
-| `PATCH` | `/patient-profiles/{id}/allergies/{aid}` | ✅ Phase 1 |
-| `DELETE` | `/patient-profiles/{id}/allergies/{aid}` | ✅ Phase 1 |
-| `GET` | `/patient-profiles/{id}/documents` | ✅ Phase 1 |
-| `POST` | `/patient-profiles/{id}/documents` | ✅ Phase 1 |
-| `DELETE` | `/patient-profiles/{id}/documents/{did}` | ✅ Phase 1 |
-| `GET` | `/patient-profiles/{id}/visit-reports` | ✅ Phase 1 |
-| `GET` | `/patient-profiles/{id}/visit-reports/{rid}` | ✅ Phase 1 |
+| `GET` | `/patient-profiles` | ✅ Built |
+| `POST` | `/patient-profiles` | ✅ Built |
+| `GET` | `/patient-profiles/{id}` | ✅ Built |
+| `PATCH` | `/patient-profiles/{id}` | ✅ Built |
+| `DELETE` | `/patient-profiles/{id}` | ✅ Built |
+| `GET` | `/patient-profiles/{id}/conditions` | ✅ Built |
+| `POST` | `/patient-profiles/{id}/conditions` | ✅ Built |
+| `PATCH` | `/patient-profiles/{id}/conditions/{cid}` | ✅ Built |
+| `DELETE` | `/patient-profiles/{id}/conditions/{cid}` | ✅ Built |
+| `GET` | `/patient-profiles/{id}/medications` | ✅ Built |
+| `POST` | `/patient-profiles/{id}/medications` | ✅ Built |
+| `PATCH` | `/patient-profiles/{id}/medications/{mid}` | ✅ Built |
+| `DELETE` | `/patient-profiles/{id}/medications/{mid}` | ✅ Built |
+| `GET` | `/patient-profiles/{id}/allergies` | ✅ Built |
+| `POST` | `/patient-profiles/{id}/allergies` | ✅ Built |
+| `PATCH` | `/patient-profiles/{id}/allergies/{aid}` | ✅ Built |
+| `DELETE` | `/patient-profiles/{id}/allergies/{aid}` | ✅ Built |
+| `GET` | `/patient-profiles/{id}/documents` | ✅ Built |
+| `POST` | `/patient-profiles/{id}/documents` | ✅ Built |
+| `DELETE` | `/patient-profiles/{id}/documents/{did}` | ✅ Built |
+| `GET` | `/patient-profiles/{id}/visit-reports` | ✅ Built |
+| `GET` | `/patient-profiles/{id}/visit-reports/{rid}` | ✅ Built |
 
 ## 7.7 Patient — Discovery
 
 | Method | Path | Status |
 |---|---|---|
-| `GET` | `/home` | ✅ Phase 1 |
-| `GET` | `/providers` | ✅ Phase 1 |
-| `GET` | `/providers/{id}` | ✅ Phase 1 |
-| `GET` | `/providers/{id}/reviews` | ✅ Phase 1 |
-| `GET` | `/providers/{id}/slots` | ✅ Phase 1 |
+| `GET` | `/home` | ✅ Built |
+| `GET` | `/providers` | ✅ Built |
+| `GET` | `/providers/{id}` | ✅ Built |
+| `GET` | `/providers/{id}/reviews` | ✅ Built |
+| `GET` | `/providers/{id}/slots` | ✅ Built |
 
 ## 7.8 Patient — Bookings
 
 | Method | Path | Status |
 |---|---|---|
-| `POST` | `/bookings/quote` | ✅ Phase 1 |
-| `POST` | `/bookings` | ✅ Phase 1 |
-| `GET` | `/bookings` | ✅ Phase 1 |
-| `GET` | `/bookings/{id}` | ✅ Phase 1 |
-| `POST` | `/bookings/{id}/cancel` | ✅ Phase 1 |
-| `POST` | `/bookings/{id}/reschedule` | ✅ Phase 1 |
-| `POST` | `/bookings/{id}/review` | ✅ Phase 1 |
-| `POST` | `/bookings/{id}/dispute` | ✅ Phase 1 |
-| `POST` | `/bookings/{id}/rebook` | ✅ Phase 1 |
+| `POST` | `/bookings/quote` | ✅ Built |
+| `POST` | `/bookings` | ✅ Built |
+| `GET` | `/bookings` | ✅ Built |
+| `GET` | `/bookings/{id}` | ✅ Built |
+| `POST` | `/bookings/{id}/cancel` | ✅ Built |
+| `POST` | `/bookings/{id}/reschedule` | ✅ Built |
+| `POST` | `/bookings/{id}/review` | ✅ Built |
+| `POST` | `/bookings/{id}/dispute` | ✅ Built |
+| `POST` | `/bookings/{id}/rebook` | ✅ Built |
 
 ## 7.9 Patient — Packages & Promos
 
@@ -105,44 +105,44 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 
 | Method | Path | Status |
 |---|---|---|
-| `GET` | `/provider/profile` | ✅ Phase 1 |
-| `PATCH` | `/provider/profile` | ✅ Phase 1 |
-| `GET` | `/provider/documents` | ✅ Phase 1 |
-| `POST` | `/provider/documents` | ✅ Phase 1 |
-| `DELETE` | `/provider/documents/{id}` | ✅ Phase 1 |
-| `POST` | `/provider/submit-verification` | ✅ Phase 1 |
-| `GET` | `/provider/verification-status` | ✅ Phase 1 |
-| `GET` | `/provider/service-areas` | ✅ Phase 1 |
-| `PUT` | `/provider/service-areas` | ✅ Phase 1 |
-| `GET` | `/provider/services` | ✅ Phase 1 |
-| `PUT` | `/provider/services` | ✅ Phase 1 |
-| `GET` | `/provider/availability` | ✅ Phase 1 |
-| `PUT` | `/provider/availability` | ✅ Phase 1 |
-| `GET` | `/provider/time-off` | ✅ Phase 1 |
-| `POST` | `/provider/time-off` | ✅ Phase 1 |
-| `DELETE` | `/provider/time-off/{id}` | ✅ Phase 1 |
-| `PATCH` | `/provider/accepting` | ✅ Phase 1 |
-| `GET` | `/provider/home` | ✅ Phase 1 |
-| `GET` | `/provider/bookings` | ✅ Phase 1 |
-| `GET` | `/provider/bookings/{id}` | ✅ Phase 1 |
-| `GET` | `/provider/offers` | ✅ Phase 1 |
-| `POST` | `/provider/offers/{id}/accept` | ✅ Phase 1 |
-| `POST` | `/provider/offers/{id}/decline` | ✅ Phase 1 |
-| `POST` | `/provider/bookings/{id}/accept` | ✅ Phase 1 |
-| `POST` | `/provider/bookings/{id}/decline` | ✅ Phase 1 |
-| `POST` | `/provider/bookings/{id}/on-the-way` | ✅ Phase 1 |
-| `POST` | `/provider/bookings/{id}/start` | ✅ Phase 1 |
-| `POST` | `/provider/bookings/{id}/complete` | ✅ Phase 1 |
-| `POST` | `/provider/bookings/{id}/no-show` | ✅ Phase 1 |
-| `POST` | `/provider/bookings/{id}/cancel` | ✅ Phase 1 |
-| `POST` | `/provider/bookings/{id}/report` | ✅ Phase 1 |
-| `PATCH` | `/provider/bookings/{id}/report` | ✅ Phase 1 |
-| `POST` | `/provider/bookings/{id}/cash-collected` | ✅ Phase 1 |
+| `GET` | `/provider/profile` | ✅ Built |
+| `PATCH` | `/provider/profile` | ✅ Built |
+| `GET` | `/provider/documents` | ✅ Built |
+| `POST` | `/provider/documents` | ✅ Built |
+| `DELETE` | `/provider/documents/{id}` | ✅ Built |
+| `POST` | `/provider/submit-verification` | ✅ Built |
+| `GET` | `/provider/verification-status` | ✅ Built |
+| `GET` | `/provider/service-areas` | ✅ Built |
+| `PUT` | `/provider/service-areas` | ✅ Built |
+| `GET` | `/provider/services` | ✅ Built |
+| `PUT` | `/provider/services` | ✅ Built |
+| `GET` | `/provider/availability` | ✅ Built |
+| `PUT` | `/provider/availability` | ✅ Built |
+| `GET` | `/provider/time-off` | ✅ Built |
+| `POST` | `/provider/time-off` | ✅ Built |
+| `DELETE` | `/provider/time-off/{id}` | ✅ Built |
+| `PATCH` | `/provider/accepting` | ✅ Built |
+| `GET` | `/provider/home` | ✅ Built |
+| `GET` | `/provider/bookings` | ✅ Built |
+| `GET` | `/provider/bookings/{id}` | ✅ Built |
+| `GET` | `/provider/offers` | ✅ Built |
+| `POST` | `/provider/offers/{id}/accept` | ✅ Built |
+| `POST` | `/provider/offers/{id}/decline` | ✅ Built |
+| `POST` | `/provider/bookings/{id}/accept` | ✅ Built |
+| `POST` | `/provider/bookings/{id}/decline` | ✅ Built |
+| `POST` | `/provider/bookings/{id}/on-the-way` | ✅ Built |
+| `POST` | `/provider/bookings/{id}/start` | ✅ Built |
+| `POST` | `/provider/bookings/{id}/complete` | ✅ Built |
+| `POST` | `/provider/bookings/{id}/no-show` | ✅ Built |
+| `POST` | `/provider/bookings/{id}/cancel` | ✅ Built |
+| `POST` | `/provider/bookings/{id}/report` | ✅ Built |
+| `PATCH` | `/provider/bookings/{id}/report` | ✅ Built |
+| `POST` | `/provider/bookings/{id}/cash-collected` | ✅ Built |
 | `GET` | `/provider/earnings` | ⏳ M2.4 — Earnings & payouts |
 | `GET` | `/provider/ledger` | ⏳ M2.4 — Earnings & payouts |
 | `GET` | `/provider/payouts` | ⏳ M2.4 — Earnings & payouts |
 | `PUT` | `/provider/payout-method` | ⏳ M2.4 — Earnings & payouts |
-| `GET` | `/provider/reviews` | ✅ Phase 1 |
+| `GET` | `/provider/reviews` | ✅ Built |
 
 ## 7.11 Owner — Organization (role: owner)
 
@@ -193,19 +193,19 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 
 | Method | Path | Status |
 |---|---|---|
-| `GET` | `/conversations` | ⏳ M2.2 — Chat |
-| `GET` | `/bookings/{id}/messages` | ⏳ M2.2 — Chat |
-| `POST` | `/bookings/{id}/messages` | ⏳ M2.2 — Chat |
-| `POST` | `/bookings/{id}/messages/read` | ⏳ M2.2 — Chat |
+| `GET` | `/conversations` | ✅ Built |
+| `GET` | `/bookings/{id}/messages` | ✅ Built |
+| `POST` | `/bookings/{id}/messages` | ✅ Built |
+| `POST` | `/bookings/{id}/messages/read` | ✅ Built |
 
 ## 7.13 Notifications
 
 | Method | Path | Status |
 |---|---|---|
-| `GET` | `/notifications` | ✅ Phase 1 |
-| `POST` | `/notifications/read` | ✅ Phase 1 |
-| `GET` | `/me/notification-settings` | ✅ Phase 1 |
-| `PUT` | `/me/notification-settings` | ✅ Phase 1 |
+| `GET` | `/notifications` | ✅ Built |
+| `POST` | `/notifications/read` | ✅ Built |
+| `GET` | `/me/notification-settings` | ✅ Built |
+| `PUT` | `/me/notification-settings` | ✅ Built |
 
 ## 7.14 Payments
 
@@ -220,51 +220,51 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 
 | Method | Path | Status |
 |---|---|---|
-| `GET` | `/admin/dashboard` | ✅ Phase 1 |
-| `GET` | `/admin/attention` | ✅ Phase 1 |
+| `GET` | `/admin/dashboard` | ✅ Built |
+| `GET` | `/admin/attention` | ✅ Built |
 | `GET` | `/admin/analytics` | ⏳ M3.5 — Advanced admin |
-| `GET` | `/admin/verifications` | ✅ Phase 1 |
-| `GET` | `/admin/verifications/{id}` | ✅ Phase 1 |
-| `POST` | `/admin/verifications/{id}/approve` | ✅ Phase 1 |
-| `POST` | `/admin/verifications/{id}/request-changes` | ✅ Phase 1 |
-| `POST` | `/admin/verifications/{id}/reject` | ✅ Phase 1 |
-| `POST` | `/admin/documents/{id}/review` | ✅ Phase 1 |
-| `GET` | `/admin/users` | ✅ Phase 1 |
-| `GET` | `/admin/users/{id}` | ✅ Phase 1 |
-| `POST` | `/admin/users/{id}/suspend` | ✅ Phase 1 |
-| `POST` | `/admin/users/{id}/warn` | ✅ Phase 1 |
-| `GET` | `/admin/users/{id}/history` | ✅ Phase 1 |
-| `POST` | `/admin/users/{id}/activate` | ✅ Phase 1 |
-| `GET` | `/admin/providers` | ✅ Phase 1 |
-| `GET` | `/admin/providers/{id}` | ✅ Phase 1 |
-| `PATCH` | `/admin/providers/{id}` | ✅ Phase 1 |
+| `GET` | `/admin/verifications` | ✅ Built |
+| `GET` | `/admin/verifications/{id}` | ✅ Built |
+| `POST` | `/admin/verifications/{id}/approve` | ✅ Built |
+| `POST` | `/admin/verifications/{id}/request-changes` | ✅ Built |
+| `POST` | `/admin/verifications/{id}/reject` | ✅ Built |
+| `POST` | `/admin/documents/{id}/review` | ✅ Built |
+| `GET` | `/admin/users` | ✅ Built |
+| `GET` | `/admin/users/{id}` | ✅ Built |
+| `POST` | `/admin/users/{id}/suspend` | ✅ Built |
+| `POST` | `/admin/users/{id}/warn` | ✅ Built |
+| `GET` | `/admin/users/{id}/history` | ✅ Built |
+| `POST` | `/admin/users/{id}/activate` | ✅ Built |
+| `GET` | `/admin/providers` | ✅ Built |
+| `GET` | `/admin/providers/{id}` | ✅ Built |
+| `PATCH` | `/admin/providers/{id}` | ✅ Built |
 | `GET` | `/admin/organizations` | ⏳ M3 — Organizations |
 | `GET` | `/admin/organizations/{id}` | ⏳ M3 — Organizations |
 | `PATCH` | `/admin/organizations/{id}` | ⏳ M3 — Organizations |
-| `GET` | `/admin/bookings` | ✅ Phase 1 |
-| `GET` | `/admin/bookings/{id}` | ✅ Phase 1 |
-| `POST` | `/admin/bookings/{id}/status` | ✅ Phase 1 |
-| `POST` | `/admin/bookings/{id}/reassign` | ✅ Phase 1 |
+| `GET` | `/admin/bookings` | ✅ Built |
+| `GET` | `/admin/bookings/{id}` | ✅ Built |
+| `POST` | `/admin/bookings/{id}/status` | ✅ Built |
+| `POST` | `/admin/bookings/{id}/reassign` | ✅ Built |
 | `POST` | `/admin/bookings/{id}/refund` | ⏳ M2.3 — Payments |
-| `GET` | `/admin/disputes` | ✅ Phase 1 |
-| `GET` | `/admin/disputes/{id}` | ✅ Phase 1 |
-| `POST` | `/admin/disputes/{id}/resolve` | ✅ Phase 1 |
-| `GET` | `/admin/reviews` | ✅ Phase 1 |
-| `PATCH` | `/admin/reviews/{id}` | ✅ Phase 1 |
-| `GET` | `/admin/service-categories` | ✅ Phase 1 |
-| `POST` | `/admin/service-categories` | ✅ Phase 1 |
-| `PATCH` | `/admin/service-categories/{id}` | ✅ Phase 1 |
-| `DELETE` | `/admin/service-categories/{id}` | ✅ Phase 1 |
-| `GET` | `/admin/services` | ✅ Phase 1 |
-| `POST` | `/admin/services` | ✅ Phase 1 |
-| `PATCH` | `/admin/services/{id}` | ✅ Phase 1 |
-| `DELETE` | `/admin/services/{id}` | ✅ Phase 1 |
-| `GET` | `/admin/governorates` | ✅ Phase 1 |
-| `POST` | `/admin/governorates` | ✅ Phase 1 |
-| `PATCH` | `/admin/governorates/{id}` | ✅ Phase 1 |
-| `GET` | `/admin/areas` | ✅ Phase 1 |
-| `POST` | `/admin/areas` | ✅ Phase 1 |
-| `PATCH` | `/admin/areas/{id}` | ✅ Phase 1 |
+| `GET` | `/admin/disputes` | ✅ Built |
+| `GET` | `/admin/disputes/{id}` | ✅ Built |
+| `POST` | `/admin/disputes/{id}/resolve` | ✅ Built |
+| `GET` | `/admin/reviews` | ✅ Built |
+| `PATCH` | `/admin/reviews/{id}` | ✅ Built |
+| `GET` | `/admin/service-categories` | ✅ Built |
+| `POST` | `/admin/service-categories` | ✅ Built |
+| `PATCH` | `/admin/service-categories/{id}` | ✅ Built |
+| `DELETE` | `/admin/service-categories/{id}` | ✅ Built |
+| `GET` | `/admin/services` | ✅ Built |
+| `POST` | `/admin/services` | ✅ Built |
+| `PATCH` | `/admin/services/{id}` | ✅ Built |
+| `DELETE` | `/admin/services/{id}` | ✅ Built |
+| `GET` | `/admin/governorates` | ✅ Built |
+| `POST` | `/admin/governorates` | ✅ Built |
+| `PATCH` | `/admin/governorates/{id}` | ✅ Built |
+| `GET` | `/admin/areas` | ✅ Built |
+| `POST` | `/admin/areas` | ✅ Built |
+| `PATCH` | `/admin/areas/{id}` | ✅ Built |
 | `GET` | `/admin/promo-codes` | ⏳ M2.5 — Packages, promos, referrals |
 | `POST` | `/admin/promo-codes` | ⏳ M2.5 — Packages, promos, referrals |
 | `PATCH` | `/admin/promo-codes/{id}` | ⏳ M2.5 — Packages, promos, referrals |
@@ -286,9 +286,9 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `GET` | `/admin/commission-dues` | ⏳ M2.4 — Earnings & payouts |
 | `POST` | `/admin/ledger/adjustment` | ⏳ M2.4 — Earnings & payouts |
 | `GET` | `/admin/reports/export` | ⏳ M2.4 — Earnings & payouts |
-| `GET` | `/admin/settings` | ✅ Phase 1 |
-| `PUT` | `/admin/settings` | ✅ Phase 1 |
-| `GET` | `/admin/audit-logs` | ✅ Phase 1 |
-| `GET` | `/admin/admins` | ✅ Phase 1 |
-| `POST` | `/admin/admins` | ✅ Phase 1 |
-| `PATCH` | `/admin/admins/{id}` | ✅ Phase 1 |
+| `GET` | `/admin/settings` | ✅ Built |
+| `PUT` | `/admin/settings` | ✅ Built |
+| `GET` | `/admin/audit-logs` | ✅ Built |
+| `GET` | `/admin/admins` | ✅ Built |
+| `POST` | `/admin/admins` | ✅ Built |
+| `PATCH` | `/admin/admins/{id}` | ✅ Built |

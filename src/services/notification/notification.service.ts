@@ -78,6 +78,33 @@ export class NotificationService {
     return created;
   }
 
+  /**
+   * A push without an in-app notification — for events that have their own screen (chat messages
+   * would flood the notification list). Same opt-out rules as `notify`.
+   */
+  async pushOnly(userIds: Array<string | Types.ObjectId>, input: NotifyInput) {
+    const ids = [...new Set(userIds.map(String))];
+    if (!ids.length) return;
+    const users = await UserModel.find({ _id: { $in: ids }, status: { $ne: UserStatus.DELETED } })
+      .select('language notificationSettings')
+      .lean();
+    for (const user of users) {
+      const setting = NOTIFICATION_SETTING_FOR[input.type];
+      const settings = { ...DEFAULT_NOTIFICATION_SETTINGS, ...user.notificationSettings };
+      if (setting && !settings[setting]) continue;
+      const lang = user.language;
+      const params = typeof input.params === 'function' ? input.params(lang) : input.params;
+      await enqueueNotification({
+        userId: String(user._id),
+        title: t(`notifications.${input.template}.title` as TranslationKey, params, lang),
+        body: t(`notifications.${input.template}.body` as TranslationKey, params, lang),
+        data: { ...(input.data ?? {}), type: input.type },
+      }).catch((err: unknown) =>
+        logger.error(`Failed to queue push ${input.type} for ${String(user._id)}`, err),
+      );
+    }
+  }
+
   async list(userId: string, pagination: Pagination) {
     const [data, total] = await Promise.all([
       NotificationModel.find({ userId })

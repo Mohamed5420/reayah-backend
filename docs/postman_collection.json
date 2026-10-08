@@ -5467,6 +5467,160 @@
           }
         }
       ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "My chats, latest message first, with unread counts",
+          "request": {
+            "method": "GET",
+            "description": "My chats, latest message first, with unread counts",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/conversations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "conversations"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Messages, newest first. Pass meta.next_before as `before` for older ones.",
+          "request": {
+            "method": "GET",
+            "description": "Messages, newest first. Pass meta.next_before as `before` for older ones.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/:id/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                ":id",
+                "messages"
+              ],
+              "query": [
+                {
+                  "key": "before",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "30",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Send a message (text and/or an attachment from POST /uploads, purpose chat). Open from accepted until 24 h after completed; 30 messages/minute.",
+          "request": {
+            "method": "POST",
+            "description": "Send a message (text and/or an attachment from POST /uploads, purpose chat). Open from accepted until 24 h after completed; 30 messages/minute.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/:id/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                ":id",
+                "messages"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"string\",\n  \"attachment_key\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mark the other party's messages as read (they get message.read)",
+          "request": {
+            "method": "POST",
+            "description": "Mark the other party's messages as read (they get message.read)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/:id/messages/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                ":id",
+                "messages",
+                "read"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

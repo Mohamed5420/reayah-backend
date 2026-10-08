@@ -1,5 +1,6 @@
 import type { IBooking, IBookingOffer, IBookingStatusHistory } from '../../interfaces/IBooking';
 import { decryptNullable } from '../../utils/crypto/field-encryption';
+import { chatOpen } from '../../services/chat/chat-window';
 import { BookingStatus } from '../../interfaces/IBooking';
 import type { IPatientProfile } from '../../interfaces/IProfiles';
 import type { IAllergy, IMedicalCondition, IMedication } from '../../interfaces/IMedical';
@@ -59,7 +60,7 @@ export const presentDetail = (input: {
   timeline: IBookingStatusHistory[];
   provider: ProviderCardInfo | null;
   avatarUrl: string | null;
-  flags: { canCancel: boolean; canReschedule: boolean; canReview: boolean };
+  flags: { canCancel: boolean; canReschedule: boolean; canReview: boolean; canChat: boolean };
   visitReportId: string | null;
   lang: Language;
 }) => {
@@ -103,7 +104,7 @@ export const presentDetail = (input: {
     can_cancel: input.flags.canCancel,
     can_reschedule: input.flags.canReschedule,
     can_review: input.flags.canReview,
-    can_chat: false, // chat: Phase 2
+    can_chat: input.flags.canChat,
     visit_report_id: input.visitReportId,
     video: null, // video: Phase 2
   };
@@ -168,6 +169,7 @@ export const presentProviderDetail = (input: {
     payment_status: b.paymentStatus,
     is_on_time: b.isOnTime,
     allowed_actions: input.allowedActions,
+    can_chat: chatOpen(b),
   };
 };
 

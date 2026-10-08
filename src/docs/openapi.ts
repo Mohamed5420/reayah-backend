@@ -58,6 +58,8 @@ export type RouteSpec = {
     schema?: ZodType;
     /** `data` is a list and `meta` carries pagination. */
     paginated?: boolean;
+    /** Shape of `meta` for non-page responses (e.g. a cursor). */
+    meta?: ZodType;
     description?: string;
   };
 };
@@ -79,11 +81,13 @@ const toOpenApiPath = (path: string) => `${env.apiPrefix}${path}`.replace(/:(\w+
 
 /** Documents a route and returns its validator, so docs and validation can't drift apart. */
 export const defineRoute = (spec: RouteSpec): DefinedRoute => {
-  const { status = 200, schema, paginated, description = 'Success' } = spec.response ?? {};
+  const { status = 200, schema, paginated, meta, description = 'Success' } = spec.response ?? {};
   const dataSchema = schema && paginated ? z.array(schema) : schema;
   const envelope = paginated
     ? z.object({ data: dataSchema ?? z.array(z.unknown()), meta: PaginationMeta })
-    : z.object({ data: dataSchema ?? z.unknown() });
+    : meta
+      ? z.object({ data: dataSchema ?? z.unknown(), meta })
+      : z.object({ data: dataSchema ?? z.unknown() });
 
   registry.registerPath({
     method: spec.method,

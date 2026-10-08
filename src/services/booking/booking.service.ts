@@ -5,6 +5,7 @@ import { BookingModel } from '../../database/models/booking/booking.model';
 import { BookingOfferModel } from '../../database/models/booking/booking-offer.model';
 import { BookingStatusHistoryModel } from '../../database/models/booking/booking-status-history.model';
 import { ReviewModel, VisitReportModel } from '../../database/models/aftercare/aftercare.models';
+import { chatOpen } from '../chat/chat-window';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
 import { UserModel } from '../../database/models/user/user.model';
 import {
@@ -167,6 +168,7 @@ export class BookingService {
           (booking.status === BookingStatus.PENDING || withinFreeWindow(booking, freeWindowHours)),
         canReschedule: canReschedule(booking, freeWindowHours),
         canReview: booking.status === BookingStatus.COMPLETED && !reviewed,
+        canChat: chatOpen(booking),
       },
       visitReportId: report ? String(report._id) : null,
     };

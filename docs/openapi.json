@@ -4587,6 +4587,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "can_chat": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -4605,7 +4608,8 @@
           "payment_method",
           "payment_status",
           "is_on_time",
-          "allowed_actions"
+          "allowed_actions",
+          "can_chat"
         ]
       },
       "BookingOffer": {
@@ -6360,6 +6364,222 @@
             "enum": [
               true
             ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "Conversation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "booking": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "reference_code": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "accepted",
+                  "declined",
+                  "expired",
+                  "on_the_way",
+                  "in_progress",
+                  "completed",
+                  "cancelled",
+                  "no_show",
+                  "disputed"
+                ]
+              },
+              "service_name": {
+                "type": "string"
+              },
+              "scheduled_start": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "reference_code",
+              "status",
+              "service_name",
+              "scheduled_start"
+            ]
+          },
+          "with": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              },
+              "avatar_url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "avatar_url"
+            ]
+          },
+          "last_message": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "body": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sender_role": {
+                "type": "string",
+                "enum": [
+                  "patient",
+                  "provider"
+                ]
+              },
+              "has_attachment": {
+                "type": "boolean"
+              },
+              "at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "body",
+              "sender_role",
+              "has_attachment",
+              "at"
+            ]
+          },
+          "unread_count": {
+            "type": "number"
+          },
+          "can_send": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "booking",
+          "with",
+          "last_message",
+          "unread_count",
+          "can_send"
+        ]
+      },
+      "ChatMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "booking_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "sender_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "sender_role": {
+            "type": "string",
+            "enum": [
+              "patient",
+              "provider"
+            ]
+          },
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attachment": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "file_url": {
+                "type": "string"
+              },
+              "mime": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_url",
+              "mime"
+            ]
+          },
+          "read_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "booking_id",
+          "sender_id",
+          "sender_role",
+          "body",
+          "attachment",
+          "read_at",
+          "created_at"
+        ]
+      },
+      "SendMessage": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          },
+          "attachment_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 300
           }
         },
         "additionalProperties": false
@@ -15832,6 +16052,304 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/AdminReview"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations": {
+      "get": {
+        "summary": "My chats, latest message first, with unread counts",
+        "tags": [
+          "Chat"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Conversation"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bookings/{id}/messages": {
+      "get": {
+        "summary": "Messages, newest first. Pass meta.next_before as `before` for older ones.",
+        "tags": [
+          "Chat"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
+            "name": "before",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ChatMessage"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "next_before": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "pattern": "^[0-9a-f]{24}$/i",
+                          "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                        },
+                        "can_send": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "next_before",
+                        "can_send"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Send a message (text and/or an attachment from POST /uploads, purpose chat). Open from accepted until 24 h after completed; 30 messages/minute.",
+        "tags": [
+          "Chat"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ChatMessage"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bookings/{id}/messages/read": {
+      "post": {
+        "summary": "Mark the other party's messages as read (they get message.read)",
+        "tags": [
+          "Chat"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "read": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "read"
+                      ]
                     }
                   },
                   "required": [

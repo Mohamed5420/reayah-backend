@@ -212,6 +212,8 @@ export const BookingSchemas = {
       payment_status: z.enum(PaymentStatus),
       is_on_time: z.boolean().nullable(),
       allowed_actions: z.array(z.string()),
+      /** Chat open: from accepted until 24 h after completed. */
+      can_chat: z.boolean(),
     })
     .openapi('ProviderBookingDetail'),
   declineBody: z.object({ reason_code: z.enum(['not_available', 'too_far', 'other']) }),

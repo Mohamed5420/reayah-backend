@@ -204,6 +204,8 @@ describe('encryption at rest (spec §9)', () => {
     // Encrypt-on-write (read with .lean(); decrypted + audited where shown).
     Booking: ['patientNotes'],
     Dispute: ['description'],
+    Message: ['body'],
+    Conversation: ['lastMessage.body'],
   };
 
   it.each(Object.entries(ENCRYPTED))('%s encrypts %j', (model, fields) => {
