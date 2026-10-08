@@ -1,6 +1,11 @@
-import { VerificationStatus } from '../../../interfaces/enums';
+import { Gender, ProviderType, VerificationStatus } from '../../../interfaces/enums';
+import { EGYPT_MOBILE } from '../../../services/auth/auth.constants';
 import { DocumentReviewStatus } from '../../../interfaces/IProvider';
-import { OrganizationDocumentType, OrganizationType } from '../../../interfaces/IOrganization';
+import {
+  OrganizationDocumentType,
+  OrganizationType,
+  StaffInviteStatus,
+} from '../../../interfaces/IOrganization';
 import { ProviderSchemas } from '../provider/provider.validation';
 import { objectId, paginationQuery, piastres, timestamps, z } from '../zod';
 
@@ -178,4 +183,94 @@ export const OrganizationSchemas = {
     })
     .partial()
     .openapi('AdminUpdateOrganization'),
+};
+
+const staffStatus = z.enum(['active', 'suspended', 'pending_verification']).openapi({
+  description:
+    'active = verified and not suspended; suspended by the owner; pending_verification = not approved yet',
+});
+
+const staffMember = z
+  .object({
+    id: objectId,
+    user_id: objectId,
+    full_name: z.string(),
+    phone: z.string(),
+    gender: z.enum(Gender).nullable(),
+    /** Signed, valid 10 minutes. */
+    avatar_url: z.string().nullable(),
+    type: z.enum(ProviderType).nullable(),
+    status: staffStatus,
+    verification_status: z.enum(VerificationStatus),
+    is_accepting_bookings: z.boolean(),
+    is_online: z.boolean(),
+    rating_avg: z.number(),
+    completed_visits: z.number(),
+    service_area_ids: z.array(objectId),
+    service_ids: z.array(objectId),
+  })
+  .openapi('StaffMember');
+
+/** Team management (spec §7.11 "Dashboard & team", M3.2). */
+export const StaffSchemas = {
+  idParams: z.object({ id: objectId }),
+  inviteBody: z
+    .strictObject({
+      phone: z.string().trim().regex(EGYPT_MOBILE, { error: 'validation.phone' }),
+      full_name: z.string().trim().min(2).max(100),
+      type: z.enum(ProviderType),
+    })
+    .openapi('StaffInviteRequest'),
+  invite: z
+    .object({
+      id: objectId,
+      phone: z.string(),
+      full_name: z.string(),
+      type: z.enum(ProviderType),
+      status: z.enum(StaffInviteStatus),
+      expires_at: z.string(),
+      created_at: z.string(),
+    })
+    .openapi('StaffInvite'),
+  /** What an invitee sees. */
+  receivedInvite: z
+    .object({
+      id: objectId,
+      organization_name: z.string(),
+      type: z.enum(ProviderType),
+      expires_at: z.string(),
+    })
+    .openapi('ReceivedStaffInvite'),
+  listQuery: paginationQuery.extend({
+    status: staffStatus.optional(),
+    type: z.enum(ProviderType).optional(),
+  }),
+  member: staffMember,
+  detail: staffMember
+    .extend({
+      services: z.array(ProviderSchemas.providerService),
+      service_areas: z.array(ProviderSchemas.serviceArea),
+      availability: ProviderSchemas.availability.shape.slots,
+      performance: z.object({
+        completed_visits: z.number(),
+        completed_last_30_days: z.number(),
+        rating_avg: z.number(),
+        rating_count: z.number(),
+        /** Percent of visits started within the grace period; null before the first one. */
+        on_time_rate: z.number().nullable(),
+      }),
+      joined_at: z.string(),
+    })
+    .openapi('StaffMemberDetail'),
+  updateBody: z
+    .strictObject({
+      status: z.enum(['active', 'suspended']).optional(),
+      /** From the organization's services, matching the member's type (nurse / doctor). */
+      service_ids: z.array(objectId).max(100).optional(),
+    })
+    .openapi('UpdateStaffMember'),
+  areasBody: z
+    .strictObject({ area_ids: z.array(objectId).max(100) })
+    .openapi({ description: "Areas from the organization's own list; its travel fee applies." }),
+  availabilityBody: ProviderSchemas.availabilityBody,
 };

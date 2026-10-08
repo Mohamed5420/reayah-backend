@@ -186,7 +186,7 @@ Goal: a patient can book a verified nurse for a home visit in a covered area, pa
 - [ ] On real infrastructure (needs staging/production to exist): run the restore drill, wire the alerts in `docs/OPERATIONS.md`, re-run the load scenarios against staging.
 - [x] Decision: booking `patient_notes` and dispute `description` are encrypted at rest (encrypt-on-write), decrypted only where shown (assigned provider after acceptance, admins), every view audited.
 - [x] OpenAPI docs complete for all Phase 1 endpoints and shared with the mobile team (screen map §7.16). *(All Phase 1 endpoints implemented — `api-coverage.test.ts` fails if a spec endpoint is neither built nor assigned to a later milestone; `docs/API_COVERAGE.md` lists all 222 with status. Postman collection generated with the spec (`docs/postman_collection.json`); shareable Swagger page published for the mobile team.)*
-- [ ] Legal review of data handling (Law 151/2020) started. *(Data inventory for counsel: `docs/DATA_INVENTORY.md` + generated `docs/DATA_INVENTORY.docx` — data collected, purpose, storage, protection, access, retention, and 10 questions, incl. hosting outside Egypt, which the 2025 executive regulations put under a transfer licence. Updated with every milestone.)*
+- [ ] Legal review of data handling (Law 151/2020) started. *(Data inventory for counsel: `docs/DATA_INVENTORY.md` + generated `docs/DATA_INVENTORY.docx` — data collected, purpose, storage, protection, access, retention, and the open legal questions (11 so far), incl. hosting outside Egypt, which the 2025 executive regulations put under a transfer licence. Updated with every milestone.)*
 
 **Exit:** production deploy; the mobile team signs off on all Phase 1 screens.
 
@@ -242,14 +242,16 @@ Put on hold by product decision: no video work at this stage. Until it resumes, 
 - [x] Org service areas with travel fee + computed team size per area; org services & prices. *(Team size = approved staff of the organization covering the area and taking bookings — 0 until M3.2 invites. An organization may offer nurse and doctor services. Org packages (`/org/packages`) moved to M3.4.)*
 
 ### M3.2 Team management
-- [ ] Staff invites by SMS → invitee becomes `provider_staff` linked to the org (still needs document verification).
-- [ ] Staff list/details/performance, suspend/activate/remove, staff availability and areas set by the owner. `provider_staff` cannot edit prices/services/areas and has no payouts.
+- [x] Staff invites by SMS → invitee becomes `provider_staff` linked to the org (still needs document verification). *(Approved organizations only, 30 invites a day, valid 7 days, one open invite per number. New numbers: the OTP verify response lists `staff_invites`; register with `role: provider_staff` + `staff_invite_id`. Decision: an independent provider can accept in the app (`/provider/staff-invites`) only with no active bookings, a zero balance and no open payout — verification carries over, their own areas / services / prices are cleared; patient and owner accounts can't join. Staff verification needs profile + documents only.)*
+- [x] Staff list/details/performance, suspend/activate/remove, staff availability and areas set by the owner. `provider_staff` cannot edit prices/services/areas and has no payouts. *(Services from the organization's list (matching the member's type, at the org's price); areas from the org's list (at its travel fee). Suspension is within the organization (not an account suspension) and drops them from team size. Decision: removal is always allowed — they become an independent provider, verification kept, not accepting until they set their own areas, services and prices. The role is read from the database on every request, so joining / leaving applies without a new login. Staff are never listed or bookable as independents (search, profile, quote, fallback, admin reassign); `source=organization` search returns nothing until M3.3 adds organization cards.)*
 
 ### M3.3 Org bookings, assignment & broadcast (§6.6, §6.10)
 - [ ] Bookings to an org get `assignment_mode = organization` and `assignment_deadline = now + org_assign_deadline_minutes`.
 - [ ] Owner queue, eligible-staff list (area, free slot, preferred gender; clashes flagged `available: false`), assign / reassign (`SLOT_UNAVAILABLE`), "send to all suitable" broadcast to staff, decline, cancel. After the deadline → `ASSIGNMENT_DEADLINE_PASSED`.
 - [ ] Deadline warning job (10 min left) → owner notification.
 - [ ] Deadline job reuses the Phase 1 fallback broadcast, now including other organizations.
+- [ ] Removing a staff member (decision after M3.2): their active bookings are taken from them and go back to the organization's unassigned queue (same deadline and fallback rules as any org booking), and they lose access to those bookings and their chats immediately. Test it.
+- [ ] Organization cards in search (`source=organization`) and booking an organization by `organization_id`; the org's `commission_rate` override applies.
 
 ### M3.4 Org dashboard, reports, finance & subscriptions
 - [ ] Dashboard KPIs + alerts, reports grouped by day/staff/service with on-time rate.

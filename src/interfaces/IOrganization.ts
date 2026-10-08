@@ -1,5 +1,5 @@
 import type { Types } from 'mongoose';
-import type { VerificationStatus } from './enums';
+import type { ProviderType, VerificationStatus } from './enums';
 import type { DocumentReviewStatus } from './IProvider';
 
 /** Spec §4.4 `organizations.type`. */
@@ -81,3 +81,34 @@ export type OrganizationChecklist = {
   servicesSet: boolean;
   canSubmit: boolean;
 };
+
+export enum StaffInviteStatus {
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  DECLINED = 'declined',
+  REVOKED = 'revoked',
+}
+
+/** An invite stays open this long. */
+export const STAFF_INVITE_DAYS = 7;
+
+/**
+ * Spec §7.11 `/org/staff/invite`: an owner invites a nurse or doctor by phone. A new number signs up
+ * with it and becomes `provider_staff` of the organization; an independent provider can accept it in
+ * the app (no active bookings, zero balance). Staff still need document verification.
+ */
+export interface IStaffInvite {
+  _id: Types.ObjectId;
+  organizationId: Types.ObjectId;
+  phone: string;
+  fullName: string;
+  type: ProviderType;
+  status: StaffInviteStatus;
+  invitedBy: Types.ObjectId;
+  expiresAt: Date;
+  respondedAt: Date | null;
+  /** Who accepted it. */
+  userId: Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}

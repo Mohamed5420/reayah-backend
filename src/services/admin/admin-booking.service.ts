@@ -149,6 +149,7 @@ export class AdminBookingService {
       ? await ProviderProfileModel.findOne({
           _id: providerProfileId,
           verificationStatus: VerificationStatus.APPROVED,
+          organizationId: null, // organization bookings are reassigned by their owner (M3.3)
         }).lean()
       : null;
     const targetUser = target

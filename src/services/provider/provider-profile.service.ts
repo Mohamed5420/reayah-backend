@@ -109,6 +109,8 @@ export class ProviderProfileService {
       ? new Set((await this.catalog.activeServices({ providerType: profile.type })).map((s) => s.id))
       : new Set<string>();
 
+    // Staff: areas, services and weekly hours are the owner's job, not part of their verification.
+    const staff = Boolean(profile.organizationId);
     const items = {
       profileCompleted: Boolean(
         profile.type &&
@@ -118,9 +120,9 @@ export class ProviderProfileService {
         (profile.type !== ProviderType.DOCTOR || profile.specialty),
       ),
       documentsUploaded: REQUIRED_PROVIDER_DOCUMENTS.every((type) => usableTypes.has(type)),
-      areasSelected: profile.serviceAreas.length > 0,
-      servicesSet: profile.services.some((s) => s.isActive && typeServices.has(String(s.serviceId))),
-      availabilitySet: profile.availability.length > 0,
+      areasSelected: staff || profile.serviceAreas.length > 0,
+      servicesSet: staff || profile.services.some((s) => s.isActive && typeServices.has(String(s.serviceId))),
+      availabilitySet: staff || profile.availability.length > 0,
     };
     return {
       ...items,

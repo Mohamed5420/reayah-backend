@@ -3,11 +3,14 @@ import type { ICatalogService } from '../../interfaces/ICatalog';
 import type {
   IOrganization,
   IOrganizationDocument,
+  IStaffInvite,
   OrganizationChecklist,
 } from '../../interfaces/IOrganization';
+import type { IProviderProfile } from '../../interfaces/IProfiles';
+import { VerificationStatus } from '../../interfaces/enums';
 import type { AreaDescription } from '../../services/location/location.service';
 import type { Language } from '../../utils/i18n';
-import { presentProviderServices, presentServiceAreas } from './provider.presenter';
+import { presentAvailability, presentProviderServices, presentServiceAreas } from './provider.presenter';
 
 /** Maps organizations to the API shapes in organization.validation.ts. */
 
@@ -126,4 +129,79 @@ export const presentAdminOrgListItem = (row: { org: IOrganization; owner: IUser 
   service_areas_count: row.org.serviceAreas.length,
   services_count: row.org.services.length,
   created_at: row.org.createdAt.toISOString(),
+});
+
+// ── Staff (M3.2) ──
+
+type StaffUser = Pick<IUser, '_id' | 'fullName' | 'phone' | 'gender' | 'isOnline'>;
+
+const staffStatusOf = (p: IProviderProfile) =>
+  p.staffSuspended
+    ? 'suspended'
+    : p.verificationStatus === VerificationStatus.APPROVED
+      ? 'active'
+      : 'pending_verification';
+
+export const presentStaffMember = (p: IProviderProfile, user: StaffUser, avatarUrl: string | null) => ({
+  id: String(p._id),
+  user_id: String(user._id),
+  full_name: user.fullName,
+  phone: user.phone,
+  gender: user.gender ?? null,
+  avatar_url: avatarUrl,
+  type: p.type,
+  status: staffStatusOf(p),
+  verification_status: p.verificationStatus,
+  is_accepting_bookings: p.isAcceptingBookings,
+  is_online: user.isOnline,
+  rating_avg: p.ratingAvg,
+  completed_visits: p.completedVisitsCount,
+  service_area_ids: p.serviceAreas.map((a) => String(a.areaId)),
+  service_ids: p.services.map((s) => String(s.serviceId)),
+});
+
+export const presentStaffDetail = (input: {
+  profile: IProviderProfile;
+  user: StaffUser;
+  avatarUrl: string | null;
+  places: Map<string, AreaDescription>;
+  catalog: Map<string, { service: ICatalogService; available: boolean }>;
+  performance: {
+    completedVisits: number;
+    completedLast30Days: number;
+    ratingAvg: number;
+    ratingCount: number;
+    onTimeRate: number | null;
+  };
+  lang: Language;
+}) => ({
+  ...presentStaffMember(input.profile, input.user, input.avatarUrl),
+  services: presentProviderServices(input.profile, input.catalog, input.lang),
+  service_areas: presentServiceAreas(input.profile, input.places, input.lang),
+  availability: presentAvailability(input.profile.availability),
+  performance: {
+    completed_visits: input.performance.completedVisits,
+    completed_last_30_days: input.performance.completedLast30Days,
+    rating_avg: input.performance.ratingAvg,
+    rating_count: input.performance.ratingCount,
+    on_time_rate: input.performance.onTimeRate,
+  },
+  joined_at: input.profile.createdAt.toISOString(),
+});
+
+export const presentStaffInvite = (i: IStaffInvite) => ({
+  id: String(i._id),
+  phone: i.phone,
+  full_name: i.fullName,
+  type: i.type,
+  status: i.status,
+  expires_at: i.expiresAt.toISOString(),
+  created_at: i.createdAt.toISOString(),
+});
+
+export const presentReceivedInvite = (row: { invite: IStaffInvite; organizationName: string }) => ({
+  id: String(row.invite._id),
+  organization_name: row.organizationName,
+  type: row.invite.type,
+  expires_at: row.invite.expiresAt.toISOString(),
 });

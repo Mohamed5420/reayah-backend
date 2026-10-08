@@ -3,6 +3,7 @@ import { EGYPT_MOBILE, OTP } from '../../../services/auth/auth.constants';
 import {
   DevicePlatform,
   Gender,
+  ProviderType,
   SELF_REGISTER_ROLES,
   UserRole,
   UserStatus,
@@ -82,19 +83,33 @@ export const AuthSchemas = {
   otpVerified: z
     .union([
       z.object({ is_new_user: z.literal(false), ...tokens, user: authUser }),
-      z.object({ is_new_user: z.literal(true), registration_token: z.string() }),
+      z.object({
+        is_new_user: z.literal(true),
+        registration_token: z.string(),
+        /** Organizations that invited this number: register with role provider_staff + staff_invite_id to join. */
+        staff_invites: z.array(
+          z.object({ id: objectId, organization_name: z.string(), type: z.enum(ProviderType) }),
+        ),
+      }),
     ])
     .openapi('OtpVerified'),
 
   registerBody: z
     .object({
-      role: z.enum(SELF_REGISTER_ROLES),
+      /** provider_staff only together with staff_invite_id (from the OTP verify response). */
+      role: z.enum([...SELF_REGISTER_ROLES, UserRole.PROVIDER_STAFF]),
       full_name: fullName,
       gender: z.enum(Gender),
       date_of_birth: dateOfBirth,
       email: z.email().nullable().optional(),
       language: language.optional(),
       referral_code: z.string().trim().max(32).optional(),
+      /** Join an organization that invited this number. */
+      staff_invite_id: objectId.optional(),
+    })
+    .refine((b) => (b.role === UserRole.PROVIDER_STAFF) === Boolean(b.staff_invite_id), {
+      error: 'validation.staff_invite_required',
+      path: ['staff_invite_id'],
     })
     .openapi('Register'),
   session: z.object({ ...tokens, user: authUser }).openapi('Session'),

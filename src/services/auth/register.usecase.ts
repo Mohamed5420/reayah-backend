@@ -10,20 +10,24 @@ import { ConflictError } from '../../utils/types-errors';
 import { TokenService } from './token.service';
 import { verifyRegistrationToken } from './jwt';
 import { ReferralService } from '../marketing/referral.service';
+import { StaffService } from '../organization/staff.service';
 
 export type RegisterInput = {
-  role: UserRole.PATIENT | UserRole.PROVIDER | UserRole.OWNER;
+  role: UserRole.PATIENT | UserRole.PROVIDER | UserRole.OWNER | UserRole.PROVIDER_STAFF;
   fullName: string;
   gender: Gender;
   dateOfBirth: Date;
   email?: string | null;
   language?: Language;
   referralCode?: string | null;
+  /** Required for provider_staff: the organization's invite to this number. */
+  staffInviteId?: string;
 };
 
 /**
  * POST /auth/register (spec §7.1). The user and their role's profile are created in one transaction:
- * patient → "self" patient profile; provider → draft provider profile; owner → nothing yet (POST /org, Phase 3).
+ * patient → "self" patient profile; provider → draft provider profile; owner → nothing yet (POST /org);
+ * provider_staff (with an organization's invite to this number) → draft profile linked to the organization.
  */
 @Service()
 export class RegisterUseCase {
@@ -33,6 +37,7 @@ export class RegisterUseCase {
     const phone = verifyRegistrationToken(registrationToken);
 
     let user!: mongoose.HydratedDocument<IUser>;
+    let invite: { organizationId: mongoose.Types.ObjectId } | null = null;
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
@@ -73,12 +78,15 @@ export class RegisterUseCase {
           );
         } else if (input.role === UserRole.PROVIDER) {
           await ProviderProfileModel.create([{ userId: user._id }], { session });
+        } else if (input.role === UserRole.PROVIDER_STAFF) {
+          invite = await Container.get(StaffService).joinAtSignup(session, user, input.staffInviteId ?? '');
         }
       });
     } finally {
       await session.endSession();
     }
 
+    if (invite) await Container.get(StaffService).notifyOwner(invite, user.fullName);
     return { user, tokens: await this.tokens.startSession(user) };
   }
 }

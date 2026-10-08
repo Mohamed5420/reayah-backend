@@ -185,6 +185,7 @@ export class OrganizationService {
           organizationId: org._id,
           verificationStatus: VerificationStatus.APPROVED,
           isAcceptingBookings: true,
+          staffSuspended: false,
           deletedAt: null,
         },
       },

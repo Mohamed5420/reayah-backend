@@ -107,7 +107,14 @@
     "credit_changed": "تغير رصيدك منذ عرض السعر، اطلب عرض سعر جديد",
     "organization_not_found": "لم يتم إنشاء المؤسسة بعد",
     "organization_exists": "لديك مؤسسة بالفعل",
-    "organization_fields_locked": "لا يمكن تعديل الاسم أو النوع أو السجل التجاري أو البطاقة الضريبية بعد إرسال الطلب للمراجعة"
+    "organization_fields_locked": "لا يمكن تعديل الاسم أو النوع أو السجل التجاري أو البطاقة الضريبية بعد إرسال الطلب للمراجعة",
+    "organization_not_approved": "يجب توثيق المؤسسة أولاً",
+    "invite_not_found": "الدعوة غير موجودة أو انتهت صلاحيتها",
+    "staff_not_found": "عضو الفريق غير موجود",
+    "staff_already_member": "هذا الرقم عضو في فريقك بالفعل",
+    "staff_invite_not_eligible": "لا يمكن دعوة هذا الرقم؛ يمكن دعوة الأرقام الجديدة أو مقدمي الخدمة المستقلين فقط",
+    "staff_join_active_bookings": "أنهِ حجوزاتك الحالية أولاً قبل الانضمام لمؤسسة",
+    "staff_join_balance": "يجب تسوية رصيدك وصرف المستحقات أولاً قبل الانضمام لمؤسسة"
   },
   "validation": {
     "invalid_value": "قيمة غير صالحة",
@@ -164,7 +171,11 @@
     "valid_to_after_from": "تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية",
     "banner_value": "القيمة لا تتوافق مع نوع الإجراء",
     "promo_code_format": "الكود من 2 إلى 32 حرفاً أو رقماً إنجليزياً",
-    "onboarding_org_info": "أكمل بيانات المؤسسة"
+    "onboarding_org_info": "أكمل بيانات المؤسسة",
+    "staff_invite_required": "التسجيل كعضو فريق يحتاج دعوة من المؤسسة",
+    "service_not_offered_by_org": "المؤسسة لا تقدم هذه الخدمة",
+    "service_wrong_type": "الخدمة لا تناسب تخصص عضو الفريق",
+    "area_not_served_by_org": "المؤسسة لا تغطي هذه المنطقة"
   },
   "address": {
     "floor": "الدور {{floor}}",
@@ -173,7 +184,8 @@
   },
   "sms": {
     "otp_login": "كود التحقق الخاص بك في رعاية+ هو {{code}}. لا تشاركه مع أي شخص.",
-    "otp_phone_change": "كود تأكيد رقمك الجديد في رعاية+ هو {{code}}. لا تشاركه مع أي شخص."
+    "otp_phone_change": "كود تأكيد رقمك الجديد في رعاية+ هو {{code}}. لا تشاركه مع أي شخص.",
+    "staff_invite": "دعتك {{organization}} للانضمام إلى فريقها على رعاية+. حمّل التطبيق وسجّل برقمك لقبول الدعوة."
   },
   "app_config": {
     "cancellation_policy": "إلغاء مجاني حتى {{hours}} ساعات قبل الموعد"
@@ -353,6 +365,26 @@
     "org_verification_rejected": {
       "title": "تم رفض طلب توثيق المؤسسة",
       "body": "{{reason}}"
+    },
+    "staff_invite": {
+      "title": "دعوة للانضمام لفريق",
+      "body": "دعتك {{organization}} للانضمام إلى فريقها"
+    },
+    "staff_joined": {
+      "title": "عضو جديد في الفريق",
+      "body": "انضم {{name}} إلى فريقك"
+    },
+    "staff_suspended": {
+      "title": "تم إيقافك مؤقتاً",
+      "body": "أوقفت {{organization}} استقبالك للحجوزات مؤقتاً"
+    },
+    "staff_activated": {
+      "title": "تم تفعيلك",
+      "body": "أعادت {{organization}} تفعيلك في الفريق"
+    },
+    "staff_removed": {
+      "title": "تمت إزالتك من الفريق",
+      "body": "لم تعد عضواً في {{organization}}. يمكنك العمل كمقدم خدمة مستقل بعد تحديد مناطقك وخدماتك وأسعارك"
     }
   },
   "packages": {

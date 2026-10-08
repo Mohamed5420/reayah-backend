@@ -326,8 +326,10 @@ export class DiscoveryService {
           ...(filters.providerType ? { type: filters.providerType } : {}),
           ...(filters.specialty ? { specialty: filters.specialty } : {}),
           ...(filters.minRating !== undefined ? { ratingAvg: { $gte: filters.minRating } } : {}),
-          ...(filters.source === 'independent' ? { organizationId: null } : {}),
-          ...(filters.source === 'organization' ? { organizationId: { $ne: null } } : {}),
+          // Provider rows are independents only: staff are booked through their organization, whose
+          // cards join search in M3.3 (until then source=organization finds nothing).
+          organizationId: null,
+          ...(filters.source === 'organization' ? { _id: null } : {}),
         },
       },
       {
@@ -386,6 +388,7 @@ export class DiscoveryService {
       ? await ProviderProfileModel.findOne({
           _id: providerId,
           verificationStatus: VerificationStatus.APPROVED,
+          organizationId: null,
         }).lean()
       : null;
     const user = profile

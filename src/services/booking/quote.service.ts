@@ -89,9 +89,11 @@ export class QuoteService {
     assertQuantity(service.pricingUnit, input.quantity);
 
     // Provider: approved, accepting, active account, covers the area, offers the service at a valid price.
+    // Independents only: staff are booked through their organization (M3.3).
     const provider = await ProviderProfileModel.findOne({
       _id: input.providerId,
       verificationStatus: VerificationStatus.APPROVED,
+      organizationId: null,
     }).lean();
     const providerUser = provider
       ? await UserModel.findOne({ _id: provider.userId, status: UserStatus.ACTIVE }).lean()

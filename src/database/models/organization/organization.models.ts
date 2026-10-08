@@ -1,10 +1,12 @@
 import { Schema, model, type Model } from 'mongoose';
-import { VerificationStatus } from '../../../interfaces/enums';
+import { ProviderType, VerificationStatus } from '../../../interfaces/enums';
 import { DocumentReviewStatus } from '../../../interfaces/IProvider';
 import {
   OrganizationDocumentType,
   OrganizationType,
+  StaffInviteStatus,
   type IOrganization,
+  type IStaffInvite,
   type IOrganizationDocument,
 } from '../../../interfaces/IOrganization';
 import { baseSchemaOptions, piastresValidator, uniqueAmongActive } from '../../schema-options';
@@ -110,3 +112,26 @@ export const OrganizationDocumentModel = model<IOrganizationDocument, Organizati
   organizationDocumentSchema,
   'organization_documents',
 );
+
+const staffInviteSchema = new Schema<IStaffInvite>(
+  {
+    organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true },
+    phone: { type: String, required: true },
+    fullName: { type: String, required: true, trim: true },
+    type: { type: String, enum: Object.values(ProviderType), required: true },
+    status: { type: String, enum: Object.values(StaffInviteStatus), default: StaffInviteStatus.PENDING },
+    invitedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    expiresAt: { type: Date, required: true },
+    respondedAt: { type: Date, default: null },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  },
+  baseSchemaOptions,
+);
+// One open invite per organization and phone.
+staffInviteSchema.index(
+  { organizationId: 1, phone: 1 },
+  { unique: true, partialFilterExpression: { status: StaffInviteStatus.PENDING } },
+);
+staffInviteSchema.index({ phone: 1, status: 1 });
+
+export const StaffInviteModel = model<IStaffInvite>('StaffInvite', staffInviteSchema, 'org_staff_invites');

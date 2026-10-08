@@ -217,7 +217,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"role\": \"patient\",\n  \"full_name\": \"أحمد محمود\",\n  \"gender\": \"male\",\n  \"date_of_birth\": \"1985-03-12\",\n  \"email\": \"string\",\n  \"language\": \"ar\",\n  \"referral_code\": \"string\"\n}",
+              "raw": "{\n  \"role\": \"patient\",\n  \"full_name\": \"أحمد محمود\",\n  \"gender\": \"male\",\n  \"date_of_birth\": \"1985-03-12\",\n  \"email\": \"string\",\n  \"language\": \"ar\",\n  \"referral_code\": \"string\",\n  \"staff_invite_id\": \"665f1c2b9e1d2a4c3b9e8f1a\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7535,6 +7535,429 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner — Team",
+      "item": [
+        {
+          "name": "Team list",
+          "request": {
+            "method": "GET",
+            "description": "Team list",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "staff"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true,
+                  "description": "active = verified and not suspended; suspended by the owner; pending_verification = not approved yet"
+                },
+                {
+                  "key": "type",
+                  "value": "nurse",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Invite a nurse / doctor by phone (approved organizations; 30 a day). New numbers sign up with it; independent providers accept in the app (no active bookings, zero balance). Valid 7 days.",
+          "request": {
+            "method": "POST",
+            "description": "Invite a nurse / doctor by phone (approved organizations; 30 a day). New numbers sign up with it; independent providers accept in the app (no active bookings, zero balance). Valid 7 days.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/staff/invite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "staff",
+                "invite"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"string\",\n  \"full_name\": \"string\",\n  \"type\": \"nurse\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Pending invites",
+          "request": {
+            "method": "GET",
+            "description": "Pending invites",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/staff/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "staff",
+                "invites"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Revoke an invite",
+          "request": {
+            "method": "DELETE",
+            "description": "Revoke an invite",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/staff/invites/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "staff",
+                "invites",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Staff member: details, services, areas, weekly hours and performance",
+          "request": {
+            "method": "GET",
+            "description": "Staff member: details, services, areas, weekly hours and performance",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/staff/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "staff",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Suspend / reactivate within the organization; set services (from the organization’s, at its prices)",
+          "request": {
+            "method": "PATCH",
+            "description": "Suspend / reactivate within the organization; set services (from the organization’s, at its prices)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/staff/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "staff",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\",\n  \"service_ids\": [\n    \"665f1c2b9e1d2a4c3b9e8f1a\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove from the organization (always allowed). They become an independent provider, keep their verification, and take no bookings until they set their own areas, services and prices.",
+          "request": {
+            "method": "DELETE",
+            "description": "Remove from the organization (always allowed). They become an independent provider, keep their verification, and take no bookings until they set their own areas, services and prices.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/staff/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "staff",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Set the staff member’s weekly hours (Africa/Cairo)",
+          "request": {
+            "method": "PUT",
+            "description": "Set the staff member’s weekly hours (Africa/Cairo)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/staff/:id/availability",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "staff",
+                ":id",
+                "availability"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slots\": [\n    {\n      \"day_of_week\": 0,\n      \"start_time\": \"09:00\",\n      \"end_time\": \"09:00\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Set the staff member’s areas (from the organization’s; its travel fee applies)",
+          "request": {
+            "method": "PUT",
+            "description": "Set the staff member’s areas (from the organization’s; its travel fee applies)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/staff/:id/service-areas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "staff",
+                ":id",
+                "service-areas"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"area_ids\": [\n    \"665f1c2b9e1d2a4c3b9e8f1a\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Provider — Onboarding",
+      "item": [
+        {
+          "name": "Organizations inviting me to join their team (independent providers)",
+          "request": {
+            "method": "GET",
+            "description": "Organizations inviting me to join their team (independent providers)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/staff-invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "staff-invites"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Join the organization as staff (needs no active bookings, a zero balance and no open payout). Areas, services and prices are then set by the owner; refresh the session to get the new role.",
+          "request": {
+            "method": "POST",
+            "description": "Join the organization as staff (needs no active bookings, a zero balance and no open payout). Areas, services and prices are then set by the owner; refresh the session to get the new role.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/staff-invites/:id/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "staff-invites",
+                ":id",
+                "accept"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Decline an invite",
+          "request": {
+            "method": "POST",
+            "description": "Decline an invite",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/staff-invites/:id/decline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "staff-invites",
+                ":id",
+                "decline"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
             }
           }
         }

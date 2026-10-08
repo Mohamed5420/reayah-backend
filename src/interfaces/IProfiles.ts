@@ -49,6 +49,8 @@ export interface IProviderProfile {
   userId: Types.ObjectId;
   /** null = independent provider. */
   organizationId: Types.ObjectId | null;
+  /** Staff only: suspended by their organization's owner (not an admin account suspension). */
+  staffSuspended: boolean;
   /** Chosen during onboarding. */
   type: ProviderType | null;
   specialty: string | null;

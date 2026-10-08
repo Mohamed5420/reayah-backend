@@ -11,6 +11,7 @@ const providerProfileSchema = new Schema<IProviderProfile, ProviderProfileModelT
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', default: null },
+    staffSuspended: { type: Boolean, default: false },
     type: { type: String, enum: Object.values(ProviderType), default: null },
     specialty: { type: String, trim: true, default: null },
     yearsOfExperience: { type: Number, min: 0, default: null },
@@ -84,6 +85,7 @@ providerProfileSchema.index({ userId: 1 }, uniqueAmongActive);
 providerProfileSchema.index({ verificationStatus: 1, submittedAt: 1 });
 // Search (M1.5): bookable providers by area. MongoDB can't index two arrays together, so services are filtered after.
 providerProfileSchema.index({ verificationStatus: 1, isAcceptingBookings: 1, 'serviceAreas.areaId': 1 });
+providerProfileSchema.index({ organizationId: 1 });
 
 export const ProviderProfileModel = model<IProviderProfile, ProviderProfileModelType>(
   'ProviderProfile',

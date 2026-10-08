@@ -38,7 +38,11 @@ describe('sign-up', () => {
     expect(lastSmsCode(phone)).toMatch(/^\d{4}$/);
 
     const verified = await verifyOtp(phone, lastSmsCode(phone)!);
-    expect(verified.body.data).toEqual({ is_new_user: true, registration_token: expect.any(String) });
+    expect(verified.body.data).toEqual({
+      is_new_user: true,
+      registration_token: expect.any(String),
+      staff_invites: [],
+    });
 
     const res = await register(verified.body.data.registration_token, {
       ...patientBody,
@@ -88,12 +92,16 @@ describe('sign-up', () => {
     });
   });
 
-  it('rejects roles that can’t self-register', async () => {
-    for (const role of ['admin', 'provider_staff']) {
-      const res = await register(signRegistrationToken(randomPhone()), { ...patientBody, role });
-      expect(res.status).toBe(422);
-      expect(res.body.error.fields.role).toBeDefined();
-    }
+  it('rejects roles that can’t self-register; staff need an organization’s invite', async () => {
+    const admin = await register(signRegistrationToken(randomPhone()), { ...patientBody, role: 'admin' });
+    expect(admin.status).toBe(422);
+    expect(admin.body.error.fields.role).toBeDefined();
+    const staff = await register(signRegistrationToken(randomPhone()), {
+      ...patientBody,
+      role: 'provider_staff',
+    });
+    expect(staff.status).toBe(422);
+    expect(staff.body.error.fields.staff_invite_id).toBeDefined();
   });
 
   it('rejects a registration token that is missing, forged, or reused for a taken number', async () => {

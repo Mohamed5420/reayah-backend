@@ -1,3 +1,4 @@
+import { StaffService } from '../../../services/organization/staff.service';
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { Container } from 'typedi';
 import type IBaseController from '../interfaces/base-controller.interface';
@@ -144,7 +145,15 @@ export default class AuthController implements IBaseController {
       return HttpResponse.ok(
         res,
         result.isNewUser
-          ? { is_new_user: true, registration_token: result.registrationToken }
+          ? {
+              is_new_user: true,
+              registration_token: result.registrationToken,
+              staff_invites: (await Container.get(StaffService).invitesForPhone(req.body.phone)).map((i) => ({
+                id: String(i.invite._id),
+                organization_name: i.organizationName,
+                type: i.invite.type,
+              })),
+            }
           : { is_new_user: false, ...result.tokens, user: presentAuthUser(result.user) },
       );
     } catch (err) {
@@ -165,6 +174,7 @@ export default class AuthController implements IBaseController {
         email: body.email,
         language: body.language,
         referralCode: body.referral_code,
+        staffInviteId: body.staff_invite_id,
       });
       return HttpResponse.created(res, { ...tokens, user: presentAuthUser(user) });
     } catch (err) {

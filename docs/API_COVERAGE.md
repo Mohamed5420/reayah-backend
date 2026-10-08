@@ -4,7 +4,7 @@
 
 Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi.json` (Swagger UI at `/docs` outside production).
 
-**Implemented:** 189 · **Deferred:** 33 (each to a named Phase 2 / 3 milestone)
+**Implemented:** 198 · **Deferred:** 24 (each to a named Phase 2 / 3 milestone)
 
 ## 7.2 Me / Account (all roles)
 
@@ -158,15 +158,15 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `GET` | `/org/service-areas` | ✅ Built |
 | `PUT` | `/org/service-areas` | ✅ Built |
 | `GET` | `/org/dashboard` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
-| `GET` | `/org/staff` | ⏳ M3.2 — Team management |
-| `POST` | `/org/staff/invite` | ⏳ M3.2 — Team management |
-| `GET` | `/org/staff/invites` | ⏳ M3.2 — Team management |
-| `DELETE` | `/org/staff/invites/{id}` | ⏳ M3.2 — Team management |
-| `GET` | `/org/staff/{id}` | ⏳ M3.2 — Team management |
-| `PATCH` | `/org/staff/{id}` | ⏳ M3.2 — Team management |
-| `DELETE` | `/org/staff/{id}` | ⏳ M3.2 — Team management |
-| `PUT` | `/org/staff/{id}/availability` | ⏳ M3.2 — Team management |
-| `PUT` | `/org/staff/{id}/service-areas` | ⏳ M3.2 — Team management |
+| `GET` | `/org/staff` | ✅ Built |
+| `POST` | `/org/staff/invite` | ✅ Built |
+| `GET` | `/org/staff/invites` | ✅ Built |
+| `DELETE` | `/org/staff/invites/{id}` | ✅ Built |
+| `GET` | `/org/staff/{id}` | ✅ Built |
+| `PATCH` | `/org/staff/{id}` | ✅ Built |
+| `DELETE` | `/org/staff/{id}` | ✅ Built |
+| `PUT` | `/org/staff/{id}/availability` | ✅ Built |
+| `PUT` | `/org/staff/{id}/service-areas` | ✅ Built |
 | `GET` | `/org/bookings` | ⏳ M3.3 — Org bookings & assignment |
 | `GET` | `/org/bookings/{id}` | ⏳ M3.3 — Org bookings & assignment |
 | `POST` | `/org/bookings/{id}/assign` | ⏳ M3.3 — Org bookings & assignment |
