@@ -20,10 +20,6 @@ const DEFERRED: Array<[RegExp, string]> = [
   ],
   [/^\w+ \/admin\/analytics|^POST \/admin\/notifications\/broadcast/, 'M3.5 — Advanced admin'],
   [
-    /^\w+ \/provider\/(earnings|ledger|payouts|payout-method)|^\w+ \/admin\/(payouts|commission-dues|ledger|reports)/,
-    'M2.4 — Earnings & payouts',
-  ],
-  [
     /^\w+ \/packages|^GET \/me\/package-subscriptions|^\w+ \/promo-codes|^GET \/me\/referral|^\w+ \/admin\/(promo-codes|banners|packages)/,
     'M2.5 — Packages, promos, referrals',
   ],

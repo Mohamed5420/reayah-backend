@@ -4,7 +4,7 @@
 
 Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi.json` (Swagger UI at `/docs` outside production).
 
-**Implemented:** 148 · **Deferred:** 74 (each to a named Phase 2 / 3 milestone)
+**Implemented:** 159 · **Deferred:** 63 (each to a named Phase 2 / 3 milestone)
 
 ## 7.2 Me / Account (all roles)
 
@@ -138,10 +138,10 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `POST` | `/provider/bookings/{id}/report` | ✅ Built |
 | `PATCH` | `/provider/bookings/{id}/report` | ✅ Built |
 | `POST` | `/provider/bookings/{id}/cash-collected` | ✅ Built |
-| `GET` | `/provider/earnings` | ⏳ M2.4 — Earnings & payouts |
-| `GET` | `/provider/ledger` | ⏳ M2.4 — Earnings & payouts |
-| `GET` | `/provider/payouts` | ⏳ M2.4 — Earnings & payouts |
-| `PUT` | `/provider/payout-method` | ⏳ M2.4 — Earnings & payouts |
+| `GET` | `/provider/earnings` | ✅ Built |
+| `GET` | `/provider/ledger` | ✅ Built |
+| `GET` | `/provider/payouts` | ✅ Built |
+| `PUT` | `/provider/payout-method` | ✅ Built |
 | `GET` | `/provider/reviews` | ✅ Built |
 
 ## 7.11 Owner — Organization (role: owner)
@@ -279,13 +279,13 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `GET` | `/admin/subscription-plans` | ⏳ M3 — Organizations |
 | `POST` | `/admin/subscription-plans` | ⏳ M3 — Organizations |
 | `GET` | `/admin/payments` | ✅ Built |
-| `GET` | `/admin/payouts` | ⏳ M2.4 — Earnings & payouts |
-| `POST` | `/admin/payouts/generate` | ⏳ M2.4 — Earnings & payouts |
-| `POST` | `/admin/payouts/{id}/mark-paid` | ⏳ M2.4 — Earnings & payouts |
-| `POST` | `/admin/payouts/bulk-approve` | ⏳ M2.4 — Earnings & payouts |
-| `GET` | `/admin/commission-dues` | ⏳ M2.4 — Earnings & payouts |
-| `POST` | `/admin/ledger/adjustment` | ⏳ M2.4 — Earnings & payouts |
-| `GET` | `/admin/reports/export` | ⏳ M2.4 — Earnings & payouts |
+| `GET` | `/admin/payouts` | ✅ Built |
+| `POST` | `/admin/payouts/generate` | ✅ Built |
+| `POST` | `/admin/payouts/{id}/mark-paid` | ✅ Built |
+| `POST` | `/admin/payouts/bulk-approve` | ✅ Built |
+| `GET` | `/admin/commission-dues` | ✅ Built |
+| `POST` | `/admin/ledger/adjustment` | ✅ Built |
+| `GET` | `/admin/reports/export` | ✅ Built |
 | `GET` | `/admin/settings` | ✅ Built |
 | `PUT` | `/admin/settings` | ✅ Built |
 | `GET` | `/admin/audit-logs` | ✅ Built |

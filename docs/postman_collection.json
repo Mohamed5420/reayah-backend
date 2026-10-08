@@ -5925,6 +5925,479 @@
               }
             }
           }
+        },
+        {
+          "name": "Payout queue, oldest first, with full transfer details",
+          "request": {
+            "method": "GET",
+            "description": "Payout queue, oldest first, with full transfer details",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/payouts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "payouts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Generate a payout batch now (also runs automatically on payout_day): every provider at or above payout_min_amount with a payout method and no open payout",
+          "request": {
+            "method": "POST",
+            "description": "Generate a payout batch now (also runs automatically on payout_day): every provider at or above payout_min_amount with a payout method and no open payout",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/payouts/generate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "payouts",
+                "generate"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Approve pending payouts (others are returned as skipped)",
+          "request": {
+            "method": "POST",
+            "description": "Approve pending payouts (others are returned as skipped)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/payouts/bulk-approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "payouts",
+                "bulk-approve"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payout_ids\": [\n    \"665f1c2b9e1d2a4c3b9e8f1a\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Record the transfer reference for an approved payout; the provider is notified",
+          "request": {
+            "method": "POST",
+            "description": "Record the transfer reference for an approved payout; the provider is notified",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/payouts/:id/mark-paid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "payouts",
+                ":id",
+                "mark-paid"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cancel a pending / approved payout (e.g. wrong account); the amount returns to the balance",
+          "request": {
+            "method": "POST",
+            "description": "Cancel a pending / approved payout (e.g. wrong account); the amount returns to the balance",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/payouts/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "payouts",
+                ":id",
+                "cancel"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Providers owing commission (cash bookings), most owed first",
+          "request": {
+            "method": "GET",
+            "description": "Providers owing commission (cash bookings), most owed first",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/commission-dues",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "commission-dues"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Manual ledger credit (+) or debit (−) with a reason. Audited.",
+          "request": {
+            "method": "POST",
+            "description": "Manual ledger credit (+) or debit (−) with a reason. Audited.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ledger/adjustment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "ledger",
+                "adjustment"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"owner_type\": \"provider\",\n  \"owner_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"amount\": 1,\n  \"reason\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "CSV export of bookings, payments or payouts created in [from, to] (Cairo dates). No names or medical data.",
+          "request": {
+            "method": "GET",
+            "description": "CSV export of bookings, payments or payouts created in [from, to] (Cairo dates). No names or medical data.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/reports/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "reports",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "bookings",
+                  "disabled": false
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "disabled": false,
+                  "description": "Cairo calendar date"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-01",
+                  "disabled": false,
+                  "description": "Cairo calendar date"
+                }
+              ],
+              "variable": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Provider — Earnings",
+      "item": [
+        {
+          "name": "Totals for a period (default: this month, Cairo dates) + current balance and payout method",
+          "request": {
+            "method": "GET",
+            "description": "Totals for a period (default: this month, Cairo dates) + current balance and payout method",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/earnings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "earnings"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Cairo calendar date"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-01",
+                  "disabled": true,
+                  "description": "Cairo calendar date"
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Ledger entries, newest first (credits, commission due, payouts, adjustments)",
+          "request": {
+            "method": "GET",
+            "description": "Ledger entries, newest first (credits, commission due, payouts, adjustments)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/ledger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "ledger"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Payout history",
+          "request": {
+            "method": "GET",
+            "description": "Payout history",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/payouts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "payouts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Where payouts go (masked); null until set",
+          "request": {
+            "method": "GET",
+            "description": "Where payouts go (masked); null until set",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/payout-method",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "payout-method"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Bank account or mobile wallet for payouts (stored encrypted)",
+          "request": {
+            "method": "PUT",
+            "description": "Bank account or mobile wallet for payouts (stored encrypted)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/payout-method",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "payout-method"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"bank\",\n  \"account_holder\": \"string\",\n  \"bank_name\": \"string\",\n  \"wallet_provider\": \"vodafone_cash\",\n  \"account_number\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     }

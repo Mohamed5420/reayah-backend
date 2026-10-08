@@ -197,11 +197,12 @@ describe('money after payment', () => {
       reason_code: 'changed_mind',
     });
     expect(cancel.body.data).toMatchObject({ status: 'cancelled', refund_amount: total });
-    await eventually(async () =>
-      expect((await PaymentModel.findById(paymentId).lean())!.status).toBe('refunded'),
-    );
+    // The refund listener updates the payment, then the booking: wait for both.
+    await eventually(async () => {
+      expect((await PaymentModel.findById(paymentId).lean())!.status).toBe('refunded');
+      expect((await BookingModel.findById(bookingId).lean())!.paymentStatus).toBe('refunded');
+    });
     expect(gateway.refunds).toEqual([{ transactionId: `tx-${bookingId}`, amount: total }]);
-    expect((await BookingModel.findById(bookingId).lean())!.paymentStatus).toBe('refunded');
     expect(await RefundModel.countDocuments({ bookingId, status: 'succeeded' })).toBe(1);
   });
 
@@ -334,7 +335,9 @@ describe('travel-fee charges', () => {
         expect.objectContaining({ type: 'credit', amount: fee }),
       ]),
     );
-    expect((await PaymentModel.findById(paymentId).lean())!.status).toBe('partially_refunded');
+    await eventually(async () =>
+      expect((await PaymentModel.findById(paymentId).lean())!.status).toBe('partially_refunded'),
+    );
   });
 
   it('a no-show on a paid booking refunds all but the travel fee; with the setting off, everything', async () => {

@@ -15,4 +15,6 @@ export enum MaintenanceJob {
   DOCUMENT_EXPIRY = 'document-expiry',
   /** Cancels card / wallet bookings still unpaid after the payment window (M2.3). */
   PAYMENT_EXPIRY = 'payment-expiry',
+  /** On payout_day: generates the weekly payout batch (M2.4). Runs daily, acts once on that day. */
+  PAYOUT_BATCH = 'payout-batch',
 }

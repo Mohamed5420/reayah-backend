@@ -208,6 +208,8 @@ describe('encryption at rest (spec §9)', () => {
     Dispute: ['description'],
     Message: ['body'],
     Conversation: ['lastMessage.body'],
+    PayoutMethod: ['accountNumber'],
+    Payout: ['destination'],
   };
 
   it.each(Object.entries(ENCRYPTED))('%s encrypts %j', (model, fields) => {

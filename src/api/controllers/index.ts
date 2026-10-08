@@ -21,6 +21,7 @@ import AdminUserController from './admin/admin-user.controller';
 import AdminBookingController from './admin/admin-booking.controller';
 import ChatController from './chat/chat.controller';
 import PaymentController from './payment/payment.controller';
+import FinanceController from './finance/finance.controller';
 
 /**
  * Register every controller here. Each one is instantiated once at boot
@@ -49,6 +50,7 @@ const controllerClasses: Array<new () => IBaseController> = [
   AdminBookingController,
   ChatController,
   PaymentController,
+  FinanceController,
 ];
 
 export const getGlobalControllers = (): IBaseController[] => controllerClasses.map((C) => new C());

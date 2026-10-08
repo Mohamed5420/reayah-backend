@@ -39,6 +39,8 @@ export interface Settings {
   referral_reward: number;
   /** Weekly payout batch day. */
   payout_day: Weekday;
+  /** Smallest balance paid out in a batch (piastres); smaller balances roll over to the next week. */
+  payout_min_amount: number;
   support_phone: string;
   emergency_number: string;
   min_app_version: { android: string; ios: string };
@@ -60,6 +62,7 @@ export const SETTING_DEFAULTS: Settings = {
   travel_fee_on_no_show: true,
   referral_reward: 5000,
   payout_day: 'thursday',
+  payout_min_amount: 10000,
   support_phone: '',
   emergency_number: '123',
   min_app_version: { android: '1.0.0', ios: '1.0.0' },
@@ -102,6 +105,7 @@ export const SETTING_VALIDATORS: { [K in SettingKey]: Validator<Settings[K]> } =
   travel_fee_on_no_show: isBoolean,
   referral_reward: intBetween(0, 10_000_000),
   payout_day: (v): v is Weekday => WEEKDAYS.includes(v as Weekday),
+  payout_min_amount: intBetween(0, 100_000_00),
   support_phone: isString,
   emergency_number: isString,
   min_app_version: shape<Settings['min_app_version']>({ android: isVersion, ios: isVersion }),

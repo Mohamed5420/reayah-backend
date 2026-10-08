@@ -12,6 +12,7 @@ export const MAX_SILENCE_SECONDS: Record<MaintenanceJob, number> = {
   [MaintenanceJob.BOOKING_REMINDERS]: 5 * 60, // every minute
   [MaintenanceJob.SUSPENSION_EXPIRY]: 20 * 60, // every 5 min
   [MaintenanceJob.PAYMENT_EXPIRY]: 5 * 60, // every minute
+  [MaintenanceJob.PAYOUT_BATCH]: 26 * 3600, // daily
   [MaintenanceJob.PRESENCE_CLEANUP]: 3 * 3600, // hourly
   [MaintenanceJob.DOCUMENT_EXPIRY]: 26 * 3600, // daily
 };

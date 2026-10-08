@@ -13,6 +13,7 @@ const schedules: Array<{ id: MaintenanceJob; repeat: { pattern: string; tz?: str
     { id: MaintenanceJob.BOOKING_REMINDERS, repeat: { every: 60_000 } }, // every minute
     { id: MaintenanceJob.SUSPENSION_EXPIRY, repeat: { every: 5 * 60_000 } }, // every 5 min
     { id: MaintenanceJob.PAYMENT_EXPIRY, repeat: { every: 60_000 } }, // every minute
+    { id: MaintenanceJob.PAYOUT_BATCH, repeat: { pattern: '0 9 * * *', tz: 'Africa/Cairo' } }, // daily 09:00 Cairo
     { id: MaintenanceJob.DOCUMENT_EXPIRY, repeat: { pattern: '0 6 * * *', tz: 'Africa/Cairo' } }, // daily 06:00 Cairo
   ];
 
