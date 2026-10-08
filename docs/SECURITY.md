@@ -22,7 +22,7 @@ enforced by tests, so they keep holding as the API grows — the test is named n
 ## Open items
 
 1. **Legal review (Law 151/2020)** not started: data retention periods, account-deletion retention,
-   consent wording, data-processing agreements with the SMS / storage / push providers. The questions are in the data inventory shared with counsel.
+   consent wording, data-processing agreements with the SMS / storage / push providers. The questions are in the data inventory (`docs/DATA_INVENTORY.md`).
 2. **SMS provider** still TBD (spec §12.1) — OTP can't go to production until it's chosen.
 3. **Admin sub-roles** (super_admin / verifier / support / finance) are TBD; today every admin can do everything (all audited).
 4. **HTTPS** is terminated at the load balancer / proxy (Caddy in `deploy/`, automatic certificates, HSTS). Make sure plain HTTP is redirected there.

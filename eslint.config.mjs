@@ -37,7 +37,7 @@ export default defineConfig(
   },
   {
     // Scripts and tests may print and use non-null assertions freely.
-    files: ['tests/**/*.ts', 'src/docs/export-openapi.ts', 'src/scripts/**/*.ts'],
+    files: ['tests/**/*.ts', 'src/docs/export-*.ts', 'src/scripts/**/*.ts'],
     rules: { 'no-console': 'off', '@typescript-eslint/no-non-null-assertion': 'off' },
   },
   prettier,

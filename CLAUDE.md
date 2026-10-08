@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Product docs
 
 - [docs/Reaya_Backend_Spec.md](docs/Reaya_Backend_Spec.md) — the product/API spec (source of truth for endpoints, enums, business rules). Hard rule: no location data of any kind; matching is by area only.
+- [docs/DATA_INVENTORY.md](docs/DATA_INVENTORY.md) — the personal data inventory for counsel (Law 151/2020): what we collect, where it is stored, protection, access, retention, open legal questions. **Source of truth — update it in every milestone that touches personal data, storage, access, outside providers or retention** (tables + change log), then regenerate the Word copy with `npm run docs:inventory` (`docs/DATA_INVENTORY.docx`, sent to the lawyer) and commit both.
 - [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md) — phased build plan. Phase 0 aligns this scaffold with the spec's contract (response/error envelopes, i18n, auth), so current scaffold conventions may be superseded there.
 
 ## Commands
@@ -22,6 +23,7 @@ npm test -- tests/unit/i18n.test.ts     # one file
 npm test -- -t "replays the stored"     # tests matching a name
 npm run test:watch
 npm run openapi     # regenerate docs/openapi.json (needs .env, no DB)
+npm run docs:inventory   # regenerate docs/DATA_INVENTORY.docx from docs/DATA_INVENTORY.md
 npm run test:load   # load test: 1,000 providers, real app over HTTP, fails if read p95 ≥ 300 ms (LOAD_* env vars)
 npm run seed:staging -- --providers 200   # demo data for staging (refuses production)
 UPDATE_API_COVERAGE=1 npm test -- api-coverage   # regenerate docs/API_COVERAGE.md after adding endpoints

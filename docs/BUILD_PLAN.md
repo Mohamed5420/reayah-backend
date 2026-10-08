@@ -186,7 +186,7 @@ Goal: a patient can book a verified nurse for a home visit in a covered area, pa
 - [ ] On real infrastructure (needs staging/production to exist): run the restore drill, wire the alerts in `docs/OPERATIONS.md`, re-run the load scenarios against staging.
 - [x] Decision: booking `patient_notes` and dispute `description` are encrypted at rest (encrypt-on-write), decrypted only where shown (assigned provider after acceptance, admins), every view audited.
 - [x] OpenAPI docs complete for all Phase 1 endpoints and shared with the mobile team (screen map §7.16). *(All Phase 1 endpoints implemented — `api-coverage.test.ts` fails if a spec endpoint is neither built nor assigned to a later milestone; `docs/API_COVERAGE.md` lists all 222 with status. Postman collection generated with the spec (`docs/postman_collection.json`); shareable Swagger page published for the mobile team.)*
-- [ ] Legal review of data handling (Law 151/2020) started. *(Data inventory prepared for counsel: data collected, purpose, storage, protection, access, retention, and 10 questions — incl. hosting outside Egypt, which the 2025 executive regulations put under a transfer licence.)*
+- [ ] Legal review of data handling (Law 151/2020) started. *(Data inventory for counsel: `docs/DATA_INVENTORY.md` + generated `docs/DATA_INVENTORY.docx` — data collected, purpose, storage, protection, access, retention, and 10 questions, incl. hosting outside Egypt, which the 2025 executive regulations put under a transfer licence. Updated with every milestone.)*
 
 **Exit:** production deploy; the mobile team signs off on all Phase 1 screens.
 

@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "openapi": "tsx src/docs/export-openapi.ts",
+    "docs:inventory": "tsx src/docs/export-data-inventory.ts",
     "admin:create": "tsx src/scripts/create-admin.ts",
     "seed:staging": "tsx src/scripts/seed-staging.ts",
     "test:load": "vitest run --config vitest.load.config.mts"
@@ -60,6 +61,7 @@
     "@types/node": "^22.9.0",
     "@types/supertest": "^7.2.1",
     "@types/swagger-ui-express": "^4.1.8",
+    "docx": "^9.9.0",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",
