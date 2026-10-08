@@ -25,6 +25,7 @@ import { NotificationType } from '../../interfaces/INotification';
 import { NotificationService } from '../notification/notification.service';
 import { bookingParams, ownerUserIds } from '../notification/booking-notifications';
 import { OrgDiscoveryService } from '../organization/org-discovery.service';
+import { sameWorld } from '../auth/test-accounts';
 import { recordHistory, runBookingTransaction, transitionBooking } from './booking-transaction';
 
 /** Spec §6.6: the owner is warned this long before the assignment deadline. */
@@ -213,6 +214,7 @@ export class BookingDeadlineService {
       const candidates = await OrganizationModel.find({
         verificationStatus: VerificationStatus.APPROVED,
         ...(booking.organizationId ? { _id: { $ne: booking.organizationId } } : {}),
+        ...sameWorld(booking.isTestAccount),
         serviceAreas: { $elemMatch: { areaId: booking.areaId, isActive: true } },
         services: { $elemMatch: { serviceId: booking.serviceId, isActive: true } },
       })
@@ -306,6 +308,7 @@ export class BookingDeadlineService {
               : (booking.preferredGender as unknown as Gender),
           source: 'independent',
           sort: ProviderSort.RATING,
+          testAccount: booking.isTestAccount,
         },
         { page: 1, perPage: 500, skip: 0 },
       );

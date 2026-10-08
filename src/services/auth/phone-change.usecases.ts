@@ -32,7 +32,7 @@ export class VerifyPhoneChangeUseCase {
 
   async execute(userId: string, newPhone: string, code: string, context: AuditContext) {
     const before = await assertPhoneAvailable(userId, newPhone);
-    await this.otp.verify(newPhone, OtpPurpose.PHONE_CHANGE, code, userId);
+    await this.otp.verify(newPhone, OtpPurpose.PHONE_CHANGE, code, userId, context.ip);
 
     // The unique index still guards the race where someone else takes the number right now (→ 409).
     const user = await UserModel.findByIdAndUpdate(userId, { phone: newPhone }, { new: true });

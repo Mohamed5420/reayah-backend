@@ -317,6 +317,32 @@
             "type": "string",
             "pattern": "^[0-9a-f]{24}$/i",
             "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "consents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "terms",
+                    "privacy",
+                    "health_data"
+                  ]
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "kind",
+                "version"
+              ],
+              "additionalProperties": false
+            },
+            "maxItems": 10
           }
         },
         "required": [
@@ -6177,6 +6203,9 @@
               null
             ]
           },
+          "is_test_account": {
+            "type": "boolean"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -6206,6 +6235,7 @@
           "gender",
           "role",
           "admin_role",
+          "is_test_account",
           "status",
           "language",
           "last_login_at",
@@ -11546,6 +11576,275 @@
             "type": "integer"
           }
         },
+        "additionalProperties": false
+      },
+      "ConsentDocument": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "terms",
+              "privacy",
+              "health_data"
+            ]
+          },
+          "version": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "published_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "version",
+          "title",
+          "body",
+          "url",
+          "roles",
+          "published_at"
+        ]
+      },
+      "ConsentStatus": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "terms",
+              "privacy",
+              "health_data"
+            ]
+          },
+          "current_version": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "accepted_version": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "accepted_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "withdrawn_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "up_to_date": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "current_version",
+          "title",
+          "accepted_version",
+          "accepted_at",
+          "withdrawn_at",
+          "up_to_date"
+        ]
+      },
+      "ConsentRecordRequest": {
+        "type": "object",
+        "properties": {
+          "consents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "terms",
+                    "privacy",
+                    "health_data"
+                  ]
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "accepted": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "kind",
+                "version",
+                "accepted"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 10
+          }
+        },
+        "required": [
+          "consents"
+        ],
+        "additionalProperties": false
+      },
+      "AdminConsentDocument": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "terms",
+              "privacy",
+              "health_data"
+            ]
+          },
+          "version": {
+            "type": "number"
+          },
+          "title_ar": {
+            "type": "string"
+          },
+          "title_en": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "body_ar": {
+            "type": "string"
+          },
+          "body_en": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "published_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "published_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "version",
+          "title_ar",
+          "title_en",
+          "body_ar",
+          "body_en",
+          "url",
+          "roles",
+          "published_by",
+          "published_at"
+        ]
+      },
+      "PublishConsentDocument": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "terms",
+              "privacy",
+              "health_data"
+            ]
+          },
+          "title_ar": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "title_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "body_ar": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 100000
+          },
+          "body_en": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100000
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "patient",
+                "provider",
+                "provider_staff",
+                "owner"
+              ]
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "kind",
+          "title_ar",
+          "body_ar"
+        ],
         "additionalProperties": false
       }
     },
@@ -27528,6 +27827,258 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/AdminSubscriptionPlan"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/consent-documents": {
+      "get": {
+        "summary": "The current terms, privacy and health-data consent texts (with `role`: only those that role must accept at sign-up). Empty until counsel’s wording is published.",
+        "tags": [
+          "Consent"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "patient",
+                "provider",
+                "provider_staff",
+                "owner"
+              ]
+            },
+            "required": false,
+            "name": "role",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ConsentDocument"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/consents": {
+      "get": {
+        "summary": "For each current text the account must accept: the version accepted and whether it is current",
+        "tags": [
+          "Consent"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ConsentStatus"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Accept (or withdraw: accepted=false) the current versions. An older version → 409 CONFLICT (show the new text). Kept as append-only evidence with the time and IP.",
+        "tags": [
+          "Consent"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentRecordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ConsentStatus"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/consent-documents": {
+      "get": {
+        "summary": "Every published version of every consent text. Super admins only.",
+        "tags": [
+          "Admin — System"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminConsentDocument"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Publish a new version of a consent text (never edited afterwards). From then on sign-up requires it and existing users see it as not up to date. Super admins only; audited.",
+        "tags": [
+          "Admin — System"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishConsentDocument"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AdminConsentDocument"
                     }
                   },
                   "required": [

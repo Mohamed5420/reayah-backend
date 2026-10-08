@@ -218,11 +218,22 @@ export class StaffService {
    * Sign-up with an invite (inside the registration transaction): the new user becomes staff of the
    * organization with a draft profile of the invited type.
    */
-  async joinAtSignup(session: ClientSession, user: { _id: Types.ObjectId; phone: string }, inviteId: string) {
+  async joinAtSignup(
+    session: ClientSession,
+    user: { _id: Types.ObjectId; phone: string; isTestAccount?: boolean },
+    inviteId: string,
+  ) {
     const invite = await this.claim(session, inviteId, user.phone, user._id);
     await Container.get(SubscriptionService).assertCanAddStaff(invite.organizationId, false);
     await ProviderProfileModel.create(
-      [{ userId: user._id, organizationId: invite.organizationId, type: invite.type }],
+      [
+        {
+          userId: user._id,
+          organizationId: invite.organizationId,
+          type: invite.type,
+          isTestAccount: Boolean(user.isTestAccount),
+        },
+      ],
       { session },
     );
     return invite;

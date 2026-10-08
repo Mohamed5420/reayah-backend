@@ -267,6 +267,12 @@ Put on hold by product decision: no video work at this stage. Until it resumes, 
 
 **Phase 3 exit:** an organization onboards, invites staff, receives a booking, assigns or broadcasts it, and sees it in reports and invoices; an unassigned booking falls back to other providers after the deadline. *(Covered end to end by `tests/integration/phase3-exit.test.ts`. Insurance partnerships stay open until their scope is defined.)*
 
+### Launch preparation
+- [x] Test numbers with a fixed sign-in code for store reviewers and testers. *(Decision: allowlist only (`TEST_PHONE_NUMBERS` / `TEST_OTP_CODE`), every use audited; in production the fixed code never opens a real account or an admin, and test accounts only find and book test providers / organizations — real patients never see them; analytics leave them out.)*
+- [x] Account-deletion web page for Google Play (`/api/v1/account-deletion`): SMS code, shows whose account, then the same `DELETE /me` as the app.
+- [x] Consent recording. *(Decision: terms, privacy and health-data consent as numbered versions published by a super admin — counsel's wording plugs in without a release; nothing required until a version is published; sign-up then requires the current ones for the role (health data: patients); a newer version shows as not up to date in `GET /me/consents`; acceptances and withdrawals are append-only records with time and IP.)*
+- [ ] Everything else on the launch checklist (hosting, staging, Paymob live, SMS provider, PDPC licence, store accounts) — tracked in the launch readiness page.
+
 ---
 
 ## Cross-cutting rules (apply in every milestone)

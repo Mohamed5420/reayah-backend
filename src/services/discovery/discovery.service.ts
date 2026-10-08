@@ -14,6 +14,7 @@ import { AreaNotCoveredError, NotFoundError, ValidationError } from '../../utils
 import { CatalogService, type ServiceRow } from '../catalog/catalog.service';
 import { LocationService } from '../location/location.service';
 import { BOOKING_HORIZON_DAYS, slotsForDay, type Interval, type Slot } from './slot-engine';
+import { sameWorld } from '../auth/test-accounts';
 import type { OrgCard } from '../organization/org-discovery.service';
 
 export enum ProviderSort {
@@ -39,6 +40,8 @@ export type SearchFilters = {
   minRating?: number;
   source?: 'independent' | 'organization';
   sort: ProviderSort;
+  /** The caller is a test account: in production only test providers match (and real callers never see them). */
+  testAccount?: boolean;
 };
 
 /** One search result: the provider, their user record, and their price / travel fee for this service + area. */
@@ -383,6 +386,7 @@ export class DiscoveryService {
           ...(filters.minRating !== undefined ? { ratingAvg: { $gte: filters.minRating } } : {}),
           // Provider rows are independents only: staff are booked through their organization (its card).
           organizationId: null,
+          ...sameWorld(filters.testAccount),
         },
       },
       {

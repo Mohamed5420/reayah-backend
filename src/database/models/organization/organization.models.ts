@@ -65,6 +65,7 @@ const organizationSchema = new Schema<IOrganization, OrganizationModelType, Soft
       default: [],
     },
     commissionRate: { type: Number, default: null, min: 0, max: 100 },
+    isTestAccount: { type: Boolean, default: false },
     subscriptionPlanId: { type: Schema.Types.ObjectId, ref: 'SubscriptionPlan', default: null },
     subscriptionPeriod: {
       type: new Schema(

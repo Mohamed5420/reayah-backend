@@ -28,6 +28,7 @@ import type { ServiceRow } from '../catalog/catalog.service';
 import type { Gender } from '../../interfaces/enums';
 import { CreditService } from '../marketing/credit.service';
 import { PackageService } from '../marketing/package.service';
+import { inSameWorld } from '../auth/test-accounts';
 import { PromoService } from '../marketing/promo.service';
 
 type BookableArea = NonNullable<Awaited<ReturnType<LocationService['findBookableArea']>>>;
@@ -100,6 +101,9 @@ export class QuoteService {
     }
 
     const patientProfile = await this.profiles.getOwned(userId, input.patientProfileId);
+    const isTestAccount = Boolean(
+      (await UserModel.findById(userId).select('isTestAccount').lean())?.isTestAccount,
+    );
     const address = await this.addresses.getOwned(userId, input.addressId);
     const area = await this.locations.findBookableArea(String(address.areaId));
     if (!area) throw new AreaNotCoveredError();
@@ -109,6 +113,12 @@ export class QuoteService {
     const terms = input.organizationId
       ? await this.organizationTerms(input, input.organizationId, area, service, excludeBookingId)
       : await this.providerTerms(input, input.providerId!, area, service, excludeBookingId);
+    // Test and real accounts never book each other in production (test numbers, launch decision).
+    if (!inSameWorld(isTestAccount, (terms.organization ?? terms.provider)?.isTestAccount)) {
+      throw new NotFoundError(
+        terms.organization ? 'errors.organization_not_found' : 'errors.provider_not_found',
+      );
+    }
     const { slot, unitPrice, areaTravelFee } = terms;
 
     // Travel fee: the provider's / organization's fee for the area, never above the area's cap (spec §4.2, §6.12).
@@ -174,6 +184,7 @@ export class QuoteService {
     };
     return {
       draft,
+      isTestAccount,
       service,
       address,
       area,

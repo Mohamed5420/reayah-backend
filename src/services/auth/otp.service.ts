@@ -15,6 +15,8 @@ import {
 } from '../../utils/types-errors';
 import { SmsService } from '../sms/sms.service';
 import { OTP } from './auth.constants';
+import { fixedCodeAllowed } from './test-accounts';
+import { AuditService } from '../audit/audit.service';
 
 const hashCode = (phone: string, purpose: OtpPurpose, code: string) =>
   createHmac('sha256', env.jwt.secret).update(`otp:${purpose}:${phone}:${code}`).digest('hex');
@@ -26,6 +28,7 @@ const hashCode = (phone: string, purpose: OtpPurpose, code: string) =>
 @Service()
 export class OtpService {
   private readonly sms = Container.get(SmsService);
+  private readonly audit = Container.get(AuditService);
 
   /** Sends a new code (any previous unused code for the same phone + purpose stops working). */
   async send(phone: string, purpose: OtpPurpose, ip: string, userId?: string) {
@@ -45,9 +48,13 @@ export class OtpService {
       throw new TooManyRequestsError();
     }
 
-    const code = randomInt(0, 10 ** OTP.LENGTH)
-      .toString()
-      .padStart(OTP.LENGTH, '0');
+    // Allowlisted test numbers get the fixed code instead of an SMS (rules in test-accounts.ts); audited.
+    const fixed = await fixedCodeAllowed(phone, purpose, userId);
+    const code = fixed
+      ? env.testAccounts.code
+      : randomInt(0, 10 ** OTP.LENGTH)
+          .toString()
+          .padStart(OTP.LENGTH, '0');
     await OtpCodeModel.updateMany({ phone, purpose, consumedAt: null }, { consumedAt: new Date() });
     await OtpCodeModel.create({
       phone,
@@ -55,8 +62,16 @@ export class OtpService {
       userId: userId ? new Types.ObjectId(userId) : null,
       codeHash: hashCode(phone, purpose, code),
       expiresAt: new Date(Date.now() + OTP.TTL_SECONDS * 1000),
+      fixedCode: fixed,
     });
 
+    if (fixed) {
+      await this.audit.log(
+        { actorId: userId ?? null, ip },
+        { action: 'auth.test_code_issued', entityType: 'phone', metadata: { phone, purpose } },
+      );
+      return { expires_in: OTP.TTL_SECONDS, resend_after: OTP.RESEND_AFTER_SECONDS };
+    }
     const messageKey = purpose === OtpPurpose.LOGIN ? 'sms.otp_login' : 'sms.otp_phone_change';
     await this.sms.send(phone, t(messageKey, { code }));
     return { expires_in: OTP.TTL_SECONDS, resend_after: OTP.RESEND_AFTER_SECONDS };
@@ -66,7 +81,7 @@ export class OtpService {
    * Checks and consumes the latest code. Each check spends an attempt atomically *before* comparing,
    * so parallel guesses can't exceed the cap.
    */
-  async verify(phone: string, purpose: OtpPurpose, code: string, userId?: string) {
+  async verify(phone: string, purpose: OtpPurpose, code: string, userId?: string, ip?: string) {
     const otp = await OtpCodeModel.findOne({
       phone,
       purpose,
@@ -95,5 +110,11 @@ export class OtpService {
       { consumedAt: new Date() },
     );
     if (consumed.modifiedCount === 0) throw new OtpInvalidError(); // used by a parallel request
+    if (otp.fixedCode) {
+      await this.audit.log(
+        { actorId: userId ?? null, ip },
+        { action: 'auth.test_code_used', entityType: 'phone', metadata: { phone, purpose } },
+      );
+    }
   }
 }

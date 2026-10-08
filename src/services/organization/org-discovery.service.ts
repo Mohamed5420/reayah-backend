@@ -13,6 +13,7 @@ import { NotFoundError } from '../../utils/types-errors';
 import { CatalogService, type ServiceRow } from '../catalog/catalog.service';
 import { DiscoveryService, type SearchFilters } from '../discovery/discovery.service';
 import type { Slot } from '../discovery/slot-engine';
+import { sameWorld } from '../auth/test-accounts';
 import { LocationService } from '../location/location.service';
 
 export type StaffRow = {
@@ -171,6 +172,7 @@ export class OrgDiscoveryService {
     };
     const orgs = await OrganizationModel.find({
       verificationStatus: VerificationStatus.APPROVED,
+      ...sameWorld(filters.testAccount),
       serviceAreas: { $elemMatch: { areaId, isActive: true } },
       services: {
         $elemMatch: {

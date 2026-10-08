@@ -72,6 +72,7 @@ const providerProfileSchema = new Schema<IProviderProfile, ProviderProfileModelT
     ratingCount: { type: Number, default: 0 },
     completedVisitsCount: { type: Number, default: 0 },
     isAcceptingBookings: { type: Boolean, default: false },
+    isTestAccount: { type: Boolean, default: false },
     // Bumped inside every booking transaction for this provider: concurrent ones then conflict, and the
     // retry sees the other booking — this is what prevents double booking (see booking-transaction.ts).
     scheduleVersion: { type: Number, default: 0 },

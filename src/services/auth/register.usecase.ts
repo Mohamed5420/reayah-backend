@@ -10,6 +10,9 @@ import { ConflictError } from '../../utils/types-errors';
 import { TokenService } from './token.service';
 import { verifyRegistrationToken } from './jwt';
 import { ReferralService } from '../marketing/referral.service';
+import { isTestPhone } from './test-accounts';
+import { ConsentService } from '../consent/consent.service';
+import type { ConsentKind } from '../../interfaces/IConsent';
 import { StaffService } from '../organization/staff.service';
 
 export type RegisterInput = {
@@ -22,6 +25,9 @@ export type RegisterInput = {
   referralCode?: string | null;
   /** Required for provider_staff: the organization's invite to this number. */
   staffInviteId?: string;
+  /** Accepted consent texts (required once published). */
+  consents?: Array<{ kind: ConsentKind; version: number }>;
+  ip?: string;
 };
 
 /**
@@ -56,11 +62,14 @@ export class RegisterUseCase {
               language: input.language ?? 'ar',
               referredByCode: input.referralCode?.trim().toUpperCase() || null,
               lastLoginAt: new Date(),
+              // Proven by the OTP: an allowlisted number used the fixed code (or an SMS, outside production).
+              isTestAccount: isTestPhone(phone),
             },
           ],
           { session },
         );
 
+        await Container.get(ConsentService).acceptAtSignup(session, user, input.consents, input.ip ?? null);
         await Container.get(ReferralService).recordAtSignup(session, user, input.referralCode);
 
         if (input.role === UserRole.PATIENT) {
@@ -77,7 +86,9 @@ export class RegisterUseCase {
             { session },
           );
         } else if (input.role === UserRole.PROVIDER) {
-          await ProviderProfileModel.create([{ userId: user._id }], { session });
+          await ProviderProfileModel.create([{ userId: user._id, isTestAccount: user.isTestAccount }], {
+            session,
+          });
         } else if (input.role === UserRole.PROVIDER_STAFF) {
           invite = await Container.get(StaffService).joinAtSignup(session, user, input.staffInviteId ?? '');
         }

@@ -31,6 +31,7 @@ const adminUser = z
     role: z.enum(UserRole),
     /** Admins only (decision M3.5). */
     admin_role: z.enum(AdminRole).nullable(),
+    is_test_account: z.boolean(),
     status: z.enum(UserStatus),
     language: z.string(),
     last_login_at: z.string().nullable(),

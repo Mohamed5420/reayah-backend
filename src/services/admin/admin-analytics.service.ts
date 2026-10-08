@@ -66,7 +66,8 @@ export class AdminAnalyticsService {
         },
       },
     });
-    const completed = { status: BookingStatus.COMPLETED, completedAt: range };
+    // Test accounts (reviewers, testers) never count.
+    const completed = { status: BookingStatus.COMPLETED, completedAt: range, isTestAccount: { $ne: true } };
     const run = (model: 'booking' | 'user' | 'org', pipeline: PipelineStage[]) =>
       model === 'booking'
         ? BookingModel.aggregate<Row>(pipeline)
@@ -77,12 +78,18 @@ export class AdminAnalyticsService {
     switch (metric) {
       case 'bookings':
         return run('booking', [
-          { $match: { createdAt: range } },
+          { $match: { createdAt: range, isTestAccount: { $ne: true } } },
           { $group: { _id: bucket('createdAt'), value: { $sum: 1 } } },
         ]);
       case 'cancellation_rate':
         return run('booking', [
-          { $match: { createdAt: range, status: { $ne: BookingStatus.AWAITING_PAYMENT } } },
+          {
+            $match: {
+              createdAt: range,
+              status: { $ne: BookingStatus.AWAITING_PAYMENT },
+              isTestAccount: { $ne: true },
+            },
+          },
           {
             $group: {
               _id: bucket('createdAt'),
@@ -113,6 +120,7 @@ export class AdminAnalyticsService {
             $match: {
               createdAt: range,
               deletedAt: null,
+              isTestAccount: { $ne: true },
               role: metric === 'new_patients' ? UserRole.PATIENT : UserRole.PROVIDER,
             },
           },
@@ -120,7 +128,7 @@ export class AdminAnalyticsService {
         ]);
       case 'new_organizations':
         return run('org', [
-          { $match: { createdAt: range, deletedAt: null } },
+          { $match: { createdAt: range, deletedAt: null, isTestAccount: { $ne: true } } },
           { $group: { _id: bucket('createdAt'), value: { $sum: 1 } } },
         ]);
     }
@@ -142,6 +150,7 @@ export class AdminAnalyticsService {
         await BookingModel.distinct('providerProfileId', {
           status: BookingStatus.COMPLETED,
           completedAt: range,
+          isTestAccount: { $ne: true },
         })
       ).length;
     }

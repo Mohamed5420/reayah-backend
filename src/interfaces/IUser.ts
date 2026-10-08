@@ -24,6 +24,8 @@ export interface IUser {
   referredByCode: string | null;
   /** Admins only: their sub-role (null for everyone else; older admin accounts count as super_admin). */
   adminRole: AdminRole | null;
+  /** Signed up with an allowlisted test number (reviewers, testers). Kept apart from real users in production. */
+  isTestAccount: boolean;
   /** This user's own code to invite others (created on first GET /me/referral). */
   referralCode: string | null;
   deletionRequestedAt: Date | null;
@@ -42,4 +44,5 @@ export interface IAuthUser {
   language?: Language;
   /** Admins: their sub-role, read from the database on each request. */
   adminRole?: AdminRole | null;
+  isTestAccount?: boolean;
 }

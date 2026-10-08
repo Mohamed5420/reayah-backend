@@ -26,6 +26,7 @@ const userSchema = new Schema<IUser, UserModelType, SoftDeleteMethods>(
     referredByCode: { type: String, default: null },
     referralCode: { type: String, default: null },
     adminRole: { type: String, enum: [...Object.values(AdminRole), null], default: null },
+    isTestAccount: { type: Boolean, default: false },
     deletionRequestedAt: { type: Date, default: null },
     isOnline: { type: Boolean, default: false },
     notificationSettings: {

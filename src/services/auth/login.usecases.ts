@@ -27,8 +27,8 @@ export class VerifyLoginOtpUseCase {
   private readonly otp = Container.get(OtpService);
   private readonly tokens = Container.get(TokenService);
 
-  async execute(phone: string, code: string) {
-    await this.otp.verify(phone, OtpPurpose.LOGIN, code);
+  async execute(phone: string, code: string, ip?: string) {
+    await this.otp.verify(phone, OtpPurpose.LOGIN, code, undefined, ip);
 
     const user = await UserModel.findOne({ phone });
     if (!user) {

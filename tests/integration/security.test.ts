@@ -37,6 +37,7 @@ const PUBLIC_ROUTES = new Set([
   'GET /services',
   'GET /services/:id',
   'GET /specialties',
+  'GET /consent-documents', // the texts shown before sign-up
   'POST /auth/otp/request',
   'POST /auth/otp/verify',
   'POST /auth/register', // carries its own short-lived registration token

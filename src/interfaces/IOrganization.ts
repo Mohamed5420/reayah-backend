@@ -52,6 +52,8 @@ export interface IOrganization {
   services: Array<{ serviceId: Types.ObjectId; price: number; isActive: boolean }>;
   /** Admin override of `commission_rate` for this organization (percent); null = the platform rate. */
   commissionRate: number | null;
+  /** Copied from the owner's account (test numbers); test organizations only meet test patients in production. */
+  isTestAccount: boolean;
   /** Spec §4.4: the chosen plan (null = the default free plan). */
   subscriptionPlanId: Types.ObjectId | null;
   /** Current paid period; null on a free plan. */

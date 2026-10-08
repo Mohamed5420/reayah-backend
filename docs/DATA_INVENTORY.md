@@ -57,6 +57,8 @@ We collect identity and contact data from everyone, health data about patients, 
 | Broadcasts | Everyone (as recipients) | The message an admin sent, the segment (role, areas), who sent it, the reason (announcements), how many it reached; each recipient gets a normal in-app notification | Offers and service announcements | No (no list of recipients is stored) |
 | Moderation records | Patients and providers | Suspensions, warnings, reasons | Platform safety | No |
 | Audit log | Admins, and anyone whose medical data was opened | Who did what, when, from which IP; never the medical values themselves | Legal accountability | No |
+| Consent records | Everyone who signs up | Which version of the terms, privacy notice and health-data consent the person accepted or withdrew, when, and from which IP | Proof of explicit consent to process health data | No (it records consent to sensitive data, not the data) |
+| Test accounts | Our own testers and app-store reviewers | A flag on accounts created with our test numbers, which sign in with a fixed code instead of an SMS; each use is logged | Store review and testing without real SMS; test accounts never meet real users in production | No |
 
 Home-screen banners and promo campaigns are marketing content uploaded by admins and hold no personal data.
 
@@ -141,10 +143,11 @@ Short-lived security data is deleted automatically. Most personal and medical da
 | Organization statements, plan fees, organization payouts | Kept; never deleted (financial records) | Retention period required by tax / financial rules |
 | Staff invites | Invites are valid 7 days. One never accepted (expired, declined or revoked) is deleted — number and name — 30 days after it expired, by a daily job; the organization keeps only an anonymous count. Accepted invites are kept with the staff member's account. | Default pending counsel's answer to question 11 |
 | Audit log | Kept indefinitely; cannot be edited | Retention period |
+| Consent records and published consent texts | Kept; cannot be edited (evidence of consent) | Retention period after the account closes |
 | Backups | Daily; 14 days on the server, long-term copies off-server | Retention and erasure of long-term backups |
 | Server log files | Rotated at about 200 MB per service (no fixed period) | Retention period (e.g. 30–90 days) |
 
-An account cannot be closed while it has an active booking. Closing an account does not delete visit reports already given to the patient's record.
+An account cannot be closed while it has an active booking. Closing an account does not delete visit reports already given to the patient's record. People can close their account in the app or on a web page (required by Google Play) that confirms the number by SMS code and applies the same rules.
 
 ## Questions for counsel
 
@@ -152,7 +155,7 @@ We need these answers before launch; the first two decide where we host.
 
 1. **Hosting location.** May patient and health data be stored on servers outside Egypt (for example in the UAE or Bahrain), and if so, what licence or permission from the Personal Data Protection Center does that require? Or must it stay in Egypt?
 2. **Licences and registration.** Which licences, permits or registrations does Reaya+ need as a controller of sensitive (health) data, and does it need a data protection officer?
-3. **Consent.** What consent must patients give for their health data, and in what wording (Arabic)? A patient also enters data about family members: what consent is needed from them, and from guardians for children?
+3. **Consent.** What consent must patients give for their health data, and in what wording (Arabic)? (The app is ready to record it: send the texts for the terms, the privacy notice and the health-data consent, and we publish them as version 1; sign-up then requires them, and later changes ask everyone again.) A patient also enters data about family members: what consent is needed from them, and from guardians for children?
 4. **Provider identity documents.** Is it allowed to keep copies of national ID cards and licences, and for how long after a nurse or doctor leaves?
 5. **Retention periods.** How long must or may we keep: medical records and visit reports, chats, bookings and financial records (payments, payouts, earnings, credit), closed accounts, referral records, the audit log, backups and server logs? Is anonymising a closed account (instead of erasing it) acceptable?
 6. **Patient rights.** How quickly must we answer a request to see, correct or delete data, and may we refuse deletion of medical and financial history?
@@ -177,4 +180,5 @@ We need these answers before launch; the first two decide where we host.
 | 8 Oct 2026 | M3.4 | Organization finances: earnings, payouts (encrypted account details), plans billed from earnings, monthly statement PDFs, dashboard and reports (aggregates, no patient names), organizations' own packages. |
 | 8 Oct 2026 | M3.4 | Unpaid plan fees are tracked per month (no personal data); an organization unpaid for 21 days is moved to the free plan. |
 | 8 Oct 2026 | M3.5 | Admin roles (super admin, verifier, support, finance, marketing) with narrower access — booking notes and dispute descriptions only for super admin and support; admin analytics (aggregates only); broadcasts (marketing ones respect the promotions setting; service announcements always reach everyone, super admin only, with a reason). |
+| 8 Oct 2026 | Launch prep | Consent records (versioned texts published by a super admin once counsel provides the wording; acceptances and withdrawals kept with time and IP); test numbers for store reviewers and testers (fixed code, audited, kept apart from real users in production); a web page for account deletion (same sign-in by SMS code, same rules as in the app). |
 | 8 Oct 2026 | — | This file became the source of truth (previously a shared online document); a Word copy is generated from it. |

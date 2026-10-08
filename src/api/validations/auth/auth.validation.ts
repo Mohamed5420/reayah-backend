@@ -1,3 +1,4 @@
+import { ConsentSchemas } from '../consent/consent.validation';
 import { OrganizationType } from '../../../interfaces/IOrganization';
 import { EGYPT_MOBILE, OTP } from '../../../services/auth/auth.constants';
 import {
@@ -106,6 +107,11 @@ export const AuthSchemas = {
       referral_code: z.string().trim().max(32).optional(),
       /** Join an organization that invited this number. */
       staff_invite_id: objectId.optional(),
+      /**
+       * The current consent texts the role must accept (GET /consent-documents?role=…). Required once
+       * any are published; until then it may be omitted.
+       */
+      consents: ConsentSchemas.signupConsents.optional(),
     })
     .refine((b) => (b.role === UserRole.PROVIDER_STAFF) === Boolean(b.staff_invite_id), {
       error: 'validation.staff_invite_required',

@@ -10,6 +10,7 @@ const otpCodeSchema = new Schema<IOtpCode>(
     expiresAt: { type: Date, required: true },
     attempts: { type: Number, default: 0 },
     consumedAt: { type: Date, default: null },
+    fixedCode: { type: Boolean, default: false },
   },
   { timestamps: { createdAt: true, updatedAt: false }, versionKey: false },
 );

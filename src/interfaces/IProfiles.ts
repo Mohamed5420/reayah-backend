@@ -73,6 +73,8 @@ export interface IProviderProfile {
   ratingCount: number;
   completedVisitsCount: number;
   isAcceptingBookings: boolean;
+  /** Copied from the account at sign-up (test numbers); test providers only meet test patients in production. */
+  isTestAccount: boolean;
   /** Internal: serializes booking transactions per provider. */
   scheduleVersion: number;
   createdAt: Date;

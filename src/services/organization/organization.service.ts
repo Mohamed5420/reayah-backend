@@ -5,6 +5,7 @@ import {
   OrganizationModel,
 } from '../../database/models/organization/organization.models';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
+import { UserModel } from '../../database/models/user/user.model';
 import { VerificationStatus } from '../../interfaces/enums';
 import { DocumentReviewStatus } from '../../interfaces/IProvider';
 import {
@@ -64,7 +65,12 @@ export class OrganizationService {
     if (await OrganizationModel.exists({ ownerUserId: userId })) {
       throw new ConflictError('errors.organization_exists');
     }
-    return OrganizationModel.create({ ...input, ownerUserId: userId });
+    const owner = await UserModel.findById(userId).select('isTestAccount').lean();
+    return OrganizationModel.create({
+      ...input,
+      ownerUserId: userId,
+      isTestAccount: Boolean(owner?.isTestAccount),
+    });
   }
 
   async getOwn(userId: string) {

@@ -217,7 +217,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"role\": \"patient\",\n  \"full_name\": \"أحمد محمود\",\n  \"gender\": \"male\",\n  \"date_of_birth\": \"1985-03-12\",\n  \"email\": \"string\",\n  \"language\": \"ar\",\n  \"referral_code\": \"string\",\n  \"staff_invite_id\": \"665f1c2b9e1d2a4c3b9e8f1a\"\n}",
+              "raw": "{\n  \"role\": \"patient\",\n  \"full_name\": \"أحمد محمود\",\n  \"gender\": \"male\",\n  \"date_of_birth\": \"1985-03-12\",\n  \"email\": \"string\",\n  \"language\": \"ar\",\n  \"referral_code\": \"string\",\n  \"staff_invite_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"consents\": [\n    {\n      \"kind\": \"terms\",\n      \"version\": 1\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4704,6 +4704,65 @@
               "variable": []
             }
           }
+        },
+        {
+          "name": "Every published version of every consent text. Super admins only.",
+          "request": {
+            "method": "GET",
+            "description": "Every published version of every consent text. Super admins only.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/consent-documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "consent-documents"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Publish a new version of a consent text (never edited afterwards). From then on sign-up requires it and existing users see it as not up to date. Super admins only; audited.",
+          "request": {
+            "method": "POST",
+            "description": "Publish a new version of a consent text (never edited afterwards). From then on sign-up requires it and existing users see it as not up to date. Super admins only; audited.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/consent-documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "consent-documents"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"terms\",\n  \"title_ar\": \"string\",\n  \"title_en\": \"string\",\n  \"body_ar\": \"string\",\n  \"body_en\": \"string\",\n  \"url\": \"string\",\n  \"roles\": [\n    \"patient\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -9130,6 +9189,103 @@
                   "value": "665f1c2b9e1d2a4c3b9e8f1a"
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consent",
+      "item": [
+        {
+          "name": "The current terms, privacy and health-data consent texts (with `role`: only those that role must accept at sign-up). Empty until counsel’s wording is published.",
+          "request": {
+            "method": "GET",
+            "description": "The current terms, privacy and health-data consent texts (with `role`: only those that role must accept at sign-up). Empty until counsel’s wording is published.",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/consent-documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "consent-documents"
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "patient",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "For each current text the account must accept: the version accepted and whether it is current",
+          "request": {
+            "method": "GET",
+            "description": "For each current text the account must accept: the version accepted and whether it is current",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/consents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "consents"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Accept (or withdraw: accepted=false) the current versions. An older version → 409 CONFLICT (show the new text). Kept as append-only evidence with the time and IP.",
+          "request": {
+            "method": "POST",
+            "description": "Accept (or withdraw: accepted=false) the current versions. An older version → 409 CONFLICT (show the new text). Kept as append-only evidence with the time and IP.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me/consents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "consents"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"consents\": [\n    {\n      \"kind\": \"terms\",\n      \"version\": 1,\n      \"accepted\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         }

@@ -191,6 +191,7 @@ export default class DiscoveryController implements IBaseController {
           minRating: q.min_rating,
           source: q.source,
           sort: q.sort,
+          testAccount: req.user?.isTestAccount,
         },
         pagination,
       );

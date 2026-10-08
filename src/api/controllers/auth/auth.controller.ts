@@ -141,7 +141,7 @@ export default class AuthController implements IBaseController {
 
   private async otpVerify(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await this.verifyOtp.execute(req.body.phone, req.body.code);
+      const result = await this.verifyOtp.execute(req.body.phone, req.body.code, clientIp(req));
       return HttpResponse.ok(
         res,
         result.isNewUser
@@ -175,6 +175,8 @@ export default class AuthController implements IBaseController {
         language: body.language,
         referralCode: body.referral_code,
         staffInviteId: body.staff_invite_id,
+        consents: body.consents,
+        ip: clientIp(req),
       });
       return HttpResponse.created(res, { ...tokens, user: presentAuthUser(user) });
     } catch (err) {

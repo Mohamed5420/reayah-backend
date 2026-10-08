@@ -11,6 +11,8 @@ process.env.S3_ENDPOINT = 'http://127.0.0.1:9000';
 process.env.S3_ACCESS_KEY_ID = 'test';
 process.env.S3_SECRET_ACCESS_KEY = 'test';
 process.env.S3_FORCE_PATH_STYLE = 'true';
+process.env.TEST_PHONE_NUMBERS = '+201500000001,+201500000002,+201500000003,+201500000004';
+process.env.TEST_OTP_CODE = '2468';
 process.env.BULL_BOARD_PASSWORD = ''; // keep Bull Board (and its BullMQ queues) out of test apps
 
 // Pushes are queued to BullMQ in the app; tests record them instead (assert with `queuedPushes()`).

@@ -49,6 +49,7 @@ const bookingSchema = new Schema<IBooking>(
     },
     providerProfileId: { type: Schema.Types.ObjectId, ref: 'ProviderProfile', default: null },
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', default: null },
+    isTestAccount: { type: Boolean, default: false },
     type: { type: String, enum: Object.values(BookingType), required: true },
     scheduledStart: { type: Date, required: true },
     scheduledEnd: { type: Date, required: true },

@@ -39,6 +39,18 @@ export const env = {
   /** `log` prints OTP messages instead of sending them — refused in production. Real provider TBD (spec §12.1). */
   smsDriver: optional('SMS_DRIVER', 'log'),
 
+  /**
+   * Test numbers (app-store reviewers, the mobile team): sign in with `TEST_OTP_CODE` instead of an SMS.
+   * Off while `TEST_PHONE_NUMBERS` is empty. See `services/auth/test-accounts.ts` for the production rules.
+   */
+  testAccounts: {
+    phones: optional('TEST_PHONE_NUMBERS')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean),
+    code: optional('TEST_OTP_CODE'),
+  },
+
   /** base64-encoded 32-byte key for AES-256-GCM field encryption (medical data, IDs, license numbers). */
   fieldEncryptionKey: required('FIELD_ENCRYPTION_KEY'),
 

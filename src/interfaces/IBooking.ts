@@ -100,6 +100,8 @@ export interface IBooking {
   _id: Types.ObjectId;
   referenceCode: string;
   patientUserId: Types.ObjectId;
+  /** Made by a test account: only test providers / organizations are offered it in production. */
+  isTestAccount?: boolean;
   patientProfileId: Types.ObjectId;
   addressId: Types.ObjectId;
   address: {

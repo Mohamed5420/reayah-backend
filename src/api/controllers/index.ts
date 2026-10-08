@@ -29,6 +29,7 @@ import AdminOrganizationController from './admin/admin-organization.controller';
 import OrgStaffController from './organization/org-staff.controller';
 import OrgBookingController from './organization/org-booking.controller';
 import OrgFinanceController from './organization/org-finance.controller';
+import ConsentController from './consent/consent.controller';
 
 /**
  * Register every controller here. Each one is instantiated once at boot
@@ -38,6 +39,7 @@ const controllerClasses: Array<new () => IBaseController> = [
   HealthController,
   AuthController,
   MeController,
+  ConsentController,
   AppConfigController,
   LocationController,
   CatalogController,

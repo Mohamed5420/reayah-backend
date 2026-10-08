@@ -131,6 +131,7 @@ export class BookingService {
           {
             referenceCode: generateReferenceCode(),
             patientUserId: userId,
+            isTestAccount: prepared.isTestAccount,
             patientProfileId: draft.patientProfileId,
             addressId: draft.addressId,
             address,

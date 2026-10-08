@@ -32,6 +32,8 @@ export const presentAdminUser = (u: IUser) => ({
   role: u.role,
   admin_role: u.role === UserRole.ADMIN ? (u.adminRole ?? AdminRole.SUPER_ADMIN) : null,
   status: u.status,
+  /** Signed up with a test number (reviewers, testers). */
+  is_test_account: Boolean(u.isTestAccount),
   language: u.language,
   last_login_at: iso(u.lastLoginAt),
   created_at: u.createdAt.toISOString(),

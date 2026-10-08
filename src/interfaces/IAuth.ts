@@ -17,6 +17,8 @@ export interface IOtpCode {
   expiresAt: Date;
   attempts: number;
   consumedAt: Date | null;
+  /** A test number's fixed code (no SMS sent); its use is audited. */
+  fixedCode?: boolean;
   createdAt: Date;
 }
 
