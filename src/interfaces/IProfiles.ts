@@ -1,5 +1,7 @@
 import type { Types } from 'mongoose';
 import type { Gender, ProviderType, Relation, VerificationStatus } from './enums';
+import type { BookingType } from './IBooking';
+import type { IProviderClinic } from './IClinic';
 
 /**
  * Spec §4.3 `patient_profiles`: the account holder ("self") and family members they book for.
@@ -29,9 +31,11 @@ export interface IProviderServiceArea {
 /** Spec §4.5 `provider_services` (embedded): the provider's own price per catalog service. */
 export interface IProviderService {
   serviceId: Types.ObjectId;
-  /** Piastres per pricing unit; within the service's admin min/max when set. */
+  /** Piastres per pricing unit; within the service's admin min/max (per visit type) when set. */
   price: number;
   isActive: boolean;
+  /** home_visit (also when missing: entries saved before clinic visits) or clinic_visit. */
+  visitType?: BookingType;
 }
 
 /** Spec §4.4 `provider_availability` (embedded): weekly recurring hours, Africa/Cairo local time. */
@@ -68,7 +72,10 @@ export interface IProviderProfile {
   reviewedBy: Types.ObjectId | null;
   serviceAreas: IProviderServiceArea[];
   services: IProviderService[];
+  /** Home-visit weekly hours. */
   availability: IAvailabilitySlot[];
+  /** Clinics this doctor works at, with their hours there (clinic visits, C1). */
+  clinics: IProviderClinic[];
   ratingAvg: number;
   ratingCount: number;
   completedVisitsCount: number;

@@ -21,6 +21,7 @@ export const presentService = (s: ServiceRow, lang: Language, startingPrices: Re
   provider_type: s.providerType,
   pricing_unit: s.pricingUnit,
   default_duration_minutes: s.defaultDurationMinutes,
+  visit_types: s.visitTypes,
   starting_price: startingPrices[s.id] ?? null,
   currency: 'EGP' as const,
 });
@@ -47,6 +48,9 @@ export const presentAdminService = (s: ICatalogService) => ({
   default_duration_minutes: s.defaultDurationMinutes,
   min_price: s.minPrice,
   max_price: s.maxPrice,
+  visit_types: s.visitTypes?.length ? s.visitTypes : ['home_visit'],
+  clinic_min_price: s.clinicMinPrice ?? null,
+  clinic_max_price: s.clinicMaxPrice ?? null,
   is_active: s.isActive,
   sort_order: s.sortOrder,
 });

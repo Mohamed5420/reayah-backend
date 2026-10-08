@@ -30,6 +30,7 @@ import { CreditService } from '../marketing/credit.service';
 import { PackageService } from '../marketing/package.service';
 import { inSameWorld } from '../auth/test-accounts';
 import { PromoService } from '../marketing/promo.service';
+import { offeredEntry } from '../catalog/visit-types';
 
 type BookableArea = NonNullable<Awaited<ReturnType<LocationService['findBookableArea']>>>;
 
@@ -98,6 +99,10 @@ export class QuoteService {
     const settings = await this.settings.getAll();
     if (input.type === BookingType.VIDEO && !settings.features.video_consult) {
       throw new ValidationError({ type: ['validation.video_not_available'] });
+    }
+    // Clinic visits are being built (C1–C5): not bookable until the booking flow (C3) is in.
+    if (input.type === BookingType.CLINIC_VISIT) {
+      throw new ValidationError({ type: ['validation.clinic_visit_not_available'] });
     }
 
     const patientProfile = await this.profiles.getOwned(userId, input.patientProfileId);
@@ -217,7 +222,7 @@ export class QuoteService {
     if (!provider.isAcceptingBookings) throw new ConflictError('errors.provider_not_accepting');
     const coverage = provider.serviceAreas.find((a) => String(a.areaId) === area.id);
     if (!coverage) throw new AreaNotCoveredError();
-    const offered = provider.services.find((s) => s.isActive && String(s.serviceId) === service.id);
+    const offered = offeredEntry(provider.services, service.id, input.type);
     if (!offered) throw new NotFoundError('errors.service_not_offered');
     assertWithinBounds(service, offered.price);
     if (
@@ -262,7 +267,7 @@ export class QuoteService {
     const org = await orgs.approvedOrg(organizationId);
     const coverage = org.serviceAreas.find((a) => a.isActive && String(a.areaId) === area.id);
     if (!coverage) throw new AreaNotCoveredError();
-    const offered = org.services.find((s) => s.isActive && String(s.serviceId) === service.id);
+    const offered = offeredEntry(org.services, service.id, input.type);
     if (!offered) throw new NotFoundError('errors.service_not_offered');
     assertWithinBounds(service, offered.price);
     const staff = await orgs.eligibleStaff(org._id, {

@@ -14,6 +14,9 @@ import {
 import { applyPatch } from '../audit/audit.service';
 import { CatalogService, PROVIDER_PRICES_CACHE } from '../catalog/catalog.service';
 import type { SpecialtyKey } from '../catalog/specialties';
+import { ClinicService } from '../clinic/clinic.service';
+import { isVisitType } from '../catalog/visit-types';
+import { BookingType } from '../../interfaces/IBooking';
 
 /** Statuses in which a provider may edit identity fields and (re)submit for verification. */
 export const EDITABLE_STATUSES = [
@@ -41,6 +44,8 @@ export type OnboardingChecklist = {
   areasSelected: boolean;
   servicesSet: boolean;
   availabilitySet: boolean;
+  /** Clinic visits priced → a clinic with a licence and hours (C1). */
+  clinicsSet: boolean;
   canSubmit: boolean;
 };
 
@@ -111,6 +116,15 @@ export class ProviderProfileService {
 
     // Staff: areas, services and weekly hours are the owner's job, not part of their verification.
     const staff = Boolean(profile.organizationId);
+    // Clinic visits (C1): a doctor who only offers clinic visits needs no home areas or hours, but a
+    // clinic with a licence and hours.
+    const priced = (type: BookingType) =>
+      profile.services.some(
+        (s) => s.isActive && typeServices.has(String(s.serviceId)) && isVisitType(s, type),
+      );
+    const home = priced(BookingType.HOME_VISIT);
+    const clinic = priced(BookingType.CLINIC_VISIT);
+    const clinicOnly = clinic && !home;
     const items = {
       profileCompleted: Boolean(
         profile.type &&
@@ -120,9 +134,10 @@ export class ProviderProfileService {
         (profile.type !== ProviderType.DOCTOR || profile.specialty),
       ),
       documentsUploaded: REQUIRED_PROVIDER_DOCUMENTS.every((type) => usableTypes.has(type)),
-      areasSelected: staff || profile.serviceAreas.length > 0,
-      servicesSet: staff || profile.services.some((s) => s.isActive && typeServices.has(String(s.serviceId))),
-      availabilitySet: staff || profile.availability.length > 0,
+      areasSelected: staff || clinicOnly || profile.serviceAreas.length > 0,
+      servicesSet: staff || home || clinic,
+      availabilitySet: staff || clinicOnly || profile.availability.length > 0,
+      clinicsSet: staff || !clinic || (await Container.get(ClinicService).hasUsableClinic(profile)),
     };
     return {
       ...items,

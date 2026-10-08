@@ -92,6 +92,7 @@ export const presentProviderDetail = (input: {
   })),
   services: input.profile.services.map((s) => ({
     service_id: String(s.serviceId),
+    visit_type: s.visitType ?? 'home_visit',
     price: s.price,
     is_active: s.isActive,
   })),

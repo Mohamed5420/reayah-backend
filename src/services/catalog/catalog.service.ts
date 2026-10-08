@@ -6,6 +6,7 @@ import { VerificationStatus, type PricingUnit, type ProviderType } from '../../i
 import { cached } from '../../utils/cache/cache';
 import { NotFoundError } from '../../utils/types-errors';
 import { SettingsService } from '../settings/settings.service';
+import { BookingType } from '../../interfaces/IBooking';
 
 export const CATALOG_CACHE = 'catalog';
 /** Starting prices depend on provider prices and status — invalidate on those changes. */
@@ -33,6 +34,9 @@ export type ServiceRow = {
   defaultDurationMinutes: number;
   minPrice: number | null;
   maxPrice: number | null;
+  visitTypes: BookingType[];
+  clinicMinPrice: number | null;
+  clinicMaxPrice: number | null;
 };
 
 /**
@@ -86,6 +90,9 @@ export class CatalogService {
         defaultDurationMinutes: s.defaultDurationMinutes,
         minPrice: s.minPrice,
         maxPrice: s.maxPrice,
+        visitTypes: s.visitTypes?.length ? s.visitTypes : [BookingType.HOME_VISIT],
+        clinicMinPrice: s.clinicMinPrice ?? null,
+        clinicMaxPrice: s.clinicMaxPrice ?? null,
       }));
     });
     const visible = new Set((await this.activeCategories()).map((c) => c.id));
@@ -113,7 +120,8 @@ export class CatalogService {
       const rows = await ProviderProfileModel.aggregate<{ _id: unknown; min: number }>([
         { $match: { verificationStatus: VerificationStatus.APPROVED, isAcceptingBookings: true } },
         { $unwind: '$services' },
-        { $match: { 'services.isActive': true } },
+        // Home-visit prices (clinic prices show on clinic cards, C2).
+        { $match: { 'services.isActive': true, 'services.visitType': { $ne: BookingType.CLINIC_VISIT } } },
         { $group: { _id: '$services.serviceId', min: { $min: '$services.price' } } },
       ]);
       return Object.fromEntries(rows.map((r) => [String(r._id), r.min]));

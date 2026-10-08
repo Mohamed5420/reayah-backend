@@ -3,13 +3,14 @@ import type { FilterQuery } from 'mongoose';
 import { ServiceCategoryModel } from '../../database/models/catalog/service-category.model';
 import { CatalogServiceModel } from '../../database/models/catalog/catalog-service.model';
 import type { ICatalogService } from '../../interfaces/ICatalog';
-import type { PricingUnit, ProviderType } from '../../interfaces/enums';
+import { ProviderType, type PricingUnit } from '../../interfaces/enums';
 import { invalidateCacheNamespace } from '../../utils/cache/cache';
 import { escapeRegExp } from '../../utils/text/arabic';
 import { ConflictError, NotFoundError, ValidationError } from '../../utils/types-errors';
 import type { Pagination } from '../../utils/response/pagination';
 import { AuditService, applyPatch, type AuditContext } from '../audit/audit.service';
 import { CATALOG_CACHE } from './catalog.service';
+import { BookingType } from '../../interfaces/IBooking';
 
 export type CategoryInput = {
   key: string;
@@ -31,6 +32,9 @@ export type ServiceInput = {
   defaultDurationMinutes: number;
   minPrice?: number | null;
   maxPrice?: number | null;
+  visitTypes?: BookingType[];
+  clinicMinPrice?: number | null;
+  clinicMaxPrice?: number | null;
   isActive?: boolean;
   sortOrder?: number;
 };
@@ -94,6 +98,8 @@ export class CatalogAdminService {
   async createService(input: ServiceInput, context: AuditContext) {
     await this.assertCategoryExists(input.categoryId);
     assertPriceBounds(input.minPrice ?? null, input.maxPrice ?? null);
+    assertPriceBounds(input.clinicMinPrice ?? null, input.clinicMaxPrice ?? null, 'clinic_max_price');
+    assertVisitTypes(input.providerType, input.visitTypes ?? [BookingType.HOME_VISIT]);
     const service = await CatalogServiceModel.create(input);
     await this.afterWrite(context, 'service.create', 'service', String(service._id), { input });
     return service;
@@ -105,6 +111,8 @@ export class CatalogAdminService {
     if (patch.categoryId) await this.assertCategoryExists(patch.categoryId);
     const changes = applyPatch(service, patch);
     assertPriceBounds(service.minPrice, service.maxPrice); // checks the merged result
+    assertPriceBounds(service.clinicMinPrice ?? null, service.clinicMaxPrice ?? null, 'clinic_max_price');
+    assertVisitTypes(service.providerType, service.visitTypes);
     if (Object.keys(changes).length) {
       await service.save();
       await this.afterWrite(context, 'service.update', 'service', id, { changes });
@@ -135,8 +143,15 @@ export class CatalogAdminService {
   }
 }
 
-const assertPriceBounds = (minPrice: number | null, maxPrice: number | null) => {
+const assertPriceBounds = (minPrice: number | null, maxPrice: number | null, field = 'max_price') => {
   if (minPrice !== null && maxPrice !== null && maxPrice < minPrice) {
-    throw new ValidationError({ max_price: ['validation.max_below_min'] });
+    throw new ValidationError({ [field]: ['validation.max_below_min'] });
+  }
+};
+
+/** Clinic visits are for doctors only (nurses stay home visits, decision C1). */
+const assertVisitTypes = (providerType: ProviderType, visitTypes: BookingType[]) => {
+  if (visitTypes.includes(BookingType.CLINIC_VISIT) && providerType !== ProviderType.DOCTOR) {
+    throw new ValidationError({ visit_types: ['validation.clinic_doctors_only'] });
   }
 };

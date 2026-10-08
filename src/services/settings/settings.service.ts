@@ -34,7 +34,9 @@ export class SettingsService {
 
     const settings = { ...SETTING_DEFAULTS };
     const overrides = await SettingModel.find().lean();
-    for (const { key, value } of overrides) {
+    for (const { key, value: stored } of overrides) {
+      // Feature flags added later (e.g. clinic_visits) take their default under an older stored value.
+      const value = key === 'features' ? withFeatureDefaults(stored, SETTING_DEFAULTS.features) : stored;
       // Skip keys that no longer exist and values that no longer pass validation.
       if (isSettingKey(key) && SETTING_VALIDATORS[key](value)) {
         (settings as Record<SettingKey, unknown>)[key] = value;
@@ -48,7 +50,12 @@ export class SettingsService {
   }
 
   /** Validates every change first (all-or-nothing), saves, drops the cache and writes an audit entry. */
-  async update(changes: Record<string, unknown>, context: AuditContext): Promise<Settings> {
+  async update(input: Record<string, unknown>, context: AuditContext): Promise<Settings> {
+    // `features` may be sent partially (just the flags that change); the rest keep their current values.
+    const changes =
+      'features' in input
+        ? { ...input, features: withFeatureDefaults(input.features, (await this.getAll()).features) }
+        : input;
     const fields: ErrorFields = {};
     for (const [key, value] of Object.entries(changes)) {
       if (!isSettingKey(key)) fields[key] = ['validation.unknown_setting'];
@@ -109,3 +116,7 @@ export class SettingsService {
     await getRedis().del(CACHE_KEY);
   }
 }
+
+/** A partial or older features object filled in from `base` (unknown keys are left in, so validation still rejects them). */
+const withFeatureDefaults = (value: unknown, base: Settings['features']) =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) ? { ...base, ...value } : value;

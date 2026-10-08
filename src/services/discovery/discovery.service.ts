@@ -16,6 +16,7 @@ import { LocationService } from '../location/location.service';
 import { BOOKING_HORIZON_DAYS, slotsForDay, type Interval, type Slot } from './slot-engine';
 import { sameWorld } from '../auth/test-accounts';
 import type { OrgCard } from '../organization/org-discovery.service';
+import { HOME_VISIT, isVisitType, visitTypeExpr, visitTypeMatch } from '../catalog/visit-types';
 
 export enum ProviderSort {
   RATING = 'rating',
@@ -219,7 +220,7 @@ export class DiscoveryService {
       }),
       services: profile.services.flatMap((s) => {
         const row = catalog.get(String(s.serviceId));
-        return s.isActive && row ? [{ service: row, price: s.price }] : [];
+        return s.isActive && row && isVisitType(s, HOME_VISIT) ? [{ service: row, price: s.price }] : [];
       }),
     };
   }
@@ -236,7 +237,11 @@ export class DiscoveryService {
     this.assertBookableDate(date);
     const { profile } = await this.approvedProvider(providerId);
     const service = await this.catalog.getActiveService(serviceId);
-    if (!profile.services.some((s) => s.isActive && String(s.serviceId) === serviceId)) {
+    if (
+      !profile.services.some(
+        (s) => s.isActive && String(s.serviceId) === serviceId && isVisitType(s, HOME_VISIT),
+      )
+    ) {
       throw new NotFoundError('errors.service_not_offered');
     }
     assertQuantity(service.pricingUnit, quantity);
@@ -378,6 +383,7 @@ export class DiscoveryService {
             $elemMatch: {
               serviceId,
               isActive: true,
+              ...visitTypeMatch(HOME_VISIT),
               ...(Object.keys(priceRange).length ? { price: priceRange } : {}),
             },
           },
@@ -393,7 +399,13 @@ export class DiscoveryService {
         $addFields: {
           price: pick(
             '$services',
-            { $and: [{ $eq: ['$$this.serviceId', serviceId] }, { $eq: ['$$this.isActive', true] }] },
+            {
+              $and: [
+                { $eq: ['$$this.serviceId', serviceId] },
+                { $eq: ['$$this.isActive', true] },
+                visitTypeExpr(HOME_VISIT),
+              ],
+            },
             'price',
           ),
           travelFee: pick('$serviceAreas', { $eq: ['$$this.areaId', areaId] }, 'travelFee'),

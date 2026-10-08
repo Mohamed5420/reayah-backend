@@ -20,6 +20,7 @@ import { CatalogService } from '../catalog/catalog.service';
 import { LocationService } from '../location/location.service';
 import { StorageService } from '../storage/storage.service';
 import { EDITABLE_STATUSES } from '../provider/provider-profile.service';
+import { checkServiceEntries, type ServiceEntryInput } from '../catalog/service-entries';
 
 export type OrganizationDoc = HydratedDocument<IOrganization>;
 
@@ -148,34 +149,12 @@ export class OrganizationService {
    * Services must be active and priced within the admin bounds. An organization can offer nurse and
    * doctor services alike (its staff do the visits).
    */
-  async replaceServices(
-    org: OrganizationDoc,
-    services: Array<{ serviceId: string; price: number; isActive: boolean }>,
-  ) {
+  async replaceServices(org: OrganizationDoc, services: ServiceEntryInput[]) {
     const catalog = new Map((await this.catalog.activeServices()).map((s) => [s.id, s]));
-    const fields: ErrorFields = {};
-    const seen = new Set<string>();
-    for (const [i, { serviceId, price }] of services.entries()) {
-      if (seen.has(serviceId)) addError(fields, `services.${i}.service_id`, 'validation.duplicate');
-      seen.add(serviceId);
-      const service = catalog.get(serviceId);
-      if (!service) addError(fields, `services.${i}.service_id`, 'validation.service_unavailable');
-      else if (
-        (service.minPrice !== null && price < service.minPrice) ||
-        (service.maxPrice !== null && price > service.maxPrice)
-      ) {
-        addError(fields, `services.${i}.price`, 'validation.price_out_of_range');
-      }
-    }
+    // Clinic prices apply to the organization's branches (C4); a price per organization (decision).
+    const { fields, rows } = checkServiceEntries(services, catalog, { clinicAllowed: true });
     if (Object.keys(fields).length) throw new ValidationError(fields);
-    org.set(
-      'services',
-      services.map((s) => ({
-        serviceId: new Types.ObjectId(s.serviceId),
-        price: s.price,
-        isActive: s.isActive,
-      })),
-    );
+    org.set('services', rows);
     await org.save();
     return org;
   }

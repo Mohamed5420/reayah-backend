@@ -5,8 +5,9 @@ export const SEED_CATEGORIES = [
   { key: 'nursing', nameAr: 'تمريض منزلي', nameEn: 'Home nursing', isActive: true, sortOrder: 1 },
   {
     key: 'doctor_home_visit',
-    nameAr: 'زيارة طبيب منزلية',
-    nameEn: 'Doctor home visit',
+    // Key kept for compatibility; covers home and clinic visits (clinic visits, C1).
+    nameAr: 'زيارة طبيب',
+    nameEn: 'Doctor visit',
     isActive: false,
     sortOrder: 2,
   },
@@ -97,21 +98,21 @@ export const SEED_NURSING_SERVICES: SeedService[] = [
 ].map((service) => ({ ...service, providerType: ProviderType.NURSE }));
 
 /**
- * Starter doctor home-visit services (M2.1). Their category starts inactive, so they stay hidden until
- * an admin activates "زيارة طبيب منزلية" for launch.
+ * Starter doctor services (M2.1). Each can be priced as a home visit and as a clinic visit (clinic visits,
+ * C1), so the names don't say where. The category starts inactive until an admin activates it for launch.
  */
 export const SEED_DOCTOR_SERVICES: SeedService[] = [
   {
-    nameAr: 'كشف منزلي',
-    nameEn: 'Home consultation',
-    descriptionAr: 'فحص المريض في البيت وتشخيص الحالة وكتابة العلاج',
+    nameAr: 'كشف',
+    nameEn: 'Consultation',
+    descriptionAr: 'فحص المريض وتشخيص الحالة وكتابة العلاج، في البيت أو في العيادة',
     pricingUnit: PricingUnit.PER_VISIT,
     defaultDurationMinutes: 45,
   },
   {
-    nameAr: 'متابعة منزلية',
-    nameEn: 'Follow-up home visit',
-    descriptionAr: 'زيارة متابعة لنفس الحالة بعد الكشف ومراجعة العلاج',
+    nameAr: 'متابعة',
+    nameEn: 'Follow-up',
+    descriptionAr: 'متابعة لنفس الحالة بعد الكشف ومراجعة العلاج',
     pricingUnit: PricingUnit.PER_VISIT,
     defaultDurationMinutes: 30,
   },

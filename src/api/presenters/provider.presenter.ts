@@ -7,6 +7,8 @@ import type { OnboardingChecklist } from '../../services/provider';
 import type { Language } from '../../utils/i18n';
 import { localized } from './localize';
 import { presentSpecialty } from '../../services/catalog/specialties';
+import { priceBounds, visitTypeOf } from '../../services/catalog/visit-types';
+import type { BookingType } from '../../interfaces/IBooking';
 
 /** Maps provider data to the API shapes in provider.validation.ts. */
 
@@ -19,6 +21,7 @@ export const presentChecklist = (c: OnboardingChecklist) => ({
   areas_selected: c.areasSelected,
   services_set: c.servicesSet,
   availability_set: c.availabilitySet,
+  clinics_set: c.clinicsSet,
   can_submit: c.canSubmit,
 });
 
@@ -88,22 +91,25 @@ export const presentServiceAreas = (
   });
 
 export const presentProviderServices = (
-  p: { services: Array<{ serviceId: unknown; price: number; isActive: boolean }> },
+  p: { services: Array<{ serviceId: unknown; price: number; isActive: boolean; visitType?: BookingType }> },
   catalog: Map<string, { service: ICatalogService; available: boolean }>,
   lang: Language,
 ) =>
   p.services.flatMap((s) => {
     const entry = catalog.get(String(s.serviceId));
     if (!entry) return [];
+    const visitType = visitTypeOf(s);
+    const bounds = priceBounds(entry.service, visitType);
     return [
       {
         service_id: String(s.serviceId),
         name: localized(entry.service.nameAr, entry.service.nameEn, lang),
         pricing_unit: entry.service.pricingUnit,
+        visit_type: visitType,
         price: s.price,
         is_active: s.isActive,
-        min_price: entry.service.minPrice,
-        max_price: entry.service.maxPrice,
+        min_price: bounds.min,
+        max_price: bounds.max,
         is_available: entry.available,
       },
     ];

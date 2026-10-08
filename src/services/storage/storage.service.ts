@@ -22,6 +22,7 @@ export const UPLOAD_PURPOSES = [
   'avatar',
   'dispute', // not in spec §7.4's list: dispute attachments (§7.8) need their own purpose
   'banner', // admin home banners (M2.5)
+  'clinic_licence', // a clinic's or branch's licence (clinic visits, C1)
 ] as const;
 export type UploadPurpose = (typeof UPLOAD_PURPOSES)[number];
 

@@ -87,6 +87,7 @@ describe('exit criterion: a nurse onboards, an admin approves, the nurse starts 
         areas_selected: false,
         services_set: false,
         availability_set: false,
+        clinics_set: true,
         can_submit: false,
       },
     });
@@ -99,6 +100,7 @@ describe('exit criterion: a nurse onboards, an admin approves, the nurse starts 
       areas_selected: true,
       services_set: true,
       availability_set: true,
+      clinics_set: true,
       can_submit: true,
     });
 

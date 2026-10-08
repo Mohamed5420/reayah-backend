@@ -1,6 +1,7 @@
 import { ServiceCategoryModel } from '../models/catalog/service-category.model';
 import { CatalogServiceModel } from '../models/catalog/catalog-service.model';
 import { SEED_CATEGORIES, SEED_DOCTOR_SERVICES, SEED_NURSING_SERVICES } from './data/catalog.data';
+import { BookingType } from '../../interfaces/IBooking';
 
 /** Starter services per category key. */
 const SEED_SERVICES_BY_CATEGORY = {
@@ -34,6 +35,12 @@ export const seedCatalog = async () => {
               descriptionEn: null,
               minPrice: null,
               maxPrice: null,
+              visitTypes:
+                key === 'doctor_home_visit'
+                  ? [BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]
+                  : [BookingType.HOME_VISIT],
+              clinicMinPrice: null,
+              clinicMaxPrice: null,
               isActive: true,
               sortOrder: index + 1,
               deletedAt: null,

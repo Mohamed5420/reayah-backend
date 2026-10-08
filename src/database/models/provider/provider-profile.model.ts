@@ -4,6 +4,7 @@ import { ProviderType, VerificationStatus } from '../../../interfaces/enums';
 import { baseSchemaOptions, piastresValidator, uniqueAmongActive } from '../../schema-options';
 import { softDeletePlugin, type SoftDeleteMethods } from '../../plugins/soft-delete.plugin';
 import { encryptedString } from '../../../utils/crypto/field-encryption';
+import { BookingType } from '../../../interfaces/IBooking';
 
 type ProviderProfileModelType = Model<IProviderProfile, object, SoftDeleteMethods>;
 
@@ -49,6 +50,11 @@ const providerProfileSchema = new Schema<IProviderProfile, ProviderProfileModelT
             serviceId: { type: Schema.Types.ObjectId, ref: 'CatalogService', required: true },
             price: { type: Number, required: true, validate: piastresValidator },
             isActive: { type: Boolean, default: true },
+            visitType: {
+              type: String,
+              enum: [BookingType.HOME_VISIT, BookingType.CLINIC_VISIT],
+              default: BookingType.HOME_VISIT,
+            },
           },
           { _id: false },
         ),
@@ -62,6 +68,32 @@ const providerProfileSchema = new Schema<IProviderProfile, ProviderProfileModelT
             dayOfWeek: { type: Number, min: 0, max: 6, required: true },
             startTime: { type: String, required: true },
             endTime: { type: String, required: true },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+    },
+    clinics: {
+      type: [
+        new Schema(
+          {
+            clinicId: { type: Schema.Types.ObjectId, ref: 'Clinic', required: true },
+            slotMinutes: { type: Number, default: null, min: 5, max: 240 },
+            instantConfirm: { type: Boolean, default: true },
+            hours: {
+              type: [
+                new Schema(
+                  {
+                    dayOfWeek: { type: Number, min: 0, max: 6, required: true },
+                    startTime: { type: String, required: true },
+                    endTime: { type: String, required: true },
+                  },
+                  { _id: false },
+                ),
+              ],
+              default: [],
+            },
           },
           { _id: false },
         ),

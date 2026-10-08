@@ -1,5 +1,6 @@
 import type { Types } from 'mongoose';
 import type { PricingUnit, ProviderType } from './enums';
+import type { BookingType } from './IBooking';
 
 /** Spec §4.5 — nursing, doctor_home_visit, video_consultation, elderly_care, packages. */
 export interface IServiceCategory {
@@ -30,6 +31,11 @@ export interface ICatalogService {
   /** Optional admin bounds on provider prices, piastres. */
   minPrice: number | null;
   maxPrice: number | null;
+  /** How it can be booked: nursing → [home_visit]; doctor consultations → home and clinic. Missing = home. */
+  visitTypes: BookingType[];
+  /** Clinic-visit bounds; null = use minPrice / maxPrice. */
+  clinicMinPrice: number | null;
+  clinicMaxPrice: number | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: Date;

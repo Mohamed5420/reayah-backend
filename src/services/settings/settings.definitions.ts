@@ -58,7 +58,16 @@ export interface Settings {
   support_phone: string;
   emergency_number: string;
   min_app_version: { android: string; ios: string };
-  features: { video_consult: boolean; card_payment: boolean; packages: boolean };
+  /** Clinic visits (C1–C5): a patient's grace before the doctor can mark a no-show. */
+  clinic_no_show_grace_minutes: number;
+  /** Clinic visits: percent of the consultation kept for a late cancellation / a no-show (0 = none, launch). */
+  clinic_late_cancellation_fee_percent: number;
+  clinic_no_show_fee_percent: number;
+  /** Clinic visits: commission percent; -1 = the same as `commission_rate`. */
+  clinic_commission_rate: number;
+  /** Clinics an independent doctor may have. */
+  max_clinics_per_doctor: number;
+  features: { video_consult: boolean; card_payment: boolean; packages: boolean; clinic_visits: boolean };
 }
 
 export type SettingKey = keyof Settings;
@@ -87,7 +96,12 @@ export const SETTING_DEFAULTS: Settings = {
   support_phone: '',
   emergency_number: '123',
   min_app_version: { android: '1.0.0', ios: '1.0.0' },
-  features: { video_consult: false, card_payment: false, packages: false },
+  clinic_no_show_grace_minutes: 15,
+  clinic_late_cancellation_fee_percent: 0,
+  clinic_no_show_fee_percent: 0,
+  clinic_commission_rate: -1,
+  max_clinics_per_doctor: 3,
+  features: { video_consult: false, card_payment: false, packages: false, clinic_visits: false },
 };
 
 type Validator<T> = (value: unknown) => value is T;
@@ -137,10 +151,16 @@ export const SETTING_VALIDATORS: { [K in SettingKey]: Validator<Settings[K]> } =
   support_phone: isString,
   emergency_number: isString,
   min_app_version: shape<Settings['min_app_version']>({ android: isVersion, ios: isVersion }),
+  clinic_no_show_grace_minutes: intBetween(0, 24 * 60),
+  clinic_late_cancellation_fee_percent: intBetween(0, 100),
+  clinic_no_show_fee_percent: intBetween(0, 100),
+  clinic_commission_rate: intBetween(-1, 100),
+  max_clinics_per_doctor: intBetween(1, 20),
   features: shape<Settings['features']>({
     video_consult: isBoolean,
     card_payment: isBoolean,
     packages: isBoolean,
+    clinic_visits: isBoolean,
   }),
 };
 

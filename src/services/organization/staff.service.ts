@@ -39,6 +39,7 @@ import { SmsService } from '../sms/sms.service';
 import type { OrganizationDoc } from './organization.service';
 import { OrgBookingService } from './org-booking.service';
 import { SubscriptionService } from './subscription.service';
+import { HOME_VISIT, isVisitType } from '../catalog/visit-types';
 
 /** Invites per organization per day (SMS costs money and can be abused). */
 const INVITES_PER_DAY = 30;
@@ -380,7 +381,12 @@ export class StaffService {
     const profile = await this.member(org._id, profileId);
     if (patch.serviceIds) {
       const catalog = new Map((await this.catalog.activeServices()).map((s) => [s.id, s]));
-      const offered = new Map(org.services.filter((s) => s.isActive).map((s) => [String(s.serviceId), s]));
+      // Staff serve the organization's home-visit services here (branch clinic work: C4).
+      const offered = new Map(
+        org.services
+          .filter((s) => s.isActive && isVisitType(s, HOME_VISIT))
+          .map((s) => [String(s.serviceId), s]),
+      );
       const fields: ErrorFields = {};
       const seen = new Set<string>();
       for (const [i, id] of patch.serviceIds.entries()) {

@@ -51,7 +51,7 @@ beforeEach(async () => {
   world = await createBookingWorld(app);
   patient = await world.newPatient();
   admin = await createUserWithToken(UserRole.ADMIN);
-  consultation = String((await CatalogServiceModel.findOne({ nameAr: 'كشف منزلي' }).lean())!._id);
+  consultation = String((await CatalogServiceModel.findOne({ nameAr: 'كشف' }).lean())!._id);
 });
 
 describe('specialties', () => {
@@ -72,8 +72,8 @@ describe('doctor services', () => {
     await activateDoctors();
     const after = await as(patient.auth).get('/services?provider_type=doctor');
     expect(after.body.data.map((s: { name: string }) => s.name)).toEqual([
-      'كشف منزلي',
-      'متابعة منزلية',
+      'كشف',
+      'متابعة',
       'تقييم شامل لكبار السن',
     ]);
   });
@@ -161,7 +161,7 @@ describe('finding and booking a doctor', () => {
     const detail = await as(patient.auth).get(`/bookings/${id}`);
     expect(detail.body.data).toMatchObject({
       status: 'completed',
-      service: { name: 'كشف منزلي' },
+      service: { name: 'كشف' },
       can_review: true,
     });
     expect(detail.body.data.price.subtotal).toBe(40000);

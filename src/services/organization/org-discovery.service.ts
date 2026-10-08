@@ -7,7 +7,7 @@ import { type Gender, UserStatus, VerificationStatus } from '../../interfaces/en
 import type { IOrganization } from '../../interfaces/IOrganization';
 import type { IProviderProfile } from '../../interfaces/IProfiles';
 import type { IUser } from '../../interfaces/IUser';
-import type { IBooking } from '../../interfaces/IBooking';
+import { BookingType, type IBooking } from '../../interfaces/IBooking';
 import { cairoDate, cairoToUtc } from '../../utils/time/cairo';
 import { NotFoundError } from '../../utils/types-errors';
 import { CatalogService, type ServiceRow } from '../catalog/catalog.service';
@@ -15,6 +15,7 @@ import { DiscoveryService, type SearchFilters } from '../discovery/discovery.ser
 import type { Slot } from '../discovery/slot-engine';
 import { sameWorld } from '../auth/test-accounts';
 import { LocationService } from '../location/location.service';
+import { HOME_VISIT, isVisitType, offeredEntry, visitTypeMatch } from '../catalog/visit-types';
 
 export type StaffRow = {
   profile: IProviderProfile;
@@ -74,7 +75,13 @@ export class OrgDiscoveryService {
       verificationStatus: VerificationStatus.APPROVED,
       staffSuspended: false,
       isAcceptingBookings: true,
-      services: { $elemMatch: { serviceId: new Types.ObjectId(filter.serviceId), isActive: true } },
+      services: {
+        $elemMatch: {
+          serviceId: new Types.ObjectId(filter.serviceId),
+          isActive: true,
+          ...visitTypeMatch(HOME_VISIT),
+        },
+      },
       ...(filter.areaId ? { 'serviceAreas.areaId': new Types.ObjectId(filter.areaId) } : {}),
       ...(filter.specialty ? { specialty: filter.specialty } : {}),
     }).lean();
@@ -129,7 +136,7 @@ export class OrgDiscoveryService {
   ): Promise<Slot[]> {
     this.discovery.assertBookableDate(input.date);
     const org = await this.approvedOrg(orgId);
-    if (!org.services.some((s) => s.isActive && String(s.serviceId) === input.serviceId)) {
+    if (!offeredEntry(org.services, input.serviceId, HOME_VISIT)) {
       throw new NotFoundError('errors.service_not_offered');
     }
     const service = await this.catalog.getActiveService(input.serviceId);
@@ -178,6 +185,7 @@ export class OrgDiscoveryService {
         $elemMatch: {
           serviceId,
           isActive: true,
+          ...visitTypeMatch(HOME_VISIT),
           ...(Object.keys(priceRange).length ? { price: priceRange } : {}),
         },
       },
@@ -214,7 +222,7 @@ export class OrgDiscoveryService {
       cards.push({
         kind: 'organization',
         org: { _id: org._id, name: org.name, logoKey: org.logoKey },
-        price: org.services.find((s) => s.isActive && s.serviceId.equals(serviceId))!.price,
+        price: offeredEntry(org.services, String(serviceId), HOME_VISIT)!.price,
         travelFee: Math.min(orgArea.travelFee, area?.maxTravelFee ?? Infinity),
         teamSize: staff.length,
         ratingAvg,
@@ -250,7 +258,7 @@ export class OrgDiscoveryService {
       }),
       services: org.services.flatMap((s) => {
         const row = catalog.get(String(s.serviceId));
-        return s.isActive && row ? [{ service: row, price: s.price }] : [];
+        return s.isActive && row && isVisitType(s, HOME_VISIT) ? [{ service: row, price: s.price }] : [];
       }),
       teamSize: staff.length,
       ratingAvg: ratingCount
@@ -277,6 +285,9 @@ export class OrgDiscoveryService {
       defaultDurationMinutes: booking.service.durationMinutes / Math.max(1, booking.quantity),
       minPrice: null,
       maxPrice: null,
+      visitTypes: [BookingType.HOME_VISIT],
+      clinicMinPrice: null,
+      clinicMaxPrice: null,
     };
   }
 }

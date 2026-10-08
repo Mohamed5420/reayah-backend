@@ -27,6 +27,7 @@ import { bookingParams, ownerUserIds } from '../notification/booking-notificatio
 import { OrgDiscoveryService } from '../organization/org-discovery.service';
 import { sameWorld } from '../auth/test-accounts';
 import { recordHistory, runBookingTransaction, transitionBooking } from './booking-transaction';
+import { visitTypeMatch } from '../catalog/visit-types';
 
 /** Spec §6.6: the owner is warned this long before the assignment deadline. */
 export const ORG_DEADLINE_WARNING_MINUTES = 10;
@@ -216,7 +217,9 @@ export class BookingDeadlineService {
         ...(booking.organizationId ? { _id: { $ne: booking.organizationId } } : {}),
         ...sameWorld(booking.isTestAccount),
         serviceAreas: { $elemMatch: { areaId: booking.areaId, isActive: true } },
-        services: { $elemMatch: { serviceId: booking.serviceId, isActive: true } },
+        services: {
+          $elemMatch: { serviceId: booking.serviceId, isActive: true, ...visitTypeMatch(booking.type) },
+        },
       })
         .select('_id')
         .lean();

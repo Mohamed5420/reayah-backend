@@ -29,6 +29,8 @@ import { CatalogService } from '../catalog/catalog.service';
 import { NotificationService } from '../notification/notification.service';
 import { PatientProfileService } from '../patient/patient-profile.service';
 import { SettingsService } from '../settings/settings.service';
+import { offeredEntry } from '../catalog/visit-types';
+import { BookingType } from '../../interfaces/IBooking';
 
 const DAY_MS = 24 * 3600_000;
 
@@ -549,10 +551,11 @@ export class OrgPackageService {
   }
 
   private assertOffered(
-    org: { services: Array<{ serviceId: Types.ObjectId; isActive: boolean }> },
+    org: { services: Array<{ serviceId: Types.ObjectId; isActive: boolean; visitType?: BookingType }> },
     serviceId: string,
   ) {
-    if (!org.services.some((s) => s.isActive && String(s.serviceId) === serviceId)) {
+    // Packages are home visits until C5 adds a visit type to packages.
+    if (!offeredEntry(org.services, serviceId, BookingType.HOME_VISIT)) {
       throw new ValidationError({ service_id: ['validation.service_not_offered_by_org'] });
     }
   }

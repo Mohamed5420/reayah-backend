@@ -139,7 +139,7 @@ describe('GET /app-config', () => {
       cancellation_free_window_hours: 3,
       cancellation_policy: 'إلغاء مجاني حتى 3 ساعات قبل الموعد',
       direct_request_response_minutes: 3,
-      features: { video_consult: false, card_payment: false, packages: false },
+      features: { video_consult: false, card_payment: false, packages: false, clinic_visits: false },
     });
     expect(res.headers['cache-control']).toBe('public, max-age=60');
   });

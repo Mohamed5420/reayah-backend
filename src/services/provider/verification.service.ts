@@ -22,6 +22,7 @@ const MISSING_ITEM_FIELDS = {
   areasSelected: ['service_areas', 'validation.onboarding_areas'],
   servicesSet: ['services', 'validation.onboarding_services'],
   availabilitySet: ['availability', 'validation.onboarding_availability'],
+  clinicsSet: ['clinics', 'validation.onboarding_clinics'],
 } as const;
 
 /**

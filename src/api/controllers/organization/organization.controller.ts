@@ -225,7 +225,12 @@ export default class OrganizationController implements IBaseController {
       const body = req.body as z.infer<typeof OrganizationSchemas.servicesBody>;
       const org = await this.organizations.replaceServices(
         await this.organizations.getOwn(owner(req)),
-        body.services.map((s) => ({ serviceId: s.service_id, price: s.price, isActive: s.is_active })),
+        body.services.map((s) => ({
+          serviceId: s.service_id,
+          price: s.price,
+          isActive: s.is_active,
+          visitType: s.visit_type,
+        })),
       );
       return HttpResponse.ok(res, await this.services(org, req));
     });

@@ -19,6 +19,8 @@ export const ADMIN_RULES: Array<{ methods: string[]; path: RegExp; roles: AdminR
   // Verification.
   { methods: ['GET', 'POST'], path: /^\/admin\/verifications(\/|$)/, roles: [VERIFIER] },
   { methods: ['POST'], path: /^\/admin\/documents\/:id\/review$/, roles: [VERIFIER] },
+  // Clinics and branches (clinic visits): reviewed like providers.
+  { methods: ['GET', 'POST'], path: /^\/admin\/clinics(\/|$)/, roles: [VERIFIER] },
 
   // Providers, organizations, users.
   {

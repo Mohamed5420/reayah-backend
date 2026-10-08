@@ -29,6 +29,8 @@ export const ACTIVE_BOOKING_STATUSES = [
 export enum BookingType {
   HOME_VISIT = 'home_visit',
   VIDEO = 'video',
+  /** The patient goes to the doctor's clinic (clinic visits, C1+). No travel fee, no "on the way". */
+  CLINIC_VISIT = 'clinic_visit',
 }
 
 export enum PreferredGender {

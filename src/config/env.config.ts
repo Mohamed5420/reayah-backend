@@ -65,6 +65,8 @@ export const env = {
   },
 
   firebaseServiceAccountPath: optional('FIREBASE_SERVICE_ACCOUNT_PATH'),
+  /** Alternative to the path: the whole service-account JSON, base64-encoded, in the env itself. Wins if both are set. */
+  firebaseServiceAccountBase64: optional('FIREBASE_SERVICE_ACCOUNT_BASE64'),
 
   /** Referral share links are `<this><CODE>` (GET /me/referral). */
   referralLinkBase: optional('REFERRAL_LINK_BASE', 'https://reaya.app/r/'),

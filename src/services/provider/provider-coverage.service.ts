@@ -7,6 +7,9 @@ import { invalidateCacheNamespace } from '../../utils/cache/cache';
 import { NotFoundError, ValidationError, type ErrorFields } from '../../utils/types-errors';
 import { CatalogService, PROVIDER_PRICES_CACHE } from '../catalog/catalog.service';
 import { LocationService } from '../location/location.service';
+import { checkServiceEntries, type ServiceEntryInput } from '../catalog/service-entries';
+import { ProviderType } from '../../interfaces/enums';
+import { ClinicService } from '../clinic/clinic.service';
 
 type ProfileDoc = HydratedDocument<IProviderProfile>;
 
@@ -47,48 +50,32 @@ export class ProviderCoverageService {
     return profile;
   }
 
-  /** Services must be active, match the provider type, and be priced within the admin bounds. */
-  async replaceServices(
-    profile: ProfileDoc,
-    services: Array<{ serviceId: string; price: number; isActive: boolean }>,
-  ) {
+  /**
+   * Services must be active, match the provider type, and be priced within the admin bounds for their
+   * visit type. A doctor can price a service as a home visit and as a clinic visit (one entry each).
+   */
+  async replaceServices(profile: ProfileDoc, services: ServiceEntryInput[]) {
     if (!profile.type) throw new ValidationError({ type: ['validation.provider_type_required'] });
     const catalog = new Map(
       (await this.catalog.activeServices({ providerType: profile.type })).map((s) => [s.id, s]),
     );
-
-    const fields: ErrorFields = {};
-    const seen = new Set<string>();
-    for (const [i, { serviceId, price }] of services.entries()) {
-      if (seen.has(serviceId)) addError(fields, `services.${i}.service_id`, 'validation.duplicate');
-      seen.add(serviceId);
-      const service = catalog.get(serviceId);
-      if (!service) {
-        addError(fields, `services.${i}.service_id`, 'validation.service_unavailable');
-      } else if (
-        (service.minPrice !== null && price < service.minPrice) ||
-        (service.maxPrice !== null && price > service.maxPrice)
-      ) {
-        addError(fields, `services.${i}.price`, 'validation.price_out_of_range');
-      }
-    }
+    const { fields, rows } = checkServiceEntries(services, catalog, {
+      clinicAllowed: profile.type === ProviderType.DOCTOR,
+    });
     if (Object.keys(fields).length) throw new ValidationError(fields);
 
-    profile.set(
-      'services',
-      services.map((s) => ({
-        serviceId: new Types.ObjectId(s.serviceId),
-        price: s.price,
-        isActive: s.isActive,
-      })),
-    );
+    profile.set('services', rows);
     await profile.save();
     await invalidateCacheNamespace(PROVIDER_PRICES_CACHE);
     return profile;
   }
 
-  /** Weekly hours; slots on the same day must not overlap. */
+  /** Weekly home-visit hours; slots must not overlap each other or the doctor's clinic hours. */
   async replaceAvailability(profile: ProfileDoc, slots: IAvailabilitySlot[]) {
+    Container.get(ClinicService).assertNoOverlap({ availability: [], clinics: profile.clinics }, slots, {
+      clinicId: null,
+      field: 'slots',
+    });
     const fields: ErrorFields = {};
     for (const [i, slot] of slots.entries()) {
       const overlaps = slots.some(

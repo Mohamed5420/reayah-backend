@@ -1,5 +1,6 @@
 import { PricingUnit, ProviderType } from '../../../interfaces/enums';
 import { booleanQuery, nameAr, nameEn, objectId, paginationQuery, piastres, timestamps, z } from '../zod';
+import { BookingType } from '../../../interfaces/IBooking';
 
 const providerType = z.enum(ProviderType);
 const pricingUnit = z.enum(PricingUnit);
@@ -36,6 +37,14 @@ const createServiceBody = z
       .max(24 * 60),
     min_price: piastres.nullable().optional(),
     max_price: piastres.nullable().optional(),
+    /** How the service can be booked (default home only). Clinic visits: doctor services only. */
+    visit_types: z
+      .array(z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]))
+      .min(1)
+      .optional(),
+    /** Clinic-visit price bounds; null = the general ones. */
+    clinic_min_price: piastres.nullable().optional(),
+    clinic_max_price: piastres.nullable().optional(),
     is_active: z.boolean().optional(),
     sort_order: z.number().int().optional(),
   })
@@ -59,6 +68,8 @@ export const CatalogSchemas = {
       provider_type: providerType,
       pricing_unit: pricingUnit,
       default_duration_minutes: z.number(),
+      /** home_visit and / or clinic_visit. */
+      visit_types: z.array(z.string()),
       /** Lowest active provider price in piastres; null until providers offer the service. */
       starting_price: z.number().nullable(),
       currency: z.literal('EGP'),
@@ -102,6 +113,9 @@ export const CatalogSchemas = {
       default_duration_minutes: z.number(),
       min_price: z.number().nullable(),
       max_price: z.number().nullable(),
+      visit_types: z.array(z.string()),
+      clinic_min_price: z.number().nullable(),
+      clinic_max_price: z.number().nullable(),
       is_active: z.boolean(),
       sort_order: z.number(),
       ...timestamps,

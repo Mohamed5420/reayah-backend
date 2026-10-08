@@ -276,6 +276,28 @@ Put on hold by product decision: no video work at this stage. Until it resumes, 
 
 ---
 
+## Clinic visits (approved 8 Oct 2026)
+
+Doctor bookings become a **clinic visit** (patient goes to the clinic) or a **home visit** (as today). Nurses stay home-only; video stays deferred. Plan: https://claude.ai/artifact/Fz9GDDo6y4i6jn9hXE21QM. All 14 recommendations accepted: fixed appointment slots (slot length per clinic); instant confirmation by default (doctor can turn it off; no 3-minute window or fallback for clinic bookings); up to 3 clinics per doctor (setting), each verified with a clinic licence, one shared calendar; 4-digit visit code to start (without it: reason, audited); no late-cancellation / no-show fee at launch (settings, default 0%); reuse the free cancellation window; same commission with an optional clinic rate; organization deadline → auto-assign a free doctor at the same branch, else expire + refund + notify, never another address; one search card per clinic / branch; any or a specific doctor at a branch; organization prices per organization; clinic phone shown after booking; same service with a price per visit type. Everything behind `features.clinic_visits`.
+
+### C1 Clinics and doctor setup
+- [x] `clinic_visit` booking type; catalog `visitTypes` + per-type price limits; per-visit-type service prices; clinics (text address only) with licence and admin verification; clinic hours with overlap rules; settings and feature flag. *(No data migration needed: a service entry without `visitType` counts as a home visit, and every home-visit match goes through `visit-types.ts`. Seeded doctor services renamed to neutral names ("كشف", "متابعة") since one service now covers home and clinic. `features` settings can be updated partially, and older stored values pick up new flags with their defaults. Clinic quotes are refused until C3.)*
+
+### C2 Search and slots
+- [ ] Search by clinic area, one card per clinic, profile clinic tab, slots per clinic, one calendar across home and clinic.
+
+### C3 Clinic booking flow
+- [ ] Quote / book with a clinic, instant confirm, visit-code start, no-show and fee settings, cancellations and refunds, clinic notifications and reminders.
+
+### C4 Organizations with branches
+- [ ] Branches, doctors per branch with hours, cards per branch, any / specific doctor, branch-limited queue and the deadline rule, reports by branch.
+- [ ] **Branch reception** role (added at approval): invited by the owner per branch; sees only that branch's appointments for today (patient name, time, doctor, status); checks in with the visit code and marks no-shows; no medical data, booking notes, visit reports, finance or prices; every action audited; in the permission tests and the data inventory.
+
+### C5 Money, admin and hand-off
+- [ ] Packages and promos by visit type, optional clinic commission, admin filters and analytics by visit type, needs-attention, data inventory, mobile change notes.
+
+---
+
 ## Cross-cutting rules (apply in every milestone)
 
 - **No location data**, ever: no lat/lng fields, no distance logic, matching by area only (§1).

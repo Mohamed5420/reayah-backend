@@ -361,7 +361,12 @@ export default class ProviderController implements IBaseController {
       const body = req.body as z.infer<typeof ProviderSchemas.servicesBody>;
       const profile = await this.coverage.replaceServices(
         await this.profiles.getOwn(req.user!.id),
-        body.services.map((s) => ({ serviceId: s.service_id, price: s.price, isActive: s.is_active })),
+        body.services.map((s) => ({
+          serviceId: s.service_id,
+          price: s.price,
+          isActive: s.is_active,
+          visitType: s.visit_type,
+        })),
       );
       return HttpResponse.ok(res, await this.servicesOf(profile, req));
     } catch (err) {

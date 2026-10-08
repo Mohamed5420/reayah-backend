@@ -128,7 +128,14 @@
     "broadcast_daily_limit": "تم الوصول للحد اليومي لهذا النوع من الرسائل ({{max}})",
     "analytics_range": "تاريخ النهاية يجب أن يكون بعد تاريخ البداية",
     "analytics_range_too_long": "الفترة طويلة جدًا لهذا التجميع (الحد الأقصى {{days}} يومًا)",
-    "admin_permission": "صلاحياتك في لوحة التحكم لا تسمح بهذا الإجراء"
+    "admin_permission": "صلاحياتك في لوحة التحكم لا تسمح بهذا الإجراء",
+    "clinic_not_found": "العيادة غير موجودة",
+    "clinic_limit_reached": "لا يمكن إضافة أكثر من {{max}} عيادات",
+    "clinic_not_submittable": "لا يمكن إرسال العيادة للمراجعة في حالتها الحالية",
+    "clinic_licence_required": "ارفع ترخيص العيادة أولًا",
+    "clinic_not_pending": "العيادة ليست في انتظار المراجعة",
+    "clinic_independents_only": "العيادات الخاصة متاحة للأطباء المستقلين فقط؛ فروع المؤسسات يديرها المالك",
+    "clinic_doctors_only": "زيارات العيادة متاحة للأطباء فقط"
   },
   "validation": {
     "invalid_value": "قيمة غير صالحة",
@@ -193,7 +200,12 @@
     "area_not_served_by_org": "المؤسسة لا تغطي هذه المنطقة",
     "provider_or_organization": "اختر مقدم خدمة أو مؤسسة، وليس الاثنين",
     "plan_default_required": "يجب أن تبقى باقة افتراضية واحدة على الأقل",
-    "package_other_organization": "الباقة خاصة بمؤسسة أخرى"
+    "package_other_organization": "الباقة خاصة بمؤسسة أخرى",
+    "visit_type_not_offered": "هذه الخدمة غير متاحة بهذا النوع من الزيارات",
+    "clinic_doctors_only": "زيارات العيادة متاحة لخدمات الأطباء فقط",
+    "clinic_visit_not_available": "حجز زيارات العيادة غير متاح بعد",
+    "overlaps_other_hours": "تتداخل هذه المواعيد مع مواعيد الزيارات المنزلية أو مواعيد عيادة أخرى",
+    "onboarding_clinics": "أضف عيادة بترخيصها ومواعيدها لتقديم زيارات العيادة"
   },
   "address": {
     "floor": "الدور {{floor}}",
@@ -491,6 +503,18 @@
     "broadcast": {
       "title": "{{title}}",
       "body": "{{body}}"
+    },
+    "clinic_approved": {
+      "title": "تم اعتماد العيادة",
+      "body": "تم اعتماد {{clinic}}، ويمكن للمرضى الحجز فيها بمجرد تفعيل زيارات العيادة."
+    },
+    "clinic_changes_requested": {
+      "title": "مطلوب تعديلات على العيادة",
+      "body": "راجع بيانات {{clinic}}: {{message}}"
+    },
+    "clinic_rejected": {
+      "title": "لم يتم اعتماد العيادة",
+      "body": "لم يتم اعتماد {{clinic}}: {{message}}"
     }
   },
   "packages": {

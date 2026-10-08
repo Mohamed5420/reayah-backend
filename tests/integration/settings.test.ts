@@ -30,6 +30,16 @@ describe('SettingsService', () => {
     expect(await settings.get('fallback_window_minutes')).toBe(30);
   });
 
+  it('features can be sent partially; the other flags keep their values', async () => {
+    await settings.update({ features: { card_payment: true } }, admin);
+    expect(await settings.get('features')).toEqual({
+      video_consult: false,
+      card_payment: true,
+      packages: false,
+      clinic_visits: false,
+    });
+  });
+
   it('records every update in the audit log with before/after values', async () => {
     await settings.update({ commission_rate: 18 }, admin);
     const entry = await AuditLogModel.findOne({ action: 'settings.update' }).lean();
@@ -42,7 +52,7 @@ describe('SettingsService', () => {
   it('rejects unknown keys and invalid values, all-or-nothing', async () => {
     await expect(
       settings.update(
-        { fallback_window_minutes: 40, commission_rate: 150, nope: 1, features: { video_consult: true } },
+        { fallback_window_minutes: 40, commission_rate: 150, nope: 1, features: { video_consult: 'yes' } },
         admin,
       ),
     ).rejects.toMatchObject({

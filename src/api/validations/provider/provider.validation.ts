@@ -2,6 +2,7 @@ import { SPECIALTY_KEYS } from '../../../services/catalog/specialties';
 import { Gender, PricingUnit, ProviderType, VerificationStatus } from '../../../interfaces/enums';
 import { DocumentReviewStatus, ProviderDocumentType } from '../../../interfaces/IProvider';
 import { objectId, paginationQuery, piastres, z, specialtyView } from '../zod';
+import { BookingType } from '../../../interfaces/IBooking';
 
 const time = z
   .string()
@@ -17,6 +18,8 @@ const onboarding = z.object({
   areas_selected: z.boolean(),
   services_set: z.boolean(),
   availability_set: z.boolean(),
+  /** Only matters for doctors who price clinic visits: a clinic with a licence and hours. */
+  clinics_set: z.boolean(),
   can_submit: z.boolean(),
 });
 
@@ -72,8 +75,11 @@ const providerService = z
     service_id: objectId,
     name: z.string(),
     pricing_unit: z.enum(PricingUnit),
+    /** home_visit or clinic_visit (one entry per visit type). */
+    visit_type: z.string(),
     price: z.number(),
     is_active: z.boolean(),
+    /** Admin bounds for this visit type. */
     min_price: z.number().nullable(),
     max_price: z.number().nullable(),
     /** false once the admin has deactivated the service. */
@@ -144,7 +150,17 @@ export const ProviderSchemas = {
   providerService,
   servicesBody: z.object({
     services: z
-      .array(z.object({ service_id: objectId, price: piastres.min(1), is_active: z.boolean().default(true) }))
+      .array(
+        z.object({
+          service_id: objectId,
+          price: piastres.min(1),
+          is_active: z.boolean().default(true),
+          /** Doctors may price a service as a clinic visit too (one entry per visit type). */
+          visit_type: z
+            .enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT])
+            .default(BookingType.HOME_VISIT),
+        }),
+      )
       .max(50),
   }),
   availability: z.object({ slots: z.array(slot) }).openapi('Availability'),
@@ -210,3 +226,6 @@ export const ProviderSchemas = {
     expires_at: date.nullable().optional(),
   }),
 };
+
+/** Weekly hours entry (Cairo "HH:mm"), shared with clinic hours. */
+export { slot as weeklySlot };

@@ -29,6 +29,7 @@ import { LedgerService } from '../ledger/ledger.service';
 import { ChatService } from '../chat/chat.service';
 import { patientFeeFor } from '../booking/patient-fees';
 import { auditNotesRead } from '../patient/medical-audit';
+import { offeredEntry } from '../catalog/visit-types';
 
 /** Admin panel bookings (spec §7.15 "Bookings & disputes"). Every write is audited. */
 @Service()
@@ -158,7 +159,7 @@ export class AdminBookingService {
       ? await UserModel.findOne({ _id: target.userId, status: UserStatus.ACTIVE }).lean()
       : null;
     if (!target || !targetUser) throw new ValidationError({ provider_profile_id: ['validation.not_found'] });
-    if (!target.services.some((s) => s.isActive && s.serviceId.equals(booking.serviceId))) {
+    if (!offeredEntry(target.services, String(booking.serviceId), booking.type)) {
       throw new ValidationError({ provider_profile_id: ['validation.service_unavailable'] });
     }
     if (booking.providerProfileId?.equals(target._id)) {

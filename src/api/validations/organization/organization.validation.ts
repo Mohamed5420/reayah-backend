@@ -133,6 +133,9 @@ export const OrganizationSchemas = {
           service_id: objectId,
           price: piastres.min(1),
           is_active: z.boolean().default(true),
+          visit_type: z
+            .enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT])
+            .default(BookingType.HOME_VISIT),
         }),
       )
       .max(100),

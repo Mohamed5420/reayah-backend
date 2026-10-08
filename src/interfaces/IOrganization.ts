@@ -1,6 +1,7 @@
 import type { Types } from 'mongoose';
 import type { ProviderType, VerificationStatus } from './enums';
 import type { DocumentReviewStatus } from './IProvider';
+import type { BookingType } from './IBooking';
 
 /** Spec §4.4 `organizations.type`. */
 export enum OrganizationType {
@@ -49,7 +50,7 @@ export interface IOrganization {
   /** Areas served with the organization's travel fee there (spec §4.4 `organization_service_areas`). */
   serviceAreas: Array<{ areaId: Types.ObjectId; travelFee: number; isActive: boolean }>;
   /** Services and the organization's prices (spec §4.5 `provider_services` with `organization_id`). */
-  services: Array<{ serviceId: Types.ObjectId; price: number; isActive: boolean }>;
+  services: Array<{ serviceId: Types.ObjectId; price: number; isActive: boolean; visitType?: BookingType }>;
   /** Admin override of `commission_rate` for this organization (percent); null = the platform rate. */
   commissionRate: number | null;
   /** Copied from the owner's account (test numbers); test organizations only meet test patients in production. */

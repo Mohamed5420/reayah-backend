@@ -44,6 +44,7 @@ import { bookingParams } from '../notification/booking-notifications';
 import { CommissionService } from '../payouts/commission.service';
 import { SettingsService } from '../settings/settings.service';
 import { OrgDiscoveryService } from './org-discovery.service';
+import { offeredEntry } from '../catalog/visit-types';
 
 /** Statuses in which the organization's assigned staff member is doing (or did) the visit. */
 const ASSIGNED_STATUSES = [
@@ -226,7 +227,7 @@ export class OrgBookingService {
           ? 'not_accepting'
           : !m.serviceAreas.some((a) => a.areaId.equals(booking.areaId))
             ? 'area'
-            : !m.services.some((s) => s.isActive && s.serviceId.equals(booking.serviceId))
+            : !offeredEntry(m.services, String(booking.serviceId), booking.type)
               ? 'service'
               : booking.preferredGender !== PreferredGender.ANY && String(gender) !== booking.preferredGender
                 ? 'gender'

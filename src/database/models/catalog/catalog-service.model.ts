@@ -3,6 +3,7 @@ import type { ICatalogService } from '../../../interfaces/ICatalog';
 import { PricingUnit, ProviderType } from '../../../interfaces/enums';
 import { baseSchemaOptions, piastresValidator, uniqueAmongActive } from '../../schema-options';
 import { softDeletePlugin, type SoftDeleteMethods } from '../../plugins/soft-delete.plugin';
+import { BookingType } from '../../../interfaces/IBooking';
 
 type CatalogServiceModelType = Model<ICatalogService, object, SoftDeleteMethods>;
 
@@ -18,6 +19,13 @@ const catalogServiceSchema = new Schema<ICatalogService, CatalogServiceModelType
     defaultDurationMinutes: { type: Number, required: true, min: 1 },
     minPrice: { type: Number, default: null, validate: piastresValidator },
     maxPrice: { type: Number, default: null, validate: piastresValidator },
+    visitTypes: {
+      type: [String],
+      enum: [BookingType.HOME_VISIT, BookingType.CLINIC_VISIT],
+      default: [BookingType.HOME_VISIT],
+    },
+    clinicMinPrice: { type: Number, default: null, validate: piastresValidator },
+    clinicMaxPrice: { type: Number, default: null, validate: piastresValidator },
     isActive: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },
   },

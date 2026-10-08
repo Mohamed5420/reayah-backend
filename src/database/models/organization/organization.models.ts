@@ -14,6 +14,7 @@ import {
 } from '../../../interfaces/IOrganization';
 import { baseSchemaOptions, piastresValidator, uniqueAmongActive } from '../../schema-options';
 import { softDeletePlugin, type SoftDeleteMethods } from '../../plugins/soft-delete.plugin';
+import { BookingType } from '../../../interfaces/IBooking';
 
 type OrganizationModelType = Model<IOrganization, object, SoftDeleteMethods>;
 
@@ -58,6 +59,11 @@ const organizationSchema = new Schema<IOrganization, OrganizationModelType, Soft
             serviceId: { type: Schema.Types.ObjectId, ref: 'CatalogService', required: true },
             price: { type: Number, required: true, validate: piastresValidator },
             isActive: { type: Boolean, default: true },
+            visitType: {
+              type: String,
+              enum: [BookingType.HOME_VISIT, BookingType.CLINIC_VISIT],
+              default: BookingType.HOME_VISIT,
+            },
           },
           { _id: false },
         ),

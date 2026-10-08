@@ -1324,7 +1324,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"category_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"provider_type\": \"nurse\",\n  \"pricing_unit\": \"per_visit\",\n  \"default_duration_minutes\": 5,\n  \"min_price\": 25000,\n  \"max_price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "raw": "{\n  \"category_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"provider_type\": \"nurse\",\n  \"pricing_unit\": \"per_visit\",\n  \"default_duration_minutes\": 5,\n  \"min_price\": 25000,\n  \"max_price\": 25000,\n  \"visit_types\": [\n    \"home_visit\"\n  ],\n  \"clinic_min_price\": 25000,\n  \"clinic_max_price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1364,7 +1364,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"category_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"provider_type\": \"nurse\",\n  \"pricing_unit\": \"per_visit\",\n  \"default_duration_minutes\": 5,\n  \"min_price\": 25000,\n  \"max_price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "raw": "{\n  \"category_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"provider_type\": \"nurse\",\n  \"pricing_unit\": \"per_visit\",\n  \"default_duration_minutes\": 5,\n  \"min_price\": 25000,\n  \"max_price\": 25000,\n  \"visit_types\": [\n    \"home_visit\"\n  ],\n  \"clinic_min_price\": 25000,\n  \"clinic_max_price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2714,7 +2714,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"services\": [\n    {\n      \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n      \"price\": 25000,\n      \"is_active\": true\n    }\n  ]\n}",
+              "raw": "{\n  \"services\": [\n    {\n      \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n      \"price\": 25000,\n      \"is_active\": true,\n      \"visit_type\": \"home_visit\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3135,6 +3135,192 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"matching\",\n  \"note\": \"string\",\n  \"expires_at\": \"2027-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Clinics and branches by review status (oldest submitted first)",
+          "request": {
+            "method": "GET",
+            "description": "Clinics and branches by review status (oldest submitted first)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/clinics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "clinics"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "One clinic with its licence (10-minute link)",
+          "request": {
+            "method": "GET",
+            "description": "One clinic with its licence (10-minute link)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/clinics/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "clinics",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Approve a pending clinic (licence checked). Audited; the doctor is told.",
+          "request": {
+            "method": "POST",
+            "description": "Approve a pending clinic (licence checked). Audited; the doctor is told.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/clinics/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "clinics",
+                ":id",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ask for changes to a pending clinic, with a message. Audited; the doctor is told.",
+          "request": {
+            "method": "POST",
+            "description": "Ask for changes to a pending clinic, with a message. Audited; the doctor is told.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/clinics/:id/request-changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "clinics",
+                ":id",
+                "request-changes"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Reject a pending clinic, with a message. Audited; the doctor is told.",
+          "request": {
+            "method": "POST",
+            "description": "Reject a pending clinic, with a message. Audited; the doctor is told.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/clinics/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "clinics",
+                ":id",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"string\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7594,7 +7780,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"services\": [\n    {\n      \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n      \"price\": 25000,\n      \"is_active\": true\n    }\n  ]\n}",
+              "raw": "{\n  \"services\": [\n    {\n      \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n      \"price\": 25000,\n      \"is_active\": true,\n      \"visit_type\": \"home_visit\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -9281,6 +9467,255 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"consents\": [\n    {\n      \"kind\": \"terms\",\n      \"version\": 1,\n      \"accepted\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Provider — Clinics",
+      "item": [
+        {
+          "name": "My clinics (independent doctors), with my hours and settings at each",
+          "request": {
+            "method": "GET",
+            "description": "My clinics (independent doctors), with my hours and settings at each",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/clinics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "clinics"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Add a clinic: text address only (no coordinates), clinic phone. Up to `max_clinics_per_doctor`. Starts as a draft: add the licence and hours, then submit for review.",
+          "request": {
+            "method": "POST",
+            "description": "Add a clinic: text address only (no coordinates), clinic phone. Up to `max_clinics_per_doctor`. Starts as a draft: add the licence and hours, then submit for review.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/clinics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "clinics"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"عيادة د. منى للأطفال\",\n  \"governorate_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"area_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"street\": \"شارع مكرم عبيد\",\n  \"building\": \"12\",\n  \"floor\": \"3\",\n  \"landmark\": \"أمام سيتي ستارز\",\n  \"phone\": \"+20224001234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Edit a clinic or pause it (`is_active`). Changing the name or address of an approved clinic sends it back for review.",
+          "request": {
+            "method": "PATCH",
+            "description": "Edit a clinic or pause it (`is_active`). Changing the name or address of an approved clinic sends it back for review.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/clinics/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "clinics",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"عيادة د. منى للأطفال\",\n  \"governorate_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"area_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"street\": \"شارع مكرم عبيد\",\n  \"building\": \"12\",\n  \"floor\": \"3\",\n  \"landmark\": \"أمام سيتي ستارز\",\n  \"phone\": \"+20224001234\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove a clinic (and my hours there)",
+          "request": {
+            "method": "DELETE",
+            "description": "Remove a clinic (and my hours there)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/clinics/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "clinics",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Attach the clinic licence (POST /uploads with purpose `clinic_licence` first). Replaces the previous one; an approved clinic goes back for review.",
+          "request": {
+            "method": "PUT",
+            "description": "Attach the clinic licence (POST /uploads with purpose `clinic_licence` first). Replaces the previous one; an approved clinic goes back for review.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/clinics/:id/licence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "clinics",
+                ":id",
+                "licence"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_key\": \"string\",\n  \"expires_at\": \"2028-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Send the clinic for review (needs a licence). Bookable only once approved.",
+          "request": {
+            "method": "POST",
+            "description": "Send the clinic for review (needs a licence). Bookable only once approved.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/clinics/:id/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "clinics",
+                ":id",
+                "submit"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "My weekly hours at this clinic, appointment length and instant confirmation. Hours may not overlap my home-visit hours or another clinic’s.",
+          "request": {
+            "method": "PUT",
+            "description": "My weekly hours at this clinic, appointment length and instant confirmation. Hours may not overlap my home-visit hours or another clinic’s.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/clinics/:id/schedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "clinics",
+                ":id",
+                "schedule"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"slot_minutes\": null,\n  \"instant_confirm\": true,\n  \"hours\": [\n    {\n      \"day_of_week\": 0,\n      \"start_time\": \"09:00\",\n      \"end_time\": \"09:00\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
