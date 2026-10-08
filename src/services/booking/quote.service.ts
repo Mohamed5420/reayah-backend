@@ -23,9 +23,24 @@ import { PatientProfileService } from '../patient/patient-profile.service';
 import { SettingsService } from '../settings/settings.service';
 import { CommissionService } from '../payouts/commission.service';
 import { computePrice, discountsOf } from './pricing';
+import { OrgDiscoveryService } from '../organization/org-discovery.service';
+import type { ServiceRow } from '../catalog/catalog.service';
+import type { Gender } from '../../interfaces/enums';
 import { CreditService } from '../marketing/credit.service';
 import { PackageService } from '../marketing/package.service';
 import { PromoService } from '../marketing/promo.service';
+
+type BookableArea = NonNullable<Awaited<ReturnType<LocationService['findBookableArea']>>>;
+
+/** The admin tightened the bounds after the price was set (BUILD_PLAN M1.4 note). */
+const assertWithinBounds = (service: ServiceRow, price: number) => {
+  if (
+    (service.minPrice !== null && price < service.minPrice) ||
+    (service.maxPrice !== null && price > service.maxPrice)
+  ) {
+    throw new ConflictError('errors.provider_price_invalid');
+  }
+};
 
 /** A quote is guaranteed for 10 minutes (spec §7.8). */
 export const QUOTE_TTL_SECONDS = 600;
@@ -48,8 +63,9 @@ export type QuoteInput = {
 };
 
 /** Everything needed to create the booking, as carried inside the signed quote token. */
-export type BookingDraft = Omit<QuoteInput, 'scheduledStart' | 'providerId'> & {
-  providerId: string;
+export type BookingDraft = Omit<QuoteInput, 'scheduledStart'> & {
+  /** null when booking an organization (its owner assigns a staff member). */
+  providerId: string | null;
   scheduledStart: string;
   scheduledEnd: string;
   price: IBookingPrice;
@@ -72,10 +88,12 @@ export class QuoteService {
   private readonly settings = Container.get(SettingsService);
 
   async prepare(userId: string, input: QuoteInput, excludeBookingId?: string) {
-    if (input.organizationId) {
-      throw new ValidationError({ organization_id: ['validation.organizations_not_available'] });
+    if (input.providerId && input.organizationId) {
+      throw new ValidationError({ organization_id: ['validation.provider_or_organization'] });
     }
-    if (!input.providerId) throw new ValidationError({ provider_id: ['validation.required'] });
+    if (!input.providerId && !input.organizationId) {
+      throw new ValidationError({ provider_id: ['validation.required'] });
+    }
     const settings = await this.settings.getAll();
     if (input.type === BookingType.VIDEO && !settings.features.video_consult) {
       throw new ValidationError({ type: ['validation.video_not_available'] });
@@ -88,56 +106,21 @@ export class QuoteService {
     const service = await this.catalog.getActiveService(input.serviceId);
     assertQuantity(service.pricingUnit, input.quantity);
 
-    // Provider: approved, accepting, active account, covers the area, offers the service at a valid price.
-    // Independents only: staff are booked through their organization (M3.3).
-    const provider = await ProviderProfileModel.findOne({
-      _id: input.providerId,
-      verificationStatus: VerificationStatus.APPROVED,
-      organizationId: null,
-    }).lean();
-    const providerUser = provider
-      ? await UserModel.findOne({ _id: provider.userId, status: UserStatus.ACTIVE }).lean()
-      : null;
-    if (!provider || !providerUser) throw new NotFoundError('errors.provider_not_found');
-    if (!provider.isAcceptingBookings) throw new ConflictError('errors.provider_not_accepting');
-    const coverage = provider.serviceAreas.find((a) => String(a.areaId) === area.id);
-    if (!coverage) throw new AreaNotCoveredError();
-    const offered = provider.services.find((s) => s.isActive && String(s.serviceId) === service.id);
-    if (!offered) throw new NotFoundError('errors.service_not_offered');
-    if (
-      (service.minPrice !== null && offered.price < service.minPrice) ||
-      (service.maxPrice !== null && offered.price > service.maxPrice)
-    ) {
-      // The admin tightened the bounds after the provider set this price (BUILD_PLAN M1.4 note).
-      throw new ConflictError('errors.provider_price_invalid');
-    }
-    if (
-      input.preferredGender !== PreferredGender.ANY &&
-      String(providerUser.gender) !== input.preferredGender
-    ) {
-      throw new ValidationError({ preferred_gender: ['validation.provider_gender_mismatch'] });
-    }
+    const terms = input.organizationId
+      ? await this.organizationTerms(input, input.organizationId, area, service, excludeBookingId)
+      : await this.providerTerms(input, input.providerId!, area, service, excludeBookingId);
+    const { slot, unitPrice, areaTravelFee } = terms;
 
-    // The requested start must be a free slot right now.
-    const slots = await this.discovery.providerSlots(
-      input.providerId,
-      service.id,
-      cairoDate(input.scheduledStart),
-      input.quantity,
-      excludeBookingId,
-    );
-    const slot = slots.find((s) => s.available && s.start.getTime() === input.scheduledStart.getTime());
-    if (!slot) throw new SlotUnavailableError();
-
-    // Travel fee: the provider's fee for the area, never above the area's current cap (spec §4.2, §6.12).
+    // Travel fee: the provider's / organization's fee for the area, never above the area's cap (spec §4.2, §6.12).
     const travelFee =
-      input.type === BookingType.VIDEO ? 0 : Math.min(coverage.travelFee, area.maxTravelFee ?? Infinity);
+      input.type === BookingType.VIDEO ? 0 : Math.min(areaTravelFee, area.maxTravelFee ?? Infinity);
     const base = {
-      unitPrice: offered.price,
+      unitPrice,
       quantity: input.quantity,
       pricingUnit: service.pricingUnit,
       travelFee,
-      commissionRate: settings.commission_rate,
+      // An organization may have its own rate (admin, M3.1); otherwise the platform's.
+      commissionRate: terms.commissionRate ?? settings.commission_rate,
     };
 
     // Discounts (M2.5), all borne by the platform. A reschedule keeps the booking's price, so only the
@@ -154,7 +137,7 @@ export class QuoteService {
           serviceId: service.id,
           quantity: input.quantity,
           scheduledStart: input.scheduledStart,
-          providerPrice: offered.price,
+          providerPrice: unitPrice,
         },
         rescheduling,
       );
@@ -177,7 +160,8 @@ export class QuoteService {
       ...input,
       promoCode: promo ? promo.promo.code : null,
       packageSubscriptionId: packageSubscription ? String(packageSubscription._id) : null,
-      providerId: input.providerId,
+      providerId: input.organizationId ? null : input.providerId,
+      organizationId: input.organizationId ?? null,
       scheduledStart: slot.start.toISOString(),
       scheduledEnd: slot.end.toISOString(),
       price,
@@ -189,10 +173,104 @@ export class QuoteService {
       address,
       area,
       patientProfile,
-      providerProfile: provider,
-      providerUser,
+      providerProfile: terms.provider,
+      organization: terms.organization,
       settings,
       packageSubscription,
+    };
+  }
+
+  /** An independent provider: approved, accepting, active account, covers the area, offers the service at a valid price, free then. */
+  private async providerTerms(
+    input: QuoteInput,
+    providerId: string,
+    area: BookableArea,
+    service: ServiceRow,
+    excludeBookingId?: string,
+  ) {
+    // Independents only: staff are booked through their organization.
+    const provider = await ProviderProfileModel.findOne({
+      _id: providerId,
+      verificationStatus: VerificationStatus.APPROVED,
+      organizationId: null,
+    }).lean();
+    const providerUser = provider
+      ? await UserModel.findOne({ _id: provider.userId, status: UserStatus.ACTIVE }).lean()
+      : null;
+    if (!provider || !providerUser) throw new NotFoundError('errors.provider_not_found');
+    if (!provider.isAcceptingBookings) throw new ConflictError('errors.provider_not_accepting');
+    const coverage = provider.serviceAreas.find((a) => String(a.areaId) === area.id);
+    if (!coverage) throw new AreaNotCoveredError();
+    const offered = provider.services.find((s) => s.isActive && String(s.serviceId) === service.id);
+    if (!offered) throw new NotFoundError('errors.service_not_offered');
+    assertWithinBounds(service, offered.price);
+    if (
+      input.preferredGender !== PreferredGender.ANY &&
+      String(providerUser.gender) !== input.preferredGender
+    ) {
+      throw new ValidationError({ preferred_gender: ['validation.provider_gender_mismatch'] });
+    }
+    // The requested start must be a free slot right now.
+    const slots = await this.discovery.providerSlots(
+      providerId,
+      service.id,
+      cairoDate(input.scheduledStart),
+      input.quantity,
+      excludeBookingId,
+    );
+    const slot = slots.find((s) => s.available && s.start.getTime() === input.scheduledStart.getTime());
+    if (!slot) throw new SlotUnavailableError();
+    return {
+      slot,
+      unitPrice: offered.price,
+      areaTravelFee: coverage.travelFee,
+      commissionRate: null as number | null,
+      provider,
+      organization: null,
+    };
+  }
+
+  /**
+   * An organization (M3.3): approved, serving the area, offering the service at a valid price, and with
+   * at least one eligible staff member free then (right area, service, preferred gender). Who goes is
+   * the owner's choice.
+   */
+  private async organizationTerms(
+    input: QuoteInput,
+    organizationId: string,
+    area: BookableArea,
+    service: ServiceRow,
+    excludeBookingId?: string,
+  ) {
+    const orgs = Container.get(OrgDiscoveryService);
+    const org = await orgs.approvedOrg(organizationId);
+    const coverage = org.serviceAreas.find((a) => a.isActive && String(a.areaId) === area.id);
+    if (!coverage) throw new AreaNotCoveredError();
+    const offered = org.services.find((s) => s.isActive && String(s.serviceId) === service.id);
+    if (!offered) throw new NotFoundError('errors.service_not_offered');
+    assertWithinBounds(service, offered.price);
+    const staff = await orgs.eligibleStaff(org._id, {
+      serviceId: service.id,
+      areaId: area.id,
+      gender:
+        input.preferredGender === PreferredGender.ANY ? null : (input.preferredGender as unknown as Gender),
+    });
+    const slots = await orgs.unionSlots(
+      staff,
+      service,
+      cairoDate(input.scheduledStart),
+      input.quantity,
+      excludeBookingId,
+    );
+    const slot = slots.find((s) => s.available && s.start.getTime() === input.scheduledStart.getTime());
+    if (!slot) throw new SlotUnavailableError();
+    return {
+      slot,
+      unitPrice: offered.price,
+      areaTravelFee: coverage.travelFee,
+      commissionRate: org.commissionRate,
+      provider: null,
+      organization: org,
     };
   }
 
@@ -241,7 +319,10 @@ export class QuoteService {
       ...prepared,
       lines,
       // Over the commission limit, a provider takes card / wallet only (product decision after M2.4).
-      cashAvailable: !(await Container.get(CommissionService).overLimit(draft.providerId)),
+      cashAvailable: !(await Container.get(CommissionService).bookingOwnerOverLimit({
+        organizationId: draft.organizationId,
+        providerProfileId: draft.providerId,
+      })),
       cancellationPolicy: t(
         'app_config.cancellation_policy',
         { hours: settings.cancellation_free_window_hours },

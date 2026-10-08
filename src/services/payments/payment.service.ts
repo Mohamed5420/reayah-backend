@@ -6,6 +6,7 @@ import { PaymentModel, RefundModel } from '../../database/models/payment/payment
 import { UserModel } from '../../database/models/user/user.model';
 import {
   ACTIVE_BOOKING_STATUSES,
+  AssignmentMode,
   BookingActor,
   BookingStatus,
   PaymentMethod,
@@ -29,6 +30,7 @@ import {
 import type { AuditContext } from '../audit/audit.service';
 import { AuditService } from '../audit/audit.service';
 import { runBookingTransaction, transitionBooking } from '../booking/booking-transaction';
+import { requestEventFor } from '../booking/booking.service';
 import { NotificationService } from '../notification/notification.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { CommissionService } from '../payouts/commission.service';
@@ -551,7 +553,11 @@ export class PaymentService {
 
   /** Paid: awaiting_payment → pending; the provider gets the request now and their response clock starts. */
   private async releaseToProvider(booking: IBooking) {
-    const responseMinutes = await this.settings.get('direct_request_response_minutes');
+    const responseMinutes = await this.settings.get(
+      booking.assignmentMode === AssignmentMode.ORGANIZATION
+        ? 'org_assign_deadline_minutes'
+        : 'direct_request_response_minutes',
+    );
     await runBookingTransaction(async (tx) => {
       const updated = await transitionBooking(tx, booking, BookingStatus.PENDING, BookingActor.SYSTEM, {
         set: {
@@ -561,13 +567,7 @@ export class PaymentService {
         note: 'paid',
         reason: 'paid',
       });
-      if (updated.providerProfileId) {
-        tx.publish({
-          type: 'new_request',
-          booking: updated.toObject(),
-          providerProfileIds: [String(updated.providerProfileId)],
-        });
-      }
+      tx.publish(requestEventFor(updated.toObject()));
     });
   }
 

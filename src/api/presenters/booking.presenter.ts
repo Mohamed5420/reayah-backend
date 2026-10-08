@@ -62,7 +62,12 @@ export const presentCreated = (
     : null,
 });
 
-export const presentListItem = (b: IBooking, provider: ProviderCardInfo | undefined, lang: Language) => ({
+export const presentListItem = (
+  b: IBooking,
+  provider: ProviderCardInfo | undefined,
+  lang: Language,
+  organization: { id: string; name: string } | null = null,
+) => ({
   id: String(b._id),
   reference_code: b.referenceCode,
   status: b.status,
@@ -71,6 +76,7 @@ export const presentListItem = (b: IBooking, provider: ProviderCardInfo | undefi
   scheduled_start: b.scheduledStart.toISOString(),
   scheduled_end: b.scheduledEnd.toISOString(),
   provider_name: provider?.name ?? null,
+  organization_name: organization?.name ?? null,
   total: b.price.total,
   currency: 'EGP' as const,
 });
@@ -79,6 +85,8 @@ export const presentDetail = (input: {
   booking: IBooking;
   timeline: IBookingStatusHistory[];
   provider: ProviderCardInfo | null;
+  /** Booked with an organization (its staff member is `provider` once assigned). */
+  organization?: { id: string; name: string } | null;
   avatarUrl: string | null;
   flags: { canCancel: boolean; canReschedule: boolean; canReview: boolean; canChat: boolean };
   visitReportId: string | null;
@@ -106,6 +114,7 @@ export const presentDetail = (input: {
           phone: b.status === BookingStatus.PENDING ? null : input.provider.phone,
         }
       : null,
+    organization: input.organization ?? null,
     price: {
       subtotal: b.price.subtotal,
       travel_fee: b.price.travelFee,

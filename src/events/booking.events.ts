@@ -20,7 +20,19 @@ export type BookingEvent =
   /** A provider has a new request: a direct booking, or a broadcast offer. */
   | { type: 'new_request'; booking: IBooking; providerProfileIds: string[]; reason?: 'rescheduled' }
   /** Broadcast offers that are no longer available because someone else accepted. */
-  | { type: 'offer_taken'; booking: IBooking; providerProfileIds: string[] };
+  | { type: 'offer_taken'; booking: IBooking; providerProfileIds: string[] }
+  /**
+   * Organizations with something to act on: a new booking in their queue, one rescheduled or taken back
+   * from a removed staff member ('returned'), or another's request offered to them after its deadline ('offer').
+   */
+  | {
+      type: 'org_request';
+      booking: IBooking;
+      organizationIds: string[];
+      reason?: 'rescheduled' | 'returned' | 'offer' | 'time_changed';
+    }
+  /** A staff member was given a booking by their owner (assign / reassign). */
+  | { type: 'assigned'; booking: IBooking; providerProfileId: string; reason?: 'reassigned' | 'rescheduled' };
 
 const emitter = new EventEmitter();
 

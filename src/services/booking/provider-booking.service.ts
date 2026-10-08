@@ -289,6 +289,14 @@ export class ProviderBookingService {
       if (!booking || booking.status !== BookingStatus.PENDING || booking.providerProfileId) {
         throw new OfferTakenError();
       }
+      // A staff member's offer comes from their owner's "send to all suitable" (still a member, not suspended).
+      if (offer.organizationId) {
+        const member =
+          String(booking.organizationId) === String(offer.organizationId) &&
+          String(profile.organizationId) === String(offer.organizationId) &&
+          !profile.staffSuspended;
+        if (!member) throw new OfferTakenError();
+      }
       await this.assertMayTakeCash(profile, booking);
       await lockProviderSchedule(profile._id, tx.session);
       await assertProviderFree(
@@ -303,8 +311,14 @@ export class ProviderBookingService {
       try {
         updated = await transitionBooking(tx, booking, BookingStatus.ACCEPTED, BookingActor.PROVIDER, {
           changedBy: userId,
-          where: { providerProfileId: null, assignmentMode: AssignmentMode.BROADCAST },
-          set: { providerProfileId: profile._id, fallbackEndsAt: null },
+          where: { providerProfileId: null, assignmentMode: booking.assignmentMode },
+          set: {
+            providerProfileId: profile._id,
+            // An independent taking a fallback offer: the booking is theirs alone.
+            organizationId: offer.organizationId ?? null,
+            assignmentDeadline: null,
+            fallbackEndsAt: null,
+          },
         });
       } catch (err) {
         if (err instanceof InvalidStatusTransitionError) throw new OfferTakenError();
@@ -352,7 +366,13 @@ export class ProviderBookingService {
   /** Over the commission limit, a provider can't take on a new cash booking until they pay down. */
   private async assertMayTakeCash(profile: ProviderDoc, booking: Pick<IBooking, 'paymentMethod' | 'price'>) {
     if (booking.paymentMethod !== PaymentMethod.CASH) return;
-    if (await Container.get(CommissionService).overLimit(profile._id)) {
+    // Staff: the organization owes the commission, so its limit applies.
+    if (
+      await Container.get(CommissionService).bookingOwnerOverLimit({
+        organizationId: profile.organizationId,
+        providerProfileId: profile._id,
+      })
+    ) {
       throw new ConflictError('errors.commission_limit_reached');
     }
   }

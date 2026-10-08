@@ -2,7 +2,8 @@ import { Container } from 'typedi';
 import { withTransaction } from '../../database/transaction';
 import { bookingEvents, type BookingEvent } from '../../events/booking.events';
 import { BookingStatus, GATEWAY_PAYMENT_METHODS, PaymentStatus } from '../../interfaces/IBooking';
-import { LedgerEntryType, LedgerOwnerType } from '../../interfaces/ILedger';
+import { LedgerEntryType } from '../../interfaces/ILedger';
+import { earningsOwnerOf } from '../ledger/earnings-owner';
 import { logger } from '../../utils/logger/winston';
 import { LedgerService } from '../ledger/ledger.service';
 import { PaymentService } from './payment.service';
@@ -41,13 +42,12 @@ export const refundIfNeeded = async (event: BookingEvent) => {
         null,
       );
     }
-    if (fee > 0 && booking.providerProfileId) {
-      const providerProfileId = booking.providerProfileId;
+    const owner = earningsOwnerOf(booking);
+    if (fee > 0 && owner) {
       await withTransaction((session) =>
         Container.get(LedgerService).record(
           {
-            ownerType: LedgerOwnerType.PROVIDER,
-            ownerId: providerProfileId,
+            ...owner,
             bookingId: booking._id,
             type: LedgerEntryType.CREDIT,
             amount: fee,

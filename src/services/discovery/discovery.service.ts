@@ -14,6 +14,7 @@ import { AreaNotCoveredError, NotFoundError, ValidationError } from '../../utils
 import { CatalogService, type ServiceRow } from '../catalog/catalog.service';
 import { LocationService } from '../location/location.service';
 import { BOOKING_HORIZON_DAYS, slotsForDay, type Interval, type Slot } from './slot-engine';
+import type { OrgCard } from '../organization/org-discovery.service';
 
 export enum ProviderSort {
   RATING = 'rating',
@@ -61,6 +62,24 @@ export type ProviderCard = {
   nextAvailable: Date | null;
 };
 
+export type SearchCard = (ProviderCard & { kind: 'provider' }) | OrgCard;
+
+/** Same order as the database sort, across provider and organization cards. */
+const compareCards =
+  (sort: ProviderSort) =>
+  (a: SearchCard, b: SearchCard): number => {
+    const rating = (c: SearchCard) => (c.kind === 'provider' ? c.profile.ratingAvg : c.ratingAvg);
+    const count = (c: SearchCard) => (c.kind === 'provider' ? c.profile.ratingCount : c.ratingCount);
+    const byRating = rating(b) - rating(a) || count(b) - count(a);
+    if (sort === ProviderSort.PRICE_ASC) return a.price - b.price || byRating;
+    if (sort === ProviderSort.PRICE_DESC) return b.price - a.price || byRating;
+    if (sort === ProviderSort.EXPERIENCE) {
+      const years = (c: SearchCard) => (c.kind === 'provider' ? (c.profile.yearsOfExperience ?? -1) : -1);
+      return years(b) - years(a) || byRating;
+    }
+    return byRating;
+  };
+
 /** With a date filter, at most this many matching providers are checked for free slots. */
 const DATE_FILTER_CANDIDATES = 500;
 /** `next_available` looks this many days ahead. */
@@ -82,6 +101,42 @@ export class DiscoveryService {
   private readonly catalog = Container.get(CatalogService);
   private readonly locations = Container.get(LocationService);
 
+  /**
+   * GET /providers: independents and organizations together (decision: one card per organization),
+   * or one kind with `source`. Organizations are few, so their cards are built in full and merged
+   * with the first page-window of provider rows in the requested order.
+   */
+  async searchWithOrganizations(filters: SearchFilters, pagination: Pagination) {
+    if (filters.source === 'independent') {
+      const result = await this.search(filters, pagination);
+      return { ...result, data: result.data.map((c) => ({ ...c, kind: 'provider' as const })) };
+    }
+    const service = await this.catalog.getActiveService(filters.serviceId);
+    if (filters.time && !filters.date) throw new ValidationError({ time: ['validation.time_requires_date'] });
+    if (filters.date) this.assertBookableDate(filters.date);
+    if (!(await this.locations.findBookableArea(filters.areaId))) throw new AreaNotCoveredError();
+    if (filters.providerType && filters.providerType !== service.providerType)
+      return { data: [], total: 0, service };
+
+    // Loaded here: the organization service builds on this one (a static import would be circular).
+    const { OrgDiscoveryService } = await import('../organization/org-discovery.service');
+    const orgs: SearchCard[] = await Container.get(OrgDiscoveryService).cards(filters, service);
+    const window = pagination.skip + pagination.perPage;
+    const providers =
+      filters.source === 'organization'
+        ? { data: [], total: 0 }
+        : await this.search(filters, { page: 1, perPage: window, skip: 0 });
+    const merged = [...providers.data.map((c) => ({ ...c, kind: 'provider' as const })), ...orgs].sort(
+      compareCards(filters.sort),
+    );
+    return {
+      data: merged.slice(pagination.skip, window),
+      total: providers.total + orgs.length,
+      service,
+    };
+  }
+
+  /** Independent providers only (also the fallback broadcast's candidate search). */
   async search(filters: SearchFilters, pagination: Pagination) {
     if (filters.time && !filters.date) throw new ValidationError({ time: ['validation.time_requires_date'] });
     if (filters.date) this.assertBookableDate(filters.date);
@@ -225,7 +280,7 @@ export class DiscoveryService {
     return busy;
   }
 
-  private async slotsForMany(
+  async slotsForMany(
     profiles: Array<{ _id: Types.ObjectId; availability: IAvailabilitySlot[] }>,
     service: ServiceRow,
     date: string,
@@ -262,7 +317,7 @@ export class DiscoveryService {
   }
 
   /** Earliest free start per provider: on `date` if given, else within the next 7 days. */
-  private async nextAvailableFor(
+  async nextAvailableFor(
     profiles: Array<{ _id: Types.ObjectId; availability: IAvailabilitySlot[] }>,
     service: ServiceRow,
     date?: string,
@@ -326,10 +381,8 @@ export class DiscoveryService {
           ...(filters.providerType ? { type: filters.providerType } : {}),
           ...(filters.specialty ? { specialty: filters.specialty } : {}),
           ...(filters.minRating !== undefined ? { ratingAvg: { $gte: filters.minRating } } : {}),
-          // Provider rows are independents only: staff are booked through their organization, whose
-          // cards join search in M3.3 (until then source=organization finds nothing).
+          // Provider rows are independents only: staff are booked through their organization (its card).
           organizationId: null,
-          ...(filters.source === 'organization' ? { _id: null } : {}),
         },
       },
       {
@@ -398,7 +451,7 @@ export class DiscoveryService {
     return { profile, user };
   }
 
-  private assertBookableDate(date: string) {
+  assertBookableDate(date: string) {
     const today = cairoDate();
     if (date < today || date > addDays(today, BOOKING_HORIZON_DAYS)) {
       throw new ValidationError({ date: ['validation.date_out_of_range'] });

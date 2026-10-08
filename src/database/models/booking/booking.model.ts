@@ -57,6 +57,7 @@ const bookingSchema = new Schema<IBooking>(
     preferredGender: { type: String, enum: Object.values(PreferredGender), default: PreferredGender.ANY },
     assignmentMode: { type: String, enum: Object.values(AssignmentMode), required: true },
     assignmentDeadline: { type: Date, default: null },
+    deadlineWarningAt: { type: Date, default: null },
     allowFallback: { type: Boolean, default: true },
     fallbackEndsAt: { type: Date, default: null },
     startedAt: { type: Date, default: null },

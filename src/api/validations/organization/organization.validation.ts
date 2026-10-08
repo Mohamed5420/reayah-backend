@@ -1,5 +1,12 @@
 import { Gender, ProviderType, VerificationStatus } from '../../../interfaces/enums';
 import { EGYPT_MOBILE } from '../../../services/auth/auth.constants';
+import {
+  BookingStatus,
+  BookingType,
+  PaymentMethod,
+  PaymentStatus,
+  PreferredGender,
+} from '../../../interfaces/IBooking';
 import { DocumentReviewStatus } from '../../../interfaces/IProvider';
 import {
   OrganizationDocumentType,
@@ -275,4 +282,74 @@ export const StaffSchemas = {
     .strictObject({ area_ids: z.array(objectId).max(100) })
     .openapi({ description: "Areas from the organization's own list; its travel fee applies." }),
   availabilityBody: ProviderSchemas.availabilityBody,
+};
+
+const orgBooking = z
+  .object({
+    id: objectId,
+    reference_code: z.string(),
+    status: z.enum(BookingStatus),
+    type: z.enum(BookingType),
+    service: z.object({ id: objectId, name: z.string() }),
+    quantity: z.number(),
+    area_name: z.string(),
+    scheduled_start: z.string(),
+    scheduled_end: z.string(),
+    preferred_gender: z.enum(PreferredGender),
+    /** Assign (or send to all suitable) before this; afterwards it goes to other providers. */
+    assignment_deadline: z.string().nullable(),
+    staff: z.object({ id: objectId, name: z.string(), phone: z.string().nullable() }).nullable(),
+    price: z.object({
+      total: z.number(),
+      travel_fee: z.number(),
+      /** What the organization earns: subtotal − commission + travel fee. */
+      payout: z.number(),
+      currency: z.literal('EGP'),
+    }),
+    payment_method: z.enum(PaymentMethod),
+    payment_status: z.enum(PaymentStatus),
+    /** Another organization's request offered to this one after its deadline: take it by assigning. */
+    offer: z.object({ id: objectId, expires_at: z.string() }).nullable(),
+    /**
+     * Shown once a staff member is assigned. Never booking notes or medical data — only the assigned staff
+     * member sees those (decision).
+     */
+    patient: z.object({ name: z.string(), phone: z.string().nullable() }).nullable(),
+    address: z.object({ area_name: z.string(), full_text: z.string().nullable() }),
+    allowed_actions: z.array(z.enum(['assign', 'broadcast', 'reassign', 'decline', 'cancel'])),
+  })
+  .openapi('OrganizationBooking');
+
+/** Organization bookings, assignment and broadcast (spec §6.6, §7.11 "Bookings", M3.3). */
+export const OrgBookingSchemas = {
+  idParams: z.object({ id: objectId }),
+  listQuery: paginationQuery.extend({
+    status: z.enum(BookingStatus).optional(),
+    date: z.iso.date().optional(),
+    staff_id: objectId.optional(),
+  }),
+  booking: orgBooking,
+  eligibleStaff: z
+    .object({
+      id: objectId,
+      name: z.string(),
+      gender: z.enum(Gender).nullable(),
+      rating_avg: z.number(),
+      available: z.boolean(),
+      /** Why not: suspended, not_accepting, area, service, gender, busy. */
+      reason: z.string().nullable(),
+    })
+    .openapi('EligibleStaff'),
+  assignBody: z.strictObject({ provider_profile_id: objectId }).openapi('AssignStaff'),
+  broadcastResult: z.object({ offered: z.number() }),
+  declineBody: z.strictObject({ reason_code: z.enum(['no_staff_available', 'not_in_area', 'other']) }),
+  declineResult: z.object({
+    status: z.enum(BookingStatus),
+    /** true: sent on to other providers (or, for an offer, passed on). */
+    passed_on: z.boolean(),
+  }),
+  cancelBody: z.strictObject({
+    reason_code: z.enum(['staff_unavailable', 'emergency', 'patient_request', 'other']),
+    reason_text: z.string().trim().max(500).nullable().optional(),
+  }),
 };

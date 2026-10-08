@@ -114,7 +114,9 @@
     "staff_already_member": "هذا الرقم عضو في فريقك بالفعل",
     "staff_invite_not_eligible": "لا يمكن دعوة هذا الرقم؛ يمكن دعوة الأرقام الجديدة أو مقدمي الخدمة المستقلين فقط",
     "staff_join_active_bookings": "أنهِ حجوزاتك الحالية أولاً قبل الانضمام لمؤسسة",
-    "staff_join_balance": "يجب تسوية رصيدك وصرف المستحقات أولاً قبل الانضمام لمؤسسة"
+    "staff_join_balance": "يجب تسوية رصيدك وصرف المستحقات أولاً قبل الانضمام لمؤسسة",
+    "staff_already_assigned": "هذا العضو معيّن على الحجز بالفعل",
+    "no_eligible_staff": "لا يوجد عضو متاح في الفريق لهذا الحجز"
   },
   "validation": {
     "invalid_value": "قيمة غير صالحة",
@@ -175,7 +177,8 @@
     "staff_invite_required": "التسجيل كعضو فريق يحتاج دعوة من المؤسسة",
     "service_not_offered_by_org": "المؤسسة لا تقدم هذه الخدمة",
     "service_wrong_type": "الخدمة لا تناسب تخصص عضو الفريق",
-    "area_not_served_by_org": "المؤسسة لا تغطي هذه المنطقة"
+    "area_not_served_by_org": "المؤسسة لا تغطي هذه المنطقة",
+    "provider_or_organization": "اختر مقدم خدمة أو مؤسسة، وليس الاثنين"
   },
   "address": {
     "floor": "الدور {{floor}}",
@@ -385,6 +388,42 @@
     "staff_removed": {
       "title": "تمت إزالتك من الفريق",
       "body": "لم تعد عضواً في {{organization}}. يمكنك العمل كمقدم خدمة مستقل بعد تحديد مناطقك وخدماتك وأسعارك"
+    },
+    "org_booking_request": {
+      "title": "طلب حجز جديد",
+      "body": "{{service}} — {{time}} في {{area}}. عيّن أحد أفراد فريقك"
+    },
+    "org_booking_rescheduled": {
+      "title": "تم تغيير موعد حجز",
+      "body": "{{service}} أصبح {{time}}. عيّن أحد أفراد فريقك"
+    },
+    "org_booking_returned": {
+      "title": "حجز يحتاج تعيين",
+      "body": "{{service}} — {{time}} عاد إلى قائمة الانتظار. عيّن أحد أفراد فريقك"
+    },
+    "org_booking_offer": {
+      "title": "طلب متاح لمؤسستك",
+      "body": "{{service}} — {{time}} في {{area}}. أول من يقبل يحصل عليه"
+    },
+    "org_deadline_warning": {
+      "title": "متبقي 10 دقائق للتعيين",
+      "body": "{{service}} — {{time}} لم يُعيَّن بعد"
+    },
+    "booking_assigned": {
+      "title": "تم تعيينك لزيارة",
+      "body": "{{service}} — {{time}} في {{area}}"
+    },
+    "booking_unassigned": {
+      "title": "تم تغيير المكلّف بالزيارة",
+      "body": "لم تعد مكلّفاً بزيارة {{service}} — {{time}}"
+    },
+    "booking_time_changed": {
+      "title": "تغيّر موعد زيارة",
+      "body": "{{service}} أصبح {{time}} في {{area}}"
+    },
+    "org_booking_time_changed": {
+      "title": "تغيّر موعد حجز",
+      "body": "{{service}} أصبح {{time}} مع {{provider}}"
     }
   },
   "packages": {

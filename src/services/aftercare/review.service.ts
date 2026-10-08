@@ -72,8 +72,15 @@ export class ReviewService {
   }
 
   /** Visible reviews of a provider, newest first, with reviewer display names. */
-  async listForProvider(providerProfileId: Types.ObjectId | string, pagination: Pagination) {
-    const query = { providerProfileId, isVisible: true };
+  /** One provider, or (an organization's page) all of its staff. */
+  async listForProvider(
+    providerProfileId: Types.ObjectId | string | Types.ObjectId[],
+    pagination: Pagination,
+  ) {
+    const query = {
+      providerProfileId: Array.isArray(providerProfileId) ? { $in: providerProfileId } : providerProfileId,
+      isVisible: true,
+    };
     const [reviews, total] = await Promise.all([
       ReviewModel.find(query).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.perPage).lean(),
       ReviewModel.countDocuments(query),
@@ -81,8 +88,11 @@ export class ReviewService {
     return { data: await this.withNames(reviews), total };
   }
 
-  async recentForProvider(providerProfileId: Types.ObjectId | string, limit = 3) {
-    const reviews = await ReviewModel.find({ providerProfileId, isVisible: true })
+  async recentForProvider(providerProfileId: Types.ObjectId | string | Types.ObjectId[], limit = 3) {
+    const reviews = await ReviewModel.find({
+      providerProfileId: Array.isArray(providerProfileId) ? { $in: providerProfileId } : providerProfileId,
+      isVisible: true,
+    })
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();

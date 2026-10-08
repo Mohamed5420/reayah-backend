@@ -37,6 +37,7 @@ import { NotificationService } from '../notification/notification.service';
 import { ProviderCoverageService } from '../provider/provider-coverage.service';
 import { SmsService } from '../sms/sms.service';
 import type { OrganizationDoc } from './organization.service';
+import { OrgBookingService } from './org-booking.service';
 
 /** Invites per organization per day (SMS costs money and can be abused). */
 const INVITES_PER_DAY = 30;
@@ -437,6 +438,8 @@ export class StaffService {
    */
   async remove(org: OrganizationDoc, profileId: string) {
     const profile = await this.member(org._id, profileId);
+    // Decision: their active bookings go back to the organization's queue and they lose access at once.
+    await Container.get(OrgBookingService).takeBackFrom(org._id, profile._id, String(org.ownerUserId));
     await withTransaction(async (session) => {
       await ProviderProfileModel.updateOne(
         { _id: profile._id, organizationId: org._id },

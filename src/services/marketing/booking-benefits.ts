@@ -6,7 +6,8 @@ import { ACTIVE_BOOKING_STATUSES, BookingStatus, type IBooking } from '../../int
 import { logger } from '../../utils/logger/winston';
 import { CreditService, creditKeptForFee } from './credit.service';
 import { LedgerService } from '../ledger/ledger.service';
-import { LedgerEntryType, LedgerOwnerType } from '../../interfaces/ILedger';
+import { LedgerEntryType } from '../../interfaces/ILedger';
+import { earningsOwnerOf } from '../ledger/earnings-owner';
 import { PackageService } from './package.service';
 import { PromoService } from './promo.service';
 import { rewardReferralSafely } from './referral.service';
@@ -45,11 +46,11 @@ export const settleBenefits = async (
   await Container.get(CreditService).restore(booking, session);
   // A covered booking's travel-fee charge was paid with credit: the provider gets it, as with card.
   const fee = creditKeptForFee(booking);
-  if (fee > 0 && booking.providerProfileId) {
+  const owner = earningsOwnerOf(booking);
+  if (fee > 0 && owner) {
     await Container.get(LedgerService).record(
       {
-        ownerType: LedgerOwnerType.PROVIDER,
-        ownerId: booking.providerProfileId,
+        ...owner,
         bookingId: booking._id,
         type: LedgerEntryType.CREDIT,
         amount: fee,

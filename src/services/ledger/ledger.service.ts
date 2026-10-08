@@ -3,6 +3,7 @@ import { Service } from 'typedi';
 import { WalletBalanceModel, WalletLedgerModel } from '../../database/models/ledger/wallet.model';
 import { LedgerEntryType, LedgerOwnerType } from '../../interfaces/ILedger';
 import { PaymentMethod, PaymentStatus, type IBooking } from '../../interfaces/IBooking';
+import { earningsOwnerOf } from './earnings-owner';
 
 /**
  * Provider / organization money (spec §4.8). Every movement is an append-only ledger entry; the
@@ -40,14 +41,15 @@ export class LedgerService {
    * money, so the provider is credited their share (subtotal − commission + travel fee).
    */
   async recordCompletion(booking: IBooking, session: ClientSession) {
-    if (!booking.providerProfileId) return;
+    // Organization bookings earn for the organization, never the staff member.
+    const owner = earningsOwnerOf(booking);
+    if (!owner) return;
     if (booking.paymentMethod !== PaymentMethod.CASH) {
       // Card / wallet once paid; covered (package / credit) always — the platform holds that money.
       if (booking.paymentStatus !== PaymentStatus.PAID || booking.price.providerPayout === 0) return;
       await this.record(
         {
-          ownerType: LedgerOwnerType.PROVIDER,
-          ownerId: booking.providerProfileId,
+          ...owner,
           bookingId: booking._id,
           type: LedgerEntryType.CREDIT,
           amount: booking.price.providerPayout,
@@ -60,8 +62,7 @@ export class LedgerService {
     if (booking.price.commissionAmount > 0) {
       await this.record(
         {
-          ownerType: LedgerOwnerType.PROVIDER,
-          ownerId: booking.providerProfileId,
+          ...owner,
           bookingId: booking._id,
           type: LedgerEntryType.COMMISSION_DUE,
           amount: -booking.price.commissionAmount,
@@ -74,8 +75,7 @@ export class LedgerService {
     if (booking.price.discount > 0) {
       await this.record(
         {
-          ownerType: LedgerOwnerType.PROVIDER,
-          ownerId: booking.providerProfileId,
+          ...owner,
           bookingId: booking._id,
           type: LedgerEntryType.DISCOUNT_REIMBURSEMENT,
           amount: booking.price.discount,

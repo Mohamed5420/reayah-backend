@@ -70,6 +70,8 @@ export enum PaymentStatus {
 export enum BookingActor {
   PATIENT = 'patient',
   PROVIDER = 'provider',
+  /** The owner, acting for their organization (assign, decline, cancel, take back from removed staff). */
+  ORGANIZATION = 'organization',
   ADMIN = 'admin',
   SYSTEM = 'system',
 }
@@ -132,6 +134,8 @@ export interface IBooking {
   allowFallback: boolean;
   /** Broadcast: offers expire and the booking expires at this time. */
   fallbackEndsAt: Date | null;
+  /** Organization bookings: when the owner was warned the assignment deadline is near (once). */
+  deadlineWarningAt: Date | null;
   startedAt: Date | null;
   completedAt: Date | null;
   isOnTime: boolean | null;
@@ -176,7 +180,11 @@ export enum OfferStatus {
 export interface IBookingOffer {
   _id: Types.ObjectId;
   bookingId: Types.ObjectId;
-  providerProfileId: Types.ObjectId;
+  /**
+   * The provider offered it: an independent, or a staff member (with `organizationId`, from their
+   * owner's "send to all suitable"). null = offered to an organization: its owner takes it by assigning.
+   */
+  providerProfileId: Types.ObjectId | null;
   organizationId: Types.ObjectId | null;
   status: OfferStatus;
   offeredAt: Date;

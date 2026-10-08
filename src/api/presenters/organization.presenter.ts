@@ -7,10 +7,13 @@ import type {
   OrganizationChecklist,
 } from '../../interfaces/IOrganization';
 import type { IProviderProfile } from '../../interfaces/IProfiles';
+import { AssignmentMode, BookingStatus, type IBooking, type IBookingOffer } from '../../interfaces/IBooking';
+import type { StaffEligibility } from '../../services/organization/org-booking.service';
 import { VerificationStatus } from '../../interfaces/enums';
 import type { AreaDescription } from '../../services/location/location.service';
 import type { Language } from '../../utils/i18n';
 import { presentAvailability, presentProviderServices, presentServiceAreas } from './provider.presenter';
+import { localized } from './localize';
 
 /** Maps organizations to the API shapes in organization.validation.ts. */
 
@@ -216,4 +219,72 @@ export const presentReceivedInvite = (row: { invite: IStaffInvite; organizationN
   organization_name: row.organizationName,
   type: row.invite.type,
   expires_at: row.invite.expiresAt.toISOString(),
+});
+
+// ── Organization bookings (M3.3) ──
+
+/** Buttons the owner app should show. */
+const orgBookingActions = (b: IBooking, offer: boolean) => {
+  if (offer) return ['assign', 'decline'] as const;
+  if (
+    b.status === BookingStatus.PENDING &&
+    b.assignmentMode === AssignmentMode.ORGANIZATION &&
+    !b.providerProfileId
+  ) {
+    return ['assign', 'broadcast', 'decline'] as const;
+  }
+  if (b.status === BookingStatus.ACCEPTED) return ['reassign', 'cancel'] as const;
+  if (b.status === BookingStatus.ON_THE_WAY) return ['cancel'] as const;
+  return [] as const;
+};
+
+export const presentOrgBooking = (input: {
+  booking: IBooking;
+  offer: Pick<IBookingOffer, '_id' | 'expiresAt'> | null;
+  staff: { id: string; name: string; phone: string | null } | null;
+  patient: { name: string; phone: string | null } | null;
+  lang: Language;
+}) => {
+  const b = input.booking;
+  return {
+    id: String(b._id),
+    reference_code: b.referenceCode,
+    status: b.status,
+    type: b.type,
+    service: { id: String(b.serviceId), name: localized(b.service.nameAr, b.service.nameEn, input.lang) },
+    quantity: b.quantity,
+    area_name: b.address.areaNameAr,
+    scheduled_start: b.scheduledStart.toISOString(),
+    scheduled_end: b.scheduledEnd.toISOString(),
+    preferred_gender: b.preferredGender,
+    assignment_deadline: input.offer
+      ? input.offer.expiresAt.toISOString()
+      : b.assignmentDeadline
+        ? b.assignmentDeadline.toISOString()
+        : null,
+    staff: input.staff,
+    price: {
+      total: b.price.total,
+      travel_fee: b.price.travelFee,
+      payout: b.price.providerPayout,
+      currency: 'EGP' as const,
+    },
+    payment_method: b.paymentMethod,
+    payment_status: b.paymentStatus,
+    offer: input.offer
+      ? { id: String(input.offer._id), expires_at: input.offer.expiresAt.toISOString() }
+      : null,
+    patient: input.patient,
+    address: { area_name: b.address.areaNameAr, full_text: input.patient ? b.address.fullText : null },
+    allowed_actions: [...orgBookingActions(b, Boolean(input.offer))],
+  };
+};
+
+export const presentEligibleStaff = (row: StaffEligibility) => ({
+  id: String(row.profileId),
+  name: row.name,
+  gender: row.gender,
+  rating_avg: row.ratingAvg,
+  available: row.available,
+  reason: row.reason,
 });

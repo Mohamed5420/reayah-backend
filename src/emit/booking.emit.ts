@@ -2,6 +2,7 @@ import { ProviderProfileModel } from '../database/models/provider/provider-profi
 import { bookingEvents } from '../events/booking.events';
 import { BookingStatus } from '../interfaces/IBooking';
 import { bookingRoom, getIOIfReady, userRoom } from '../helper/socket';
+import { ownerUserIds } from '../services/notification/booking-notifications';
 
 /** Socket event names (spec §7.12). */
 export const BookingSocketEvents = {
@@ -33,6 +34,10 @@ export const registerBookingSocketEvents = () => {
       if (event.booking.providerProfileId && event.from !== BookingStatus.AWAITING_PAYMENT) {
         recipients.push(...(await providerUserIds([String(event.booking.providerProfileId)])));
       }
+      // The organization's owner follows its bookings live.
+      if (event.booking.organizationId && event.from !== BookingStatus.AWAITING_PAYMENT) {
+        recipients.push(...(await ownerUserIds([String(event.booking.organizationId)])));
+      }
       io.to([...recipients.map(userRoom), bookingRoom(bookingId)]).emit(BookingSocketEvents.STATUS_CHANGED, {
         event: BookingSocketEvents.STATUS_CHANGED,
         booking_id: bookingId,
@@ -43,9 +48,14 @@ export const registerBookingSocketEvents = () => {
       return;
     }
 
-    const users = await providerUserIds(event.providerProfileIds);
+    const users =
+      event.type === 'org_request'
+        ? await ownerUserIds(event.organizationIds)
+        : await providerUserIds(
+            event.type === 'assigned' ? [event.providerProfileId] : event.providerProfileIds,
+          );
     const name =
-      event.type === 'new_request' ? BookingSocketEvents.NEW_REQUEST : BookingSocketEvents.OFFER_TAKEN;
+      event.type === 'offer_taken' ? BookingSocketEvents.OFFER_TAKEN : BookingSocketEvents.NEW_REQUEST;
     io.to(users.map(userRoom)).emit(name, { event: name, booking_id: bookingId });
   });
 };

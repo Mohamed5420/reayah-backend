@@ -18,7 +18,17 @@ import { cairoDate, cairoOffsetMinutes, fromMinutes } from '../../utils/time/cai
 import { DiscoveryService, ProviderSort } from '../discovery/discovery.service';
 import { overlaps } from '../discovery/slot-engine';
 import { SettingsService } from '../settings/settings.service';
+import { OrganizationModel } from '../../database/models/organization/organization.models';
+import { VerificationStatus } from '../../interfaces/enums';
+import { LedgerOwnerType } from '../../interfaces/ILedger';
+import { NotificationType } from '../../interfaces/INotification';
+import { NotificationService } from '../notification/notification.service';
+import { bookingParams, ownerUserIds } from '../notification/booking-notifications';
+import { OrgDiscoveryService } from '../organization/org-discovery.service';
 import { recordHistory, runBookingTransaction, transitionBooking } from './booking-transaction';
+
+/** Spec §6.6: the owner is warned this long before the assignment deadline. */
+export const ORG_DEADLINE_WARNING_MINUTES = 10;
 
 /** How many overdue bookings one sweep handles; the next sweep picks up the rest. */
 const BATCH = 100;
@@ -28,8 +38,9 @@ const BATCH = 100;
  * timers, so nothing needs cancelling when a booking is accepted or rescheduled, and a missed run
  * just catches up. Every handler re-checks the booking's state, so running twice is harmless.
  *
- * - Direct request not answered by `assignmentDeadline` → broadcast to other eligible independent
- *   providers for `fallback_window_minutes` (if the patient allowed fallback), else expired.
+ * - Direct request not answered, or organization request not assigned, by `assignmentDeadline` →
+ *   offered to other eligible independent providers and organizations for `fallback_window_minutes`
+ *   (if the patient allowed fallback), else expired. Owners are warned 10 minutes before.
  * - Broadcast nobody accepted by `fallbackEndsAt` → expired; open offers expire.
  */
 @Service()
@@ -38,18 +49,24 @@ export class BookingDeadlineService {
   private readonly settings = Container.get(SettingsService);
 
   async processDue(now = new Date()) {
-    const direct = await BookingModel.find({
+    // Direct requests the provider didn't answer, and organization requests the owner didn't assign.
+    const overdue = await BookingModel.find({
       status: BookingStatus.PENDING,
-      assignmentMode: AssignmentMode.DIRECT,
+      $or: [
+        { assignmentMode: AssignmentMode.DIRECT },
+        { assignmentMode: AssignmentMode.ORGANIZATION, providerProfileId: null },
+      ],
       assignmentDeadline: { $lte: now },
     })
       .limit(BATCH)
       .lean();
-    for (const booking of direct) {
-      await this.handleDirectTimeout(booking, now).catch((err: unknown) =>
-        logger.error(`Direct timeout failed for booking ${String(booking._id)}`, err),
+    for (const booking of overdue) {
+      await this.handleTimeout(booking, now).catch((err: unknown) =>
+        logger.error(`Deadline timeout failed for booking ${String(booking._id)}`, err),
       );
     }
+
+    await this.warnOwners(now);
 
     const broadcasts = await BookingModel.find({
       status: BookingStatus.PENDING,
@@ -63,16 +80,40 @@ export class BookingDeadlineService {
         logger.error(`Broadcast expiry failed for booking ${String(booking._id)}`, err),
       );
     }
-    return { direct: direct.length, broadcasts: broadcasts.length };
+    return { direct: overdue.length, broadcasts: broadcasts.length };
   }
 
-  private async handleDirectTimeout(booking: IBooking, now: Date) {
-    const original = booking.providerProfileId!;
-    const candidates = booking.allowFallback ? await this.fallbackCandidates(booking, original) : [];
-    if (!candidates.length) {
-      await this.expire(booking, { assignmentMode: AssignmentMode.DIRECT, providerProfileId: original });
-      return;
-    }
+  /**
+   * An organization's owner declined their own request: straight to the fallback. false = nobody to
+   * send it to (the caller then declines it).
+   */
+  moveToFallback(booking: IBooking) {
+    return this.startFallback(booking, new Date());
+  }
+
+  private async handleTimeout(booking: IBooking, now: Date) {
+    const started = booking.allowFallback && (await this.startFallback(booking, now));
+    if (started) return;
+    await this.expire(
+      booking,
+      booking.assignmentMode === AssignmentMode.DIRECT
+        ? { assignmentMode: AssignmentMode.DIRECT, providerProfileId: booking.providerProfileId }
+        : { assignmentMode: AssignmentMode.ORGANIZATION, providerProfileId: null },
+    );
+  }
+
+  /**
+   * Spec §6.10: the request is offered for `fallback_window_minutes` to other eligible independent
+   * providers and organizations in the area (first to accept wins; organizations take it by assigning
+   * a free staff member). false = nobody to offer it to.
+   */
+  private async startFallback(booking: IBooking, now: Date) {
+    const original = booking.assignmentMode === AssignmentMode.DIRECT ? booking.providerProfileId : null;
+    const [providers, orgs] = await Promise.all([
+      this.fallbackCandidates(booking, original),
+      this.organizationCandidates(booking),
+    ]);
+    if (!providers.length && !orgs.length) return false;
 
     const fallbackEndsAt = new Date(
       now.getTime() + (await this.settings.get('fallback_window_minutes')) * 60_000,
@@ -82,12 +123,14 @@ export class BookingDeadlineService {
         {
           _id: booking._id,
           status: BookingStatus.PENDING,
-          assignmentMode: AssignmentMode.DIRECT,
-          providerProfileId: original,
+          assignmentMode: booking.assignmentMode,
+          providerProfileId: booking.providerProfileId,
         },
         {
           $set: {
             providerProfileId: null,
+            // organizationId stays until someone takes it: the original organization still sees it in its
+            // list (and gets ASSIGNMENT_DEADLINE_PASSED if it tries to assign); expired = missed by them.
             assignmentMode: AssignmentMode.BROADCAST,
             assignmentDeadline: null,
             fallbackEndsAt,
@@ -96,12 +139,30 @@ export class BookingDeadlineService {
         { new: true, session: tx.session, lean: true },
       );
       if (!updated) return; // accepted or cancelled in the meantime
+      // The original organization's own "send to all" offers end here.
+      const lapsed = await BookingOfferModel.find({
+        bookingId: booking._id,
+        status: OfferStatus.OFFERED,
+      }).session(tx.session);
+      await BookingOfferModel.updateMany(
+        { _id: { $in: lapsed.map((o) => o._id) } },
+        { status: OfferStatus.EXPIRED },
+        { session: tx.session },
+      );
       await BookingOfferModel.insertMany(
-        candidates.map((providerProfileId) => ({
-          bookingId: booking._id,
-          providerProfileId,
-          expiresAt: fallbackEndsAt,
-        })),
+        [
+          ...providers.map((providerProfileId) => ({
+            bookingId: booking._id,
+            providerProfileId,
+            expiresAt: fallbackEndsAt,
+          })),
+          ...orgs.map((organizationId) => ({
+            bookingId: booking._id,
+            organizationId,
+            providerProfileId: null,
+            expiresAt: fallbackEndsAt,
+          })),
+        ],
         { session: tx.session },
       );
       await recordHistory(
@@ -121,10 +182,103 @@ export class BookingDeadlineService {
         actor: BookingActor.SYSTEM,
         reason: 'sent_to_other_providers',
       });
-      // The first provider can no longer accept; everyone else has a new request.
-      tx.publish({ type: 'offer_taken', booking: updated, providerProfileIds: [String(original)] });
-      tx.publish({ type: 'new_request', booking: updated, providerProfileIds: candidates.map(String) });
+      // Whoever had it can no longer take it; everyone else has a new request.
+      const lost = [
+        ...(original ? [String(original)] : []),
+        ...lapsed.flatMap((o) => (o.providerProfileId ? [String(o.providerProfileId)] : [])),
+      ];
+      if (lost.length) tx.publish({ type: 'offer_taken', booking: updated, providerProfileIds: lost });
+      if (providers.length) {
+        tx.publish({ type: 'new_request', booking: updated, providerProfileIds: providers.map(String) });
+      }
+      if (orgs.length) {
+        tx.publish({
+          type: 'org_request',
+          booking: updated,
+          organizationIds: orgs.map(String),
+          reason: 'offer',
+        });
+      }
     });
+    return true;
+  }
+
+  /**
+   * Other approved organizations serving the area and offering the service with at least one eligible
+   * staff member free at the booked time (and, for cash, not over the commission limit).
+   */
+  private async organizationCandidates(booking: IBooking) {
+    try {
+      const orgs = Container.get(OrgDiscoveryService);
+      const candidates = await OrganizationModel.find({
+        verificationStatus: VerificationStatus.APPROVED,
+        ...(booking.organizationId ? { _id: { $ne: booking.organizationId } } : {}),
+        serviceAreas: { $elemMatch: { areaId: booking.areaId, isActive: true } },
+        services: { $elemMatch: { serviceId: booking.serviceId, isActive: true } },
+      })
+        .select('_id')
+        .lean();
+      const service = await orgs.serviceRowFor(booking);
+      const gender =
+        booking.preferredGender === PreferredGender.ANY
+          ? null
+          : (booking.preferredGender as unknown as Gender);
+      let ids: Types.ObjectId[] = [];
+      for (const { _id } of candidates) {
+        const staff = await orgs.eligibleStaff(_id, {
+          serviceId: String(booking.serviceId),
+          areaId: String(booking.areaId),
+          gender,
+        });
+        const free = await orgs.freeAt(
+          staff,
+          service,
+          booking.scheduledStart,
+          booking.quantity,
+          String(booking._id),
+        );
+        if (free.length) ids.push(_id);
+      }
+      if (booking.paymentMethod === PaymentMethod.CASH && ids.length) {
+        const blocked = await Container.get(CommissionService).overLimitAmong(
+          ids,
+          LedgerOwnerType.ORGANIZATION,
+        );
+        ids = ids.filter((id) => !blocked.has(String(id)));
+      }
+      return ids;
+    } catch (err) {
+      logger.warn(`No organization fallback for booking ${String(booking._id)}: ${(err as Error).message}`);
+      return [];
+    }
+  }
+
+  /** "10 minutes left to assign" — once per booking, to the organization's owner. */
+  private async warnOwners(now: Date) {
+    const soon = await BookingModel.find({
+      status: BookingStatus.PENDING,
+      assignmentMode: AssignmentMode.ORGANIZATION,
+      providerProfileId: null,
+      deadlineWarningAt: null,
+      assignmentDeadline: { $gt: now, $lte: new Date(now.getTime() + ORG_DEADLINE_WARNING_MINUTES * 60_000) },
+    })
+      .limit(BATCH)
+      .lean();
+    for (const booking of soon) {
+      const claimed = await BookingModel.updateOne(
+        { _id: booking._id, deadlineWarningAt: null },
+        { deadlineWarningAt: now },
+      );
+      if (!claimed.modifiedCount || !booking.organizationId) continue;
+      await Container.get(NotificationService)
+        .notify(await ownerUserIds([String(booking.organizationId)]), {
+          type: NotificationType.ASSIGNMENT_DEADLINE_WARNING,
+          template: 'org_deadline_warning',
+          params: await bookingParams(booking),
+          data: { booking_id: String(booking._id) },
+        })
+        .catch((err: unknown) => logger.error(`Deadline warning failed for ${String(booking._id)}`, err));
+    }
   }
 
   /**
@@ -132,7 +286,7 @@ export class BookingDeadlineService {
    * at the booked time) and are free for the whole booked duration — excluding the provider who didn't answer.
    * They're offered the price the patient already accepted.
    */
-  private async fallbackCandidates(booking: IBooking, exclude: Types.ObjectId) {
+  private async fallbackCandidates(booking: IBooking, exclude: Types.ObjectId | null) {
     const date = cairoDate(booking.scheduledStart);
     const localMinutes =
       (booking.scheduledStart.getUTCHours() * 60 +
@@ -155,7 +309,7 @@ export class BookingDeadlineService {
         },
         { page: 1, perPage: 500, skip: 0 },
       );
-      let ids = data.map((c) => c.profile._id).filter((id) => !id.equals(exclude));
+      let ids = data.map((c) => c.profile._id).filter((id) => !exclude || !id.equals(exclude));
       // Cash requests don't go to providers over the commission limit.
       if (booking.paymentMethod === PaymentMethod.CASH) {
         const blocked = await Container.get(CommissionService).overLimitAmong(ids);

@@ -1,5 +1,6 @@
 import { Container } from 'typedi';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
+import { OrganizationModel } from '../../database/models/organization/organization.models';
 import { UserModel } from '../../database/models/user/user.model';
 import { bookingEvents, type BookingEvent } from '../../events/booking.events';
 import { AssignmentMode, BookingActor, BookingStatus, type IBooking } from '../../interfaces/IBooking';
@@ -20,6 +21,9 @@ import { NotificationService, type NotificationTemplate } from './notification.s
  *   pending + 'sent_to_other_providers' → patient   booking_fallback
  *   new request → provider(s)                 booking_request / booking_offer / booking_rescheduled
  *   offer taken → providers who lost it       booking_offer_taken
+ *   organization request → its owner           org_booking_request / _rescheduled / _returned / _offer
+ *   assigned by the owner → the staff member    booking_assigned
+ *   cancelled → also the organization's owner (unless the owner cancelled)
  */
 export const registerBookingNotifications = () => {
   bookingEvents.subscribe((event) => handleBookingEvent(event));
@@ -44,7 +48,9 @@ export const handleBookingEvent = async (event: BookingEvent) => {
     const template: NotificationTemplate =
       event.reason === 'rescheduled'
         ? 'booking_rescheduled'
-        : booking.assignmentMode === AssignmentMode.BROADCAST
+        : // Fallback offers, and an owner's "send to all suitable" to their staff.
+          booking.assignmentMode === AssignmentMode.BROADCAST ||
+            booking.assignmentMode === AssignmentMode.ORGANIZATION
           ? 'booking_offer'
           : 'booking_request';
     const type =
@@ -52,6 +58,37 @@ export const handleBookingEvent = async (event: BookingEvent) => {
     await notifications.notify(await providerUserIds(event.providerProfileIds), {
       type,
       template,
+      params,
+      data,
+    });
+    return;
+  }
+
+  if (event.type === 'org_request') {
+    const template: NotificationTemplate =
+      event.reason === 'rescheduled'
+        ? 'org_booking_rescheduled'
+        : event.reason === 'returned'
+          ? 'org_booking_returned'
+          : event.reason === 'offer'
+            ? 'org_booking_offer'
+            : event.reason === 'time_changed'
+              ? 'org_booking_time_changed'
+              : 'org_booking_request';
+    await notifications.notify(await ownerUserIds(event.organizationIds), {
+      type: event.reason === 'offer' ? NotificationType.BOOKING_OFFER : NotificationType.BOOKING_REQUEST,
+      template,
+      params,
+      data,
+    });
+    return;
+  }
+
+  if (event.type === 'assigned') {
+    await notifications.notify(await providerUserIds([event.providerProfileId]), {
+      type:
+        event.reason === 'rescheduled' ? NotificationType.BOOKING_STATUS : NotificationType.BOOKING_REQUEST,
+      template: event.reason === 'rescheduled' ? 'booking_time_changed' : 'booking_assigned',
       params,
       data,
     });
@@ -89,6 +126,12 @@ export const handleBookingEvent = async (event: BookingEvent) => {
       booking.providerProfileId &&
       event.from !== BookingStatus.AWAITING_PAYMENT
         ? await providerUserIds([String(booking.providerProfileId)])
+        : []),
+      // The organization's owner keeps track of its bookings.
+      ...(booking.organizationId &&
+      event.actor !== BookingActor.ORGANIZATION &&
+      event.from !== BookingStatus.AWAITING_PAYMENT
+        ? await ownerUserIds([String(booking.organizationId)])
         : []),
     ];
     await notifications.notify(recipients, {
@@ -148,6 +191,13 @@ export const providerUserIds = async (providerProfileIds: string[]) =>
       .select('userId')
       .lean()
   ).map((p) => String(p.userId));
+
+export const ownerUserIds = async (organizationIds: string[]) =>
+  (
+    await OrganizationModel.find({ _id: { $in: organizationIds } })
+      .select('ownerUserId')
+      .lean()
+  ).map((o) => String(o.ownerUserId));
 
 const providerNameOf = async (providerProfileId: string) => {
   const profile = await ProviderProfileModel.findById(providerProfileId).select('userId').lean();

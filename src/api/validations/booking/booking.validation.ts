@@ -16,7 +16,7 @@ const quoteBody = z
   .object({
     service_id: objectId,
     provider_id: objectId.nullable().optional(),
-    /** Organizations: Phase 3. */
+    /** Book an organization (a search card with kind = organization); its owner assigns a staff member. */
     organization_id: objectId.nullable().optional(),
     patient_profile_id: objectId,
     address_id: objectId,
@@ -47,6 +47,8 @@ const listItem = z
     scheduled_start: z.string(),
     scheduled_end: z.string(),
     provider_name: z.string().nullable(),
+    /** Booked with an organization. */
+    organization_name: z.string().nullable(),
     total: money,
     currency: z.literal('EGP'),
   })
@@ -144,6 +146,8 @@ export const BookingSchemas = {
           phone: z.string().nullable(),
         })
         .nullable(),
+      /** Booked with an organization; `provider` is the staff member once the owner assigns one. */
+      organization: z.object({ id: objectId, name: z.string() }).nullable(),
       price: z.object({
         subtotal: money,
         travel_fee: money,

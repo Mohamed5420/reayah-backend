@@ -4,10 +4,11 @@ import type IBaseController from '../interfaces/base-controller.interface';
 import { CheckAppStatusMiddleware } from '../../middlewares/app';
 import { Auth } from '../../middlewares/auth';
 import { DiscoverySchemas } from '../../validations/discovery/discovery.validation';
-import { paginationQuery, type z } from '../../validations/zod';
+import { paginationQuery, z } from '../../validations/zod';
 import {
-  presentProviderCard,
+  presentOrgPublicProfile,
   presentPublicProfile,
+  presentSearchCard,
   presentSlots,
 } from '../../presenters/discovery.presenter';
 import { presentCategory } from '../../presenters/catalog.presenter';
@@ -26,6 +27,9 @@ import { parsePagination } from '../../../utils/response/pagination';
 import { resolveLanguage } from '../../../utils/i18n';
 import { BannerService, PackageService } from '../../../services/marketing';
 import { presentHomeBanner } from '../../presenters/marketing.presenter';
+import { OrgDiscoveryService } from '../../../services/organization/org-discovery.service';
+import { ProviderProfileModel } from '../../../database/models/provider/provider-profile.model';
+import type { Types } from 'mongoose';
 import { perVisitValue } from '../../../interfaces/IMarketing';
 import { ValidationError } from '../../../utils/types-errors';
 
@@ -55,11 +59,12 @@ const r = {
   profile: defineRoute({
     method: 'get',
     path: '/providers/:id',
-    summary: 'Provider public profile',
+    summary:
+      "Provider public profile — or an organization's, for an organization id from search (kind tells them apart)",
     tags,
     auth,
     request: { params: DiscoverySchemas.idParams },
-    response: { schema: DiscoverySchemas.providerProfile },
+    response: { schema: z.union([DiscoverySchemas.providerProfile, DiscoverySchemas.organizationProfile]) },
   }),
   reviews: defineRoute({
     method: 'get',
@@ -92,6 +97,7 @@ export default class DiscoveryController implements IBaseController {
   private reviewService = Container.get(ReviewService);
   private users = Container.get(UserService);
   private bookings = Container.get(BookingService);
+  private orgDiscovery = Container.get(OrgDiscoveryService);
   private packages = Container.get(PackageService);
   private banners = Container.get(BannerService);
 
@@ -171,7 +177,7 @@ export default class DiscoveryController implements IBaseController {
         }
         q.max_price = Math.min(q.max_price ?? Infinity, perVisitValue(pkg));
       }
-      const { data, total, service } = await this.discovery.search(
+      const { data, total, service } = await this.discovery.searchWithOrganizations(
         {
           serviceId: q.service_id,
           areaId: q.area_id,
@@ -190,7 +196,12 @@ export default class DiscoveryController implements IBaseController {
       );
       const cards = await Promise.all(
         data.map(async (card) =>
-          presentProviderCard(card, service, await this.avatarUrl(card.user.avatarKey), resolveLanguage(req)),
+          presentSearchCard(
+            card,
+            service,
+            await this.avatarUrl(card.kind === 'provider' ? card.user.avatarKey : card.org.logoKey),
+            resolveLanguage(req),
+          ),
         ),
       );
       return HttpResponse.paginated(res, cards, pagination, total);
@@ -201,6 +212,19 @@ export default class DiscoveryController implements IBaseController {
 
   private async profile(req: Request, res: Response, next: NextFunction) {
     try {
+      if (await this.orgDiscovery.isOrganization(req.params.id)) {
+        const org = await this.orgDiscovery.publicProfile(req.params.id);
+        const staffIds = await this.orgStaffIds(org.org._id);
+        return HttpResponse.ok(
+          res,
+          presentOrgPublicProfile({
+            ...org,
+            logoUrl: await this.avatarUrl(org.org.logoKey),
+            recentReviews: (await this.reviewService.recentForProvider(staffIds)).map(presentPublicReview),
+            lang: resolveLanguage(req),
+          }),
+        );
+      }
       const result = await this.discovery.getPublicProfile(req.params.id);
       return HttpResponse.ok(
         res,
@@ -220,9 +244,12 @@ export default class DiscoveryController implements IBaseController {
 
   private async reviews(req: Request, res: Response, next: NextFunction) {
     try {
-      const { profile } = await this.discovery.getPublicProfile(req.params.id); // 404 for unknown providers
+      // An organization's reviews are its staff's; 404 for unknown ids.
+      const ids = (await this.orgDiscovery.isOrganization(req.params.id))
+        ? await this.orgStaffIds((await this.orgDiscovery.approvedOrg(req.params.id))._id)
+        : (await this.discovery.getPublicProfile(req.params.id)).profile._id;
       const pagination = parsePagination(req.query);
-      const { data, total } = await this.reviewService.listForProvider(profile._id, pagination);
+      const { data, total } = await this.reviewService.listForProvider(ids, pagination);
       return HttpResponse.paginated(res, data.map(presentPublicReview), pagination, total);
     } catch (err) {
       next(err);
@@ -232,7 +259,15 @@ export default class DiscoveryController implements IBaseController {
   private async slots(req: Request, res: Response, next: NextFunction) {
     try {
       const q = req.query as unknown as z.infer<typeof DiscoverySchemas.slotsQuery>;
-      const slots = await this.discovery.providerSlots(req.params.id, q.service_id, q.date, q.quantity);
+      const slots = (await this.orgDiscovery.isOrganization(req.params.id))
+        ? await this.orgDiscovery.slots(req.params.id, {
+            serviceId: q.service_id,
+            date: q.date,
+            quantity: q.quantity,
+            areaId: q.area_id,
+            gender: q.gender,
+          })
+        : await this.discovery.providerSlots(req.params.id, q.service_id, q.date, q.quantity);
       return HttpResponse.ok(res, presentSlots(q.date, slots));
     } catch (err) {
       next(err);
@@ -241,5 +276,12 @@ export default class DiscoveryController implements IBaseController {
 
   private avatarUrl(key: string | null) {
     return key ? this.storage.signedUrl(key) : Promise.resolve(null);
+  }
+
+  /** An organization's staff (current members) — its page shows their reviews. */
+  private async orgStaffIds(orgId: Types.ObjectId) {
+    return (await ProviderProfileModel.find({ organizationId: orgId }).select('_id').lean()).map(
+      (p) => p._id,
+    );
   }
 }

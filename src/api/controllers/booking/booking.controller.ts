@@ -213,7 +213,7 @@ export default class BookingController implements IBaseController {
     try {
       const q = req.query as unknown as z.infer<typeof BookingSchemas.listQuery>;
       const pagination = parsePagination(req.query);
-      const { data, total, providers } = await this.bookings.list(
+      const { data, total, providers, organizations } = await this.bookings.list(
         req.user!.id,
         { scope: q.scope, status: q.status },
         pagination,
@@ -226,6 +226,7 @@ export default class BookingController implements IBaseController {
             b,
             b.providerProfileId ? providers.get(String(b.providerProfileId)) : undefined,
             lang,
+            b.organizationId ? (organizations.get(String(b.organizationId)) ?? null) : null,
           ),
         ),
         pagination,

@@ -3680,6 +3680,13 @@
       "ProviderCard": {
         "type": "object",
         "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "provider",
+              "organization"
+            ]
+          },
           "id": {
             "type": "string",
             "pattern": "^[0-9a-f]{24}$/i",
@@ -3758,7 +3765,30 @@
             ]
           },
           "organization": {
-            "type": "null"
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "team_size": {
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "next_available": {
             "type": [
@@ -3768,6 +3798,7 @@
           }
         },
         "required": [
+          "kind",
           "id",
           "name",
           "avatar_url",
@@ -3784,12 +3815,19 @@
           "currency",
           "pricing_unit",
           "organization",
+          "team_size",
           "next_available"
         ]
       },
       "ProviderPublicProfile": {
         "type": "object",
         "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "provider"
+            ]
+          },
           "id": {
             "type": "string",
             "pattern": "^[0-9a-f]{24}$/i",
@@ -3915,7 +3953,24 @@
             }
           },
           "organization": {
-            "type": "null"
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
           },
           "recent_reviews": {
             "type": "array",
@@ -3948,6 +4003,7 @@
           }
         },
         "required": [
+          "kind",
           "id",
           "name",
           "avatar_url",
@@ -3962,6 +4018,181 @@
           "rating_count",
           "completed_visits",
           "languages",
+          "service_areas",
+          "services",
+          "organization",
+          "recent_reviews"
+        ]
+      },
+      "OrganizationPublicProfile": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "organization"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "organization_type": {
+            "type": "string",
+            "enum": [
+              "nursing_center",
+              "clinic",
+              "lab",
+              "elderly_care",
+              "other"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_verified": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "rating_avg": {
+            "type": "number"
+          },
+          "rating_count": {
+            "type": "number"
+          },
+          "completed_visits": {
+            "type": "number"
+          },
+          "team_size": {
+            "type": "number"
+          },
+          "service_areas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{24}$/i",
+                  "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          },
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "service_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{24}$/i",
+                  "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number"
+                },
+                "pricing_unit": {
+                  "type": "string",
+                  "enum": [
+                    "per_visit",
+                    "per_hour",
+                    "per_day"
+                  ]
+                }
+              },
+              "required": [
+                "service_id",
+                "name",
+                "price",
+                "pricing_unit"
+              ]
+            }
+          },
+          "organization": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "recent_reviews": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rating": {
+                  "type": "number"
+                },
+                "comment": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "patient_name": {
+                  "type": "string"
+                },
+                "date": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "rating",
+                "comment",
+                "patient_name",
+                "date"
+              ]
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "avatar_url",
+          "organization_type",
+          "description",
+          "is_verified",
+          "rating_avg",
+          "rating_count",
+          "completed_visits",
+          "team_size",
           "service_areas",
           "services",
           "organization",
@@ -4382,6 +4613,12 @@
               "null"
             ]
           },
+          "organization_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "total": {
             "type": "number"
           },
@@ -4401,6 +4638,7 @@
           "scheduled_start",
           "scheduled_end",
           "provider_name",
+          "organization_name",
           "total",
           "currency"
         ]
@@ -4533,6 +4771,26 @@
               "is_verified",
               "rating_avg",
               "phone"
+            ]
+          },
+          "organization": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
             ]
           },
           "price": {
@@ -4690,6 +4948,7 @@
           "scheduled_start",
           "scheduled_end",
           "provider",
+          "organization",
           "price",
           "promo_code",
           "package_subscription_id",
@@ -9962,6 +10221,308 @@
           "type",
           "expires_at"
         ]
+      },
+      "OrganizationBooking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "reference_code": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "awaiting_payment",
+              "pending",
+              "accepted",
+              "declined",
+              "expired",
+              "on_the_way",
+              "in_progress",
+              "completed",
+              "cancelled",
+              "no_show",
+              "disputed"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "home_visit",
+              "video"
+            ]
+          },
+          "service": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "area_name": {
+            "type": "string"
+          },
+          "scheduled_start": {
+            "type": "string"
+          },
+          "scheduled_end": {
+            "type": "string"
+          },
+          "preferred_gender": {
+            "type": "string",
+            "enum": [
+              "any",
+              "male",
+              "female"
+            ]
+          },
+          "assignment_deadline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "staff": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "phone"
+            ]
+          },
+          "price": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              },
+              "travel_fee": {
+                "type": "number"
+              },
+              "payout": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "EGP"
+                ]
+              }
+            },
+            "required": [
+              "total",
+              "travel_fee",
+              "payout",
+              "currency"
+            ]
+          },
+          "payment_method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "card",
+              "wallet",
+              "covered"
+            ]
+          },
+          "payment_status": {
+            "type": "string",
+            "enum": [
+              "unpaid",
+              "pending",
+              "paid",
+              "refunded",
+              "failed"
+            ]
+          },
+          "offer": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "expires_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "expires_at"
+            ]
+          },
+          "patient": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "phone"
+            ]
+          },
+          "address": {
+            "type": "object",
+            "properties": {
+              "area_name": {
+                "type": "string"
+              },
+              "full_text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "area_name",
+              "full_text"
+            ]
+          },
+          "allowed_actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "assign",
+                "broadcast",
+                "reassign",
+                "decline",
+                "cancel"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "reference_code",
+          "status",
+          "type",
+          "service",
+          "quantity",
+          "area_name",
+          "scheduled_start",
+          "scheduled_end",
+          "preferred_gender",
+          "assignment_deadline",
+          "staff",
+          "price",
+          "payment_method",
+          "payment_status",
+          "offer",
+          "patient",
+          "address",
+          "allowed_actions"
+        ]
+      },
+      "EligibleStaff": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "name": {
+            "type": "string"
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "male",
+              "female",
+              null
+            ]
+          },
+          "rating_avg": {
+            "type": "number"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "gender",
+          "rating_avg",
+          "available",
+          "reason"
+        ]
+      },
+      "AssignStaff": {
+        "type": "object",
+        "properties": {
+          "provider_profile_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          }
+        },
+        "required": [
+          "provider_profile_id"
+        ],
+        "additionalProperties": false
       }
     },
     "parameters": {}
@@ -15530,7 +16091,7 @@
     },
     "/api/v1/providers/{id}": {
       "get": {
-        "summary": "Provider public profile",
+        "summary": "Provider public profile — or an organization's, for an organization id from search (kind tells them apart)",
         "tags": [
           "Patient — Discovery"
         ],
@@ -15560,7 +16121,14 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/ProviderPublicProfile"
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/ProviderPublicProfile"
+                        },
+                        {
+                          "$ref": "#/components/schemas/OrganizationPublicProfile"
+                        }
+                      ]
                     }
                   },
                   "required": [
@@ -15718,6 +16286,28 @@
             },
             "required": false,
             "name": "quantity",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
+            "name": "area_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "male",
+                "female"
+              ]
+            },
+            "required": false,
+            "name": "gender",
             "in": "query"
           }
         ],
@@ -23845,6 +24435,658 @@
         "responses": {
           "204": {
             "description": "Success"
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/bookings": {
+      "get": {
+        "summary": "All bookings of the organization (pending ones are its queue), by visit time",
+        "tags": [
+          "Owner — Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 20
+            },
+            "required": false,
+            "name": "per_page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "awaiting_payment",
+                "pending",
+                "accepted",
+                "declined",
+                "expired",
+                "on_the_way",
+                "in_progress",
+                "completed",
+                "cancelled",
+                "no_show",
+                "disputed"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": false,
+            "name": "date",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
+            "name": "staff_id",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrganizationBooking"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/offers": {
+      "get": {
+        "summary": "Other organizations' / providers' requests offered to this organization after their deadline. Take one by assigning a free staff member (first to take it wins).",
+        "tags": [
+          "Owner — Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OrganizationBooking"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/bookings/{id}": {
+      "get": {
+        "summary": "Booking details. The patient’s name, phone and address appear once a staff member is assigned; never notes or medical data.",
+        "tags": [
+          "Owner — Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationBooking"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/bookings/{id}/eligible-staff": {
+      "get": {
+        "summary": "Staff sorted by availability then rating; unavailable ones flagged `available: false` with the reason (area, service, preferred gender, busy…)",
+        "tags": [
+          "Owner — Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EligibleStaff"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/bookings/{id}/assign": {
+      "post": {
+        "summary": "Assign a staff member — the organization accepts at once. 409 SLOT_UNAVAILABLE if they’re busy or don’t cover it; 409 ASSIGNMENT_DEADLINE_PASSED after the deadline.",
+        "tags": [
+          "Owner — Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignStaff"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationBooking"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/bookings/{id}/reassign": {
+      "post": {
+        "summary": "Change the assigned staff member of an accepted booking (the previous one loses access and the chat)",
+        "tags": [
+          "Owner — Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignStaff"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationBooking"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/bookings/{id}/broadcast": {
+      "post": {
+        "summary": "\"Send to all suitable\": offers it to every eligible free staff member until the deadline; first to accept wins",
+        "tags": [
+          "Owner — Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "offered": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "offered"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/bookings/{id}/decline": {
+      "post": {
+        "summary": "Decline on behalf of the organization: its own request goes straight to other providers (if the patient allowed it), else it is declined; an offered request is passed on",
+        "tags": [
+          "Owner — Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason_code": {
+                    "type": "string",
+                    "enum": [
+                      "no_staff_available",
+                      "not_in_area",
+                      "other"
+                    ]
+                  }
+                },
+                "required": [
+                  "reason_code"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "awaiting_payment",
+                            "pending",
+                            "accepted",
+                            "declined",
+                            "expired",
+                            "on_the_way",
+                            "in_progress",
+                            "completed",
+                            "cancelled",
+                            "no_show",
+                            "disputed"
+                          ]
+                        },
+                        "passed_on": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "passed_on"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/bookings/{id}/cancel": {
+      "post": {
+        "summary": "Cancel an assigned booking before the visit starts (a pending one is declined instead)",
+        "tags": [
+          "Owner — Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason_code": {
+                    "type": "string",
+                    "enum": [
+                      "staff_unavailable",
+                      "emergency",
+                      "patient_request",
+                      "other"
+                    ]
+                  },
+                  "reason_text": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason_code"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OrganizationBooking"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
           },
           "default": {
             "description": "Error (see `error.code`)",

@@ -1,5 +1,6 @@
 import { BannerAction } from '../../../interfaces/IMarketing';
 import { Gender, PricingUnit, ProviderType } from '../../../interfaces/enums';
+import { OrganizationType } from '../../../interfaces/IOrganization';
 import { ProviderSort } from '../../../services/discovery/discovery.service';
 import { objectId, paginationQuery, specialtyView, z } from '../zod';
 import { SPECIALTY_KEYS } from '../../../services/catalog/specialties';
@@ -11,8 +12,16 @@ const time = z
   .openapi({ example: '14:00', description: 'Cairo time' });
 const money = z.coerce.number().int().min(0);
 
+const organizationRef = z.object({ id: objectId, name: z.string() });
+
+/**
+ * A search result: an independent provider, or an organization (decision: one card per organization —
+ * the patient books the organization with `organization_id` and its owner picks who goes).
+ */
 const providerCard = z
   .object({
+    kind: z.enum(['provider', 'organization']),
+    /** Provider id, or organization id when kind = organization. */
     id: objectId,
     name: z.string(),
     avatar_url: z.string().nullable(),
@@ -28,10 +37,48 @@ const providerCard = z
     travel_fee: z.number().openapi({ description: 'Added to home visits in the searched area (piastres)' }),
     currency: z.literal('EGP'),
     pricing_unit: z.enum(PricingUnit),
-    organization: z.null(),
+    /** Set for organization cards. */
+    organization: organizationRef.nullable(),
+    /** Organizations: staff who could take it (area, service, preferred gender). */
+    team_size: z.number().nullable(),
     next_available: z.string().nullable(),
   })
   .openapi('ProviderCard');
+
+const organizationProfile = z
+  .object({
+    kind: z.literal('organization'),
+    id: objectId,
+    name: z.string(),
+    /** Logo, signed for 10 minutes. */
+    avatar_url: z.string().nullable(),
+    organization_type: z.enum(OrganizationType),
+    description: z.string().nullable(),
+    is_verified: z.literal(true),
+    rating_avg: z.number(),
+    rating_count: z.number(),
+    completed_visits: z.number(),
+    team_size: z.number(),
+    service_areas: z.array(z.object({ id: objectId, name: z.string() })),
+    services: z.array(
+      z.object({
+        service_id: objectId,
+        name: z.string(),
+        price: z.number(),
+        pricing_unit: z.enum(PricingUnit),
+      }),
+    ),
+    organization: organizationRef,
+    recent_reviews: z.array(
+      z.object({
+        rating: z.number(),
+        comment: z.string().nullable(),
+        patient_name: z.string(),
+        date: z.string(),
+      }),
+    ),
+  })
+  .openapi('OrganizationPublicProfile');
 
 /** Request and response schemas for /home and /providers (spec §7.7). */
 export const DiscoverySchemas = {
@@ -56,8 +103,10 @@ export const DiscoverySchemas = {
   }),
   providerCard,
 
+  organizationProfile,
   providerProfile: z
     .object({
+      kind: z.literal('provider'),
       id: objectId,
       name: z.string(),
       avatar_url: z.string().nullable(),
@@ -81,7 +130,7 @@ export const DiscoverySchemas = {
           pricing_unit: z.enum(PricingUnit),
         }),
       ),
-      organization: z.null(),
+      organization: organizationRef.nullable(),
       recent_reviews: z.array(
         z.object({
           rating: z.number(),
@@ -106,6 +155,10 @@ export const DiscoverySchemas = {
     service_id: objectId,
     date,
     quantity: z.coerce.number().int().min(1).default(1),
+    /** Organizations: only staff covering this area (the address's area). */
+    area_id: objectId.optional(),
+    /** Organizations: only staff of this gender (the preferred gender). */
+    gender: z.enum(Gender).optional(),
   }),
   slots: z
     .object({

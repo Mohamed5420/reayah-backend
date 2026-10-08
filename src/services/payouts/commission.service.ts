@@ -2,6 +2,8 @@ import { Container, Service } from 'typedi';
 import type { Types } from 'mongoose';
 import { WalletBalanceModel } from '../../database/models/ledger/wallet.model';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
+import { OrganizationModel } from '../../database/models/organization/organization.models';
+import { earningsOwnerOf } from '../ledger/earnings-owner';
 import { bookingEvents, type BookingEvent } from '../../events/booking.events';
 import { BookingStatus, PaymentMethod } from '../../interfaces/IBooking';
 import { LedgerOwnerType } from '../../interfaces/ILedger';
@@ -31,11 +33,12 @@ export type CommissionStatus = {
 export class CommissionService {
   private readonly settings = Container.get(SettingsService);
 
-  async status(providerProfileId: Types.ObjectId | string): Promise<CommissionStatus> {
+  /** `ownerType`: organizations owe commission on their cash bookings too, under the same limit. */
+  async status(ownerId: Types.ObjectId | string, ownerType = PROVIDER): Promise<CommissionStatus> {
     const [limit, percent, wallet] = await Promise.all([
       this.settings.get('max_commission_due'),
       this.settings.get('commission_warning_percent'),
-      WalletBalanceModel.findOne({ ownerType: PROVIDER, ownerId: providerProfileId }).lean(),
+      WalletBalanceModel.findOne({ ownerType, ownerId }).lean(),
     ]);
     const due = Math.max(-(wallet?.balance ?? 0), 0);
     return { due, limit, warning: due >= (limit * percent) / 100, overLimit: due > limit };
@@ -46,16 +49,25 @@ export class CommissionService {
     return this.settings.get('max_commission_due');
   }
 
-  async overLimit(providerProfileId: Types.ObjectId | string) {
-    return (await this.status(providerProfileId)).overLimit;
+  async overLimit(ownerId: Types.ObjectId | string, ownerType = PROVIDER) {
+    return (await this.status(ownerId, ownerType)).overLimit;
+  }
+
+  /** Whoever earns a booking (organization or provider) is over the limit. */
+  async bookingOwnerOverLimit(booking: { organizationId?: unknown; providerProfileId?: unknown }) {
+    return booking.organizationId
+      ? this.overLimit(String(booking.organizationId), LedgerOwnerType.ORGANIZATION)
+      : booking.providerProfileId
+        ? this.overLimit(String(booking.providerProfileId))
+        : false;
   }
 
   /** The subset of providers that may not take a new cash booking right now. */
-  async overLimitAmong(providerProfileIds: Types.ObjectId[]) {
+  async overLimitAmong(ownerIds: Types.ObjectId[], ownerType = PROVIDER) {
     const limit = await this.settings.get('max_commission_due');
     const wallets = await WalletBalanceModel.find({
-      ownerType: PROVIDER,
-      ownerId: { $in: providerProfileIds },
+      ownerType,
+      ownerId: { $in: ownerIds },
       balance: { $lt: -limit },
     })
       .select('ownerId')
@@ -75,12 +87,13 @@ export const registerCommissionAlerts = () => {
 export const alertOnCommission = async (event: BookingEvent) => {
   if (event.type !== 'status_changed' || event.to !== BookingStatus.COMPLETED) return;
   const booking = event.booking;
-  if (booking.paymentMethod !== PaymentMethod.CASH || !booking.providerProfileId) return;
+  const owner = earningsOwnerOf(booking);
+  if (booking.paymentMethod !== PaymentMethod.CASH || !owner) return;
   // What this visit added to the provider's debt: commission minus any discount reimbursed.
   const added = booking.price.commissionAmount - booking.price.discount;
   if (added <= 0) return;
   try {
-    const now = await Container.get(CommissionService).status(booking.providerProfileId);
+    const now = await Container.get(CommissionService).status(owner.ownerId, owner.ownerType);
     const before = now.due - added;
     const percent = await Container.get(SettingsService).get('commission_warning_percent');
     const warnAt = (now.limit * percent) / 100;
@@ -91,9 +104,12 @@ export const alertOnCommission = async (event: BookingEvent) => {
           ? 'commission_due_warning'
           : null;
     if (!template) return;
-    const profile = await ProviderProfileModel.findById(booking.providerProfileId).select('userId').lean();
-    if (!profile) return;
-    await Container.get(NotificationService).notify([profile.userId], {
+    const userId =
+      owner.ownerType === LedgerOwnerType.ORGANIZATION
+        ? (await OrganizationModel.findById(owner.ownerId).select('ownerUserId').lean())?.ownerUserId
+        : (await ProviderProfileModel.findById(owner.ownerId).select('userId').lean())?.userId;
+    if (!userId) return;
+    await Container.get(NotificationService).notify([userId], {
       type: NotificationType.PAYOUT,
       template,
       params: { due: (now.due / 100).toFixed(2), limit: (now.limit / 100).toFixed(2) },

@@ -17,6 +17,7 @@ import {
   OfferStatus,
   PaymentMethod,
   PaymentStatus,
+  PreferredGender,
   type IBooking,
 } from '../../interfaces/IBooking';
 import type { Pagination } from '../../utils/response/pagination';
@@ -38,9 +39,14 @@ import {
   transitionBooking,
 } from './booking-transaction';
 import { QuoteService, type BookingDraft } from './quote.service';
+import type { BookingEvent } from '../../events/booking.events';
 import { PaymentService } from '../payments/payment.service';
 import { patientFeeFor } from './patient-fees';
 import { CommissionService } from '../payouts/commission.service';
+import { ChatService } from '../chat/chat.service';
+import { OrgDiscoveryService } from '../organization/org-discovery.service';
+import type { Gender } from '../../interfaces/enums';
+import { OrganizationModel } from '../../database/models/organization/organization.models';
 import { CreditService } from '../marketing/credit.service';
 import { PackageService } from '../marketing/package.service';
 import { PromoService } from '../marketing/promo.service';
@@ -53,6 +59,12 @@ export const generateReferenceCode = () =>
   `RY-${Array.from({ length: 6 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('')}`;
 
 const minutesFromNow = (minutes: number) => new Date(Date.now() + minutes * 60_000);
+
+/** Who hears about a new request: the chosen provider, or the organization's owner. */
+export const requestEventFor = (booking: IBooking, reason?: 'rescheduled'): BookingEvent =>
+  booking.organizationId && !booking.providerProfileId
+    ? { type: 'org_request', booking, organizationIds: [String(booking.organizationId)], reason }
+    : { type: 'new_request', booking, providerProfileIds: [String(booking.providerProfileId)], reason };
 
 /** Patient side of bookings (spec §7.8). */
 @Service()
@@ -86,10 +98,15 @@ export class BookingService {
     }
     if (
       paymentMethod === PaymentMethod.CASH &&
-      (await Container.get(CommissionService).overLimit(draft.providerId))
+      (await Container.get(CommissionService).bookingOwnerOverLimit({
+        organizationId: draft.organizationId,
+        providerProfileId: draft.providerId,
+      }))
     ) {
       throw new ConflictError('errors.provider_cash_unavailable');
     }
+    // Booking an organization (M3.3): it lands in the owner's queue, to assign within the deadline.
+    const orgBooking = Boolean(draft.organizationId);
     const prepared = await this.quotes.prepare(userId, {
       ...draft,
       scheduledStart: new Date(draft.scheduledStart),
@@ -97,13 +114,18 @@ export class BookingService {
     const address = await this.quotes.addressSnapshot(prepared.address);
     const start = new Date(draft.scheduledStart);
     const end = new Date(draft.scheduledEnd);
-    const responseMinutes = await this.settings.get('direct_request_response_minutes');
+    const responseMinutes = await this.settings.get(
+      orgBooking ? 'org_assign_deadline_minutes' : 'direct_request_response_minutes',
+    );
     const awaitingPayment = GATEWAY_PAYMENT_METHODS.includes(paymentMethod);
     const discounts = discountsOf(draft.price);
 
     return runBookingTransaction(async (tx) => {
-      await lockProviderSchedule(draft.providerId, tx.session);
-      await assertProviderFree(draft.providerId, start, end, tx.session);
+      // A provider's time is held from the request on; an organization's staff is picked later.
+      if (draft.providerId) {
+        await lockProviderSchedule(draft.providerId, tx.session);
+        await assertProviderFree(draft.providerId, start, end, tx.session);
+      }
       const [booking] = await BookingModel.create(
         [
           {
@@ -121,12 +143,13 @@ export class BookingService {
               durationMinutes: (end.getTime() - start.getTime()) / 60_000,
             },
             providerProfileId: draft.providerId,
+            organizationId: draft.organizationId ?? null,
             type: draft.type,
             scheduledStart: start,
             scheduledEnd: end,
             quantity: draft.quantity,
             preferredGender: draft.preferredGender,
-            assignmentMode: AssignmentMode.DIRECT,
+            assignmentMode: orgBooking ? AssignmentMode.ORGANIZATION : AssignmentMode.DIRECT,
             // Card / wallet: held in awaiting_payment, invisible to the provider; the response clock starts once paid.
             status: awaitingPayment ? BookingStatus.AWAITING_PAYMENT : BookingStatus.PENDING,
             assignmentDeadline: awaitingPayment ? null : minutesFromNow(responseMinutes),
@@ -154,13 +177,7 @@ export class BookingService {
       }
       await Container.get(CreditService).use(booking.patientUserId, discounts.credit, booking, tx.session);
       await recordHistory(tx, booking._id, null, booking.status, BookingActor.PATIENT, userId, null);
-      if (!awaitingPayment) {
-        tx.publish({
-          type: 'new_request',
-          booking: booking.toObject(),
-          providerProfileIds: [draft.providerId],
-        });
-      }
+      if (!awaitingPayment) tx.publish(requestEventFor(booking.toObject()));
       return booking;
     });
   }
@@ -185,7 +202,12 @@ export class BookingService {
         .lean(),
       BookingModel.countDocuments(query),
     ]);
-    return { data, total, providers: await this.providerCards(data) };
+    return {
+      data,
+      total,
+      providers: await this.providerCards(data),
+      organizations: await this.organizationNames(data),
+    };
   }
 
   async getOwned(userId: string, bookingId: string) {
@@ -199,17 +221,21 @@ export class BookingService {
   /** GET /bookings/{id}: the booking, its timeline and the provider. */
   async getDetail(userId: string, bookingId: string) {
     const booking = await this.getOwned(userId, bookingId);
-    const [timeline, providers, reviewed, report] = await Promise.all([
+    const [timeline, providers, reviewed, report, organizations] = await Promise.all([
       BookingStatusHistoryModel.find({ bookingId: booking._id }).sort({ createdAt: 1 }).lean(),
       this.providerCards([booking]),
       ReviewModel.exists({ bookingId: booking._id }),
       VisitReportModel.findOne({ bookingId: booking._id }).select('_id').lean(),
+      this.organizationNames([booking]),
     ]);
     const freeWindowHours = await this.settings.get('cancellation_free_window_hours');
     return {
       booking,
       timeline,
       provider: booking.providerProfileId ? (providers.get(String(booking.providerProfileId)) ?? null) : null,
+      organization: booking.organizationId
+        ? (organizations.get(String(booking.organizationId)) ?? null)
+        : null,
       flags: {
         canCancel: canTransition(booking.status, BookingStatus.CANCELLED, BookingActor.PATIENT, booking.type),
         canReschedule: canReschedule(booking, freeWindowHours),
@@ -269,6 +295,9 @@ export class BookingService {
   async reschedule(userId: string, bookingId: string, scheduledStart: Date) {
     const booking = await this.getOwned(userId, bookingId);
     const freeWindowHours = await this.settings.get('cancellation_free_window_hours');
+    if (booking.organizationId) {
+      return this.rescheduleWithOrganization(userId, booking, scheduledStart, freeWindowHours);
+    }
     if (
       !booking.providerProfileId ||
       ![BookingStatus.PENDING, BookingStatus.ACCEPTED].includes(booking.status)
@@ -341,10 +370,178 @@ export class BookingService {
     return this.getDetail(userId, bookingId);
   }
 
+  /**
+   * An organization's booking: the new time must suit one of its staff, and it goes back to the owner's
+   * queue (whoever was assigned may not be free then) with a fresh assignment deadline.
+   */
+  private async rescheduleWithOrganization(
+    userId: string,
+    booking: IBooking,
+    scheduledStart: Date,
+    freeWindowHours: number,
+  ) {
+    if (![BookingStatus.PENDING, BookingStatus.ACCEPTED].includes(booking.status)) {
+      throw new InvalidStatusTransitionError();
+    }
+    if (!canReschedule(booking, freeWindowHours)) throw new CancellationNotAllowedError();
+    const { draft } = await this.quotes.prepare(
+      userId,
+      { ...this.inputFrom(booking), scheduledStart },
+      String(booking._id),
+    );
+    const newStart = new Date(draft.scheduledStart);
+    const newEnd = new Date(draft.scheduledEnd);
+
+    // Decision: the assigned staff member keeps it when still eligible and free at the new time.
+    if (
+      booking.status === BookingStatus.ACCEPTED &&
+      booking.providerProfileId &&
+      (await this.staffStillFits(booking, newStart))
+    ) {
+      const staff = booking.providerProfileId;
+      await runBookingTransaction(async (tx) => {
+        await lockProviderSchedule(staff, tx.session);
+        await assertProviderFree(staff, newStart, newEnd, tx.session, booking._id);
+        const updated = await BookingModel.findOneAndUpdate(
+          { _id: booking._id, status: BookingStatus.ACCEPTED, providerProfileId: staff },
+          {
+            $set: {
+              scheduledStart: newStart,
+              scheduledEnd: newEnd,
+              remindersSent: { day: null, hour: null },
+            },
+          },
+          { new: true, session: tx.session, lean: true },
+        );
+        if (!updated) throw new InvalidStatusTransitionError();
+        await recordHistory(
+          tx,
+          booking._id,
+          booking.status,
+          booking.status,
+          BookingActor.PATIENT,
+          userId,
+          'rescheduled',
+        );
+        tx.publish({
+          type: 'status_changed',
+          booking: updated,
+          from: booking.status,
+          to: booking.status,
+          actor: BookingActor.PATIENT,
+          reason: 'rescheduled',
+        });
+        tx.publish({
+          type: 'assigned',
+          booking: updated,
+          providerProfileId: String(staff),
+          reason: 'rescheduled',
+        });
+        tx.publish({
+          type: 'org_request',
+          booking: updated,
+          organizationIds: [String(booking.organizationId)],
+          reason: 'time_changed',
+        });
+      });
+      return this.getDetail(userId, String(booking._id));
+    }
+
+    // Otherwise back to the owner's queue with a fresh deadline.
+    const set = {
+      scheduledStart: newStart,
+      scheduledEnd: newEnd,
+      providerProfileId: null,
+      assignmentMode: AssignmentMode.ORGANIZATION,
+      assignmentDeadline: minutesFromNow(await this.settings.get('org_assign_deadline_minutes')),
+      deadlineWarningAt: null,
+      remindersSent: { day: null, hour: null },
+    };
+    const previous = booking.providerProfileId;
+    await runBookingTransaction(async (tx) => {
+      let updated: IBooking | null;
+      if (booking.status === BookingStatus.ACCEPTED) {
+        updated = (
+          await transitionBooking(tx, booking, BookingStatus.PENDING, BookingActor.PATIENT, {
+            changedBy: userId,
+            where: { organizationId: booking.organizationId },
+            set,
+            note: 'rescheduled',
+            reason: 'rescheduled',
+          })
+        ).toObject();
+      } else {
+        updated = await BookingModel.findOneAndUpdate(
+          {
+            _id: booking._id,
+            status: BookingStatus.PENDING,
+            organizationId: booking.organizationId,
+            providerProfileId: null,
+            assignmentMode: AssignmentMode.ORGANIZATION,
+          },
+          { $set: set },
+          { new: true, session: tx.session, lean: true },
+        );
+        if (!updated) throw new InvalidStatusTransitionError();
+        await recordHistory(
+          tx,
+          booking._id,
+          booking.status,
+          booking.status,
+          BookingActor.PATIENT,
+          userId,
+          'rescheduled',
+        );
+        tx.publish({
+          type: 'status_changed',
+          booking: updated,
+          from: booking.status,
+          to: booking.status,
+          actor: BookingActor.PATIENT,
+          reason: 'rescheduled',
+        });
+      }
+      // Staff offers for the old time lapse.
+      await BookingOfferModel.updateMany(
+        { bookingId: booking._id, status: OfferStatus.OFFERED },
+        { status: OfferStatus.EXPIRED },
+        { session: tx.session },
+      );
+      tx.publish(requestEventFor(updated, 'rescheduled'));
+    });
+    if (previous) await Container.get(ChatService).closeForReassignment(booking._id, previous);
+    return this.getDetail(userId, String(booking._id));
+  }
+
+  /** The assigned staff member could still take the booking at `start` (eligible, free). */
+  private async staffStillFits(booking: IBooking, start: Date) {
+    const orgs = Container.get(OrgDiscoveryService);
+    const staff = (
+      await orgs.eligibleStaff(booking.organizationId!, {
+        serviceId: String(booking.serviceId),
+        areaId: String(booking.areaId),
+        gender:
+          booking.preferredGender === PreferredGender.ANY
+            ? null
+            : (booking.preferredGender as unknown as Gender),
+      })
+    ).filter((s) => s.profile._id.equals(booking.providerProfileId!));
+    const free = await orgs.freeAt(
+      staff,
+      await orgs.serviceRowFor(booking),
+      start,
+      booking.quantity,
+      String(booking._id),
+    );
+    return free.length > 0;
+  }
+
   /** POST /bookings/{id}/rebook: same service, provider, patient and address — a fresh quote for a new time. */
   async rebook(userId: string, bookingId: string, scheduledStart: Date, lang: Language) {
     const booking = await this.getOwned(userId, bookingId);
-    if (!booking.providerProfileId) throw new ValidationError({ booking: ['validation.not_rebookable'] });
+    if (!booking.providerProfileId && !booking.organizationId) {
+      throw new ValidationError({ booking: ['validation.not_rebookable'] });
+    }
     // A fresh booking: no package visit or promo carried over (the patient can add them to the quote).
     return this.quotes.quote(
       userId,
@@ -358,6 +555,17 @@ export class BookingService {
     return BookingModel.findOne({ patientUserId: userId, status: { $in: ACTIVE_BOOKING_STATUSES } })
       .sort({ scheduledStart: 1 })
       .lean();
+  }
+
+  /** The organization each booking was made with (an organization's staff member does the visit). */
+  async organizationNames(bookings: Array<Pick<IBooking, 'organizationId'>>) {
+    const ids = [...new Set(bookings.flatMap((b) => (b.organizationId ? [String(b.organizationId)] : [])))];
+    if (!ids.length) return new Map<string, { id: string; name: string }>();
+    const orgs = await OrganizationModel.find({ _id: { $in: ids } })
+      .select('name')
+      .setOptions({ withDeleted: true })
+      .lean();
+    return new Map(orgs.map((o) => [String(o._id), { id: String(o._id), name: o.name }]));
   }
 
   /** Name, avatar key, rating and phone for each booking's provider. */
@@ -394,8 +602,9 @@ export class BookingService {
   private inputFrom(booking: IBooking): Omit<BookingDraft, 'scheduledStart' | 'scheduledEnd' | 'price'> {
     return {
       serviceId: String(booking.serviceId),
-      providerId: String(booking.providerProfileId),
-      organizationId: null,
+      // An organization's booking is rebooked / rescheduled with the organization, not the staff member.
+      providerId: booking.organizationId ? null : String(booking.providerProfileId),
+      organizationId: booking.organizationId ? String(booking.organizationId) : null,
       patientProfileId: String(booking.patientProfileId),
       addressId: String(booking.addressId),
       type: booking.type,
@@ -416,6 +625,6 @@ export const withinFreeWindow = (
 ) => now.getTime() <= booking.scheduledStart.getTime() - hours * 3600_000;
 
 const canReschedule = (booking: IBooking, freeWindowHours: number) =>
-  Boolean(booking.providerProfileId) &&
+  Boolean(booking.providerProfileId || booking.organizationId) &&
   (booking.status === BookingStatus.PENDING ||
     (booking.status === BookingStatus.ACCEPTED && withinFreeWindow(booking, freeWindowHours)));

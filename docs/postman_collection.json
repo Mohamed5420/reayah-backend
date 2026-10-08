@@ -3277,10 +3277,10 @@
           }
         },
         {
-          "name": "Provider public profile",
+          "name": "Provider public profile — or an organization's, for an organization id from search (kind tells them apart)",
           "request": {
             "method": "GET",
-            "description": "Provider public profile",
+            "description": "Provider public profile — or an organization's, for an organization id from search (kind tells them apart)",
             "header": [
               {
                 "key": "Accept-Language",
@@ -3384,6 +3384,16 @@
                 {
                   "key": "quantity",
                   "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "area_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                },
+                {
+                  "key": "gender",
+                  "value": "male",
                   "disabled": true
                 }
               ],
@@ -7958,6 +7968,346 @@
                   "value": "665f1c2b9e1d2a4c3b9e8f1a"
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Owner — Bookings",
+      "item": [
+        {
+          "name": "All bookings of the organization (pending ones are its queue), by visit time",
+          "request": {
+            "method": "GET",
+            "description": "All bookings of the organization (pending ones are its queue), by visit time",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/bookings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "bookings"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "awaiting_payment",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "2026-10-05",
+                  "disabled": true
+                },
+                {
+                  "key": "staff_id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Other organizations' / providers' requests offered to this organization after their deadline. Take one by assigning a free staff member (first to take it wins).",
+          "request": {
+            "method": "GET",
+            "description": "Other organizations' / providers' requests offered to this organization after their deadline. Take one by assigning a free staff member (first to take it wins).",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/offers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "offers"
+              ],
+              "query": [],
+              "variable": []
+            }
+          }
+        },
+        {
+          "name": "Booking details. The patient’s name, phone and address appear once a staff member is assigned; never notes or medical data.",
+          "request": {
+            "method": "GET",
+            "description": "Booking details. The patient’s name, phone and address appear once a staff member is assigned; never notes or medical data.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/bookings/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "bookings",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Staff sorted by availability then rating; unavailable ones flagged `available: false` with the reason (area, service, preferred gender, busy…)",
+          "request": {
+            "method": "GET",
+            "description": "Staff sorted by availability then rating; unavailable ones flagged `available: false` with the reason (area, service, preferred gender, busy…)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/bookings/:id/eligible-staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "bookings",
+                ":id",
+                "eligible-staff"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Assign a staff member — the organization accepts at once. 409 SLOT_UNAVAILABLE if they’re busy or don’t cover it; 409 ASSIGNMENT_DEADLINE_PASSED after the deadline.",
+          "request": {
+            "method": "POST",
+            "description": "Assign a staff member — the organization accepts at once. 409 SLOT_UNAVAILABLE if they’re busy or don’t cover it; 409 ASSIGNMENT_DEADLINE_PASSED after the deadline.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/bookings/:id/assign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "bookings",
+                ":id",
+                "assign"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider_profile_id\": \"665f1c2b9e1d2a4c3b9e8f1a\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Change the assigned staff member of an accepted booking (the previous one loses access and the chat)",
+          "request": {
+            "method": "POST",
+            "description": "Change the assigned staff member of an accepted booking (the previous one loses access and the chat)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/bookings/:id/reassign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "bookings",
+                ":id",
+                "reassign"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider_profile_id\": \"665f1c2b9e1d2a4c3b9e8f1a\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "\"Send to all suitable\": offers it to every eligible free staff member until the deadline; first to accept wins",
+          "request": {
+            "method": "POST",
+            "description": "\"Send to all suitable\": offers it to every eligible free staff member until the deadline; first to accept wins",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/bookings/:id/broadcast",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "bookings",
+                ":id",
+                "broadcast"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Decline on behalf of the organization: its own request goes straight to other providers (if the patient allowed it), else it is declined; an offered request is passed on",
+          "request": {
+            "method": "POST",
+            "description": "Decline on behalf of the organization: its own request goes straight to other providers (if the patient allowed it), else it is declined; an offered request is passed on",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/bookings/:id/decline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "bookings",
+                ":id",
+                "decline"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason_code\": \"no_staff_available\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cancel an assigned booking before the visit starts (a pending one is declined instead)",
+          "request": {
+            "method": "POST",
+            "description": "Cancel an assigned booking before the visit starts (a pending one is declined instead)",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/org/bookings/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "org",
+                "bookings",
+                ":id",
+                "cancel"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "665f1c2b9e1d2a4c3b9e8f1a"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason_code\": \"staff_unavailable\",\n  \"reason_text\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         }

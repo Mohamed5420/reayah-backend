@@ -1,7 +1,7 @@
 # Reaya+ Personal Data Inventory
 
 **Prepared for:** legal review under the Personal Data Protection Law (Law 151 of 2020) and its executive regulations
-**Last updated:** 8 October 2026 (through build milestone M3.2)
+**Last updated:** 8 October 2026 (through build milestone M3.3)
 **Source of truth:** this file (`docs/DATA_INVENTORY.md`), updated with every milestone. The Word copy (`docs/DATA_INVENTORY.docx`) is generated from it.
 
 ## About this document
@@ -15,7 +15,7 @@ It covers what is built so far:
 - **Card and mobile-wallet payments** through Paymob, provider earnings and weekly payouts.
 - **In-app chat** between a patient and the assigned nurse or doctor.
 - **Packages, promo codes, referrals** and in-app credit.
-- **Organizations** (nursing centers, clinics, labs, elderly-care companies): set-up, verification and their teams of nurses and doctors (staff). Organization bookings come next and will be added here before they launch.
+- **Organizations** (nursing centers, clinics, labs, elderly-care companies): set-up, verification, their teams of nurses and doctors (staff), and bookings made with an organization, which its owner assigns to a staff member.
 - **The Reaya+ admin team.**
 
 Video consultations are on hold and not covered.
@@ -101,8 +101,9 @@ Each person sees only their own data, providers see a patient's details only for
 | Provider (during the visit and 7 days after) | The patient's medical summary: conditions, medications, allergies | Each view is logged; access ends 7 days after the visit |
 | Provider (own money) | Their earnings, ledger, payouts with statements, payout method (account number masked) | Only their own |
 | Provider after an admin reassigns a booking | The new provider starts a fresh, empty conversation | Neither the previous nor the new provider can open the earlier conversation; the patient can still read it; it stays stored for admins (disputes) |
-| Organization owner | Their organization's details, documents, areas, services and prices; their staff's name, phone, gender, photo, verification status, services, areas, weekly hours and performance; their pending invites | Only their own organization and its current staff (a removed member is out of reach at once); no access to staff's identity documents or earnings |
-| Staff member (nurse / doctor of an organization) | As a provider, for bookings assigned to them | Can't set their own areas, services or prices; no payouts screen (earnings go to the organization) |
+| Organization owner | Their organization's details, documents, areas, services and prices; their staff's name, phone, gender, photo, verification status, services, areas, weekly hours and performance; their pending invites; their organization's bookings: service, time, area, preferred gender, price and status, plus — once a staff member is assigned — the patient's name, phone and full address | Only their own organization; never booking notes, the medical profile or visit reports (only the assigned staff member, under the provider rules); no access to staff's identity documents or earnings |
+| Owner of another organization (fallback) | A request offered to them after the original organization's deadline: service, time, area, preferred gender and price | No patient details unless they take it by assigning a staff member; then as above |
+| Staff member (nurse / doctor of an organization) | As a provider, for bookings assigned to them by their owner (or accepted from the owner's "send to all") | Can't set their own areas, services or prices; no payouts screen (earnings go to the organization); loses access to a booking and its chat as soon as they're reassigned or removed |
 | Other users | A provider's public profile: name, photo, experience, rating, reviews (first name + initial) | No personal data of patients |
 | Reaya+ admin | All accounts, bookings, chats, disputes, provider and organization documents, payments, payouts (with the full payout account number in the payout queue), each patient's cancellation record, package sales and promo use counts, organizations' commission rates | Every action logged; viewing booking notes, dispute descriptions or a booking's chats (including closed ones) is logged; admin roles with narrower access are planned but not yet defined |
 | Automated jobs | Bookings, payments, packages and documents: reminders, expiring requests and unpaid checkouts, weekly payouts, package expiry notices, expiring licenses | No human access |
@@ -164,4 +165,5 @@ We need these answers before launch; the first two decide where we host.
 | 8 Oct 2026 | M3.1 | Organizations: business details, documents, logo, areas and prices; owner and admin access. |
 | 8 Oct 2026 | M3.2 | Staff invites (number and name entered by the owner, SMS invitation) and staff records; what owners see about their staff; removal cuts access at once. |
 | 8 Oct 2026 | M3.2 | Default for staff invites until question 11 is answered: SMS limited to the organization's name and the app link; never-accepted invites deleted 30 days after expiry, count only. |
+| 8 Oct 2026 | M3.3 | Organization bookings: what owners see (operational details; patient name, phone and address after assignment; never notes or medical data); fallback offers to other organizations; staff lose access when reassigned or removed. |
 | 8 Oct 2026 | — | This file became the source of truth (previously a shared online document); a Word copy is generated from it. |

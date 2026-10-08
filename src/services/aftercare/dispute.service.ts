@@ -1,3 +1,4 @@
+import { earningsOwnerOf } from '../ledger/earnings-owner';
 import { Container, Service } from 'typedi';
 import { Types } from 'mongoose';
 import { BookingModel } from '../../database/models/booking/booking.model';
@@ -12,7 +13,7 @@ import {
 import { PaymentService } from '../payments/payment.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { withTransaction } from '../../database/transaction';
-import { LedgerEntryType, LedgerOwnerType } from '../../interfaces/ILedger';
+import { LedgerEntryType } from '../../interfaces/ILedger';
 import {
   DisputeResolution,
   DisputeStatus,
@@ -206,13 +207,13 @@ export class DisputeService {
 
     // The provider's part becomes a debit on their ledger: deducted from a card booking's credited share,
     // or owed back for a cash booking (they collected the money).
-    if (providerShare > 0 && booking.providerProfileId) {
-      const providerProfileId = booking.providerProfileId;
+    // Organization bookings: the organization's ledger (it earned the booking).
+    const owner = earningsOwnerOf(booking);
+    if (providerShare > 0 && owner) {
       await withTransaction((session) =>
         Container.get(LedgerService).record(
           {
-            ownerType: LedgerOwnerType.PROVIDER,
-            ownerId: providerProfileId,
+            ...owner,
             bookingId: booking._id,
             type: LedgerEntryType.DEBIT,
             amount: -providerShare,

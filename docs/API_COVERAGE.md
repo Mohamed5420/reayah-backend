@@ -4,7 +4,7 @@
 
 Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi.json` (Swagger UI at `/docs` outside production).
 
-**Implemented:** 198 · **Deferred:** 24 (each to a named Phase 2 / 3 milestone)
+**Implemented:** 206 · **Deferred:** 16 (each to a named Phase 2 / 3 milestone)
 
 ## 7.2 Me / Account (all roles)
 
@@ -167,14 +167,14 @@ Spec §7 endpoints and their status. Live request/response shapes: `docs/openapi
 | `DELETE` | `/org/staff/{id}` | ✅ Built |
 | `PUT` | `/org/staff/{id}/availability` | ✅ Built |
 | `PUT` | `/org/staff/{id}/service-areas` | ✅ Built |
-| `GET` | `/org/bookings` | ⏳ M3.3 — Org bookings & assignment |
-| `GET` | `/org/bookings/{id}` | ⏳ M3.3 — Org bookings & assignment |
-| `POST` | `/org/bookings/{id}/assign` | ⏳ M3.3 — Org bookings & assignment |
-| `POST` | `/org/bookings/{id}/reassign` | ⏳ M3.3 — Org bookings & assignment |
-| `GET` | `/org/bookings/{id}/eligible-staff` | ⏳ M3.3 — Org bookings & assignment |
-| `POST` | `/org/bookings/{id}/broadcast` | ⏳ M3.3 — Org bookings & assignment |
-| `POST` | `/org/bookings/{id}/decline` | ⏳ M3.3 — Org bookings & assignment |
-| `POST` | `/org/bookings/{id}/cancel` | ⏳ M3.3 — Org bookings & assignment |
+| `GET` | `/org/bookings` | ✅ Built |
+| `GET` | `/org/bookings/{id}` | ✅ Built |
+| `POST` | `/org/bookings/{id}/assign` | ✅ Built |
+| `POST` | `/org/bookings/{id}/reassign` | ✅ Built |
+| `GET` | `/org/bookings/{id}/eligible-staff` | ✅ Built |
+| `POST` | `/org/bookings/{id}/broadcast` | ✅ Built |
+| `POST` | `/org/bookings/{id}/decline` | ✅ Built |
+| `POST` | `/org/bookings/{id}/cancel` | ✅ Built |
 | `GET` | `/org/services` | ✅ Built |
 | `PUT` | `/org/services` | ✅ Built |
 | `GET` | `/org/packages` | ⏳ M3.4 — Org dashboard, finance & subscriptions |
