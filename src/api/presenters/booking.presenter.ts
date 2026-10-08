@@ -20,6 +20,7 @@ export const presentQuote = (q: {
   cancellationPolicy: string;
   token: string;
   expiresAt: Date;
+  cashAvailable: boolean;
 }) => ({
   subtotal: q.draft.price.subtotal,
   travel_fee: q.draft.price.travelFee,
@@ -29,6 +30,7 @@ export const presentQuote = (q: {
   currency: 'EGP' as const,
   lines: q.lines,
   cancellation_policy: q.cancellationPolicy,
+  cash_available: q.cashAvailable,
   quote_token: q.token,
   expires_at: q.expiresAt.toISOString(),
 });

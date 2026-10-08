@@ -1,7 +1,7 @@
 import { Router, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import { Container } from 'typedi';
 import type IBaseController from '../interfaces/base-controller.interface';
-import { CheckAppStatusMiddleware } from '../../middlewares/app';
+import { CheckAppStatusMiddleware, IdempotencyMiddleware } from '../../middlewares/app';
 import { AdminGuard, Auth } from '../../middlewares/auth';
 import { FinanceSchemas } from '../../validations/finance/finance.validation';
 import { z } from '../../validations/zod';
@@ -9,6 +9,9 @@ import { presentLedgerEntry, presentPayout, presentPayoutMethod } from '../../pr
 import { defineRoute, type DefinedRoute } from '../../../docs/openapi';
 import { PayoutService } from '../../../services/payouts/payout.service';
 import { ReportService } from '../../../services/reports/report.service';
+import { CommissionService } from '../../../services/payouts/commission.service';
+import { PaymentService } from '../../../services/payments/payment.service';
+import { PaymentMethod } from '../../../interfaces/IBooking';
 import { ProviderProfileService } from '../../../services/provider';
 import { auditContextFrom } from '../../../services/audit';
 import { UserRole } from '../../../interfaces/enums';
@@ -65,6 +68,18 @@ const r = {
     auth,
     request: { body: FinanceSchemas.payoutMethodBody },
     response: { schema: FinanceSchemas.payoutMethod },
+  }),
+
+  payCommission: defineRoute({
+    method: 'post',
+    path: '/provider/commission/pay',
+    summary:
+      'Pay commission owed on cash bookings (all, or part) by card / wallet; credited when the gateway confirms. Poll GET /payments/{id}.',
+    tags: providerTags,
+    auth,
+    idempotent: true,
+    request: { body: FinanceSchemas.payCommissionBody },
+    response: { status: 201, schema: FinanceSchemas.commissionCheckout },
   }),
 
   adminPayouts: defineRoute({
@@ -150,6 +165,8 @@ export default class FinanceController implements IBaseController {
   private payouts = Container.get(PayoutService);
   private reports = Container.get(ReportService);
   private profiles = Container.get(ProviderProfileService);
+  private commission = Container.get(CommissionService);
+  private payments = Container.get(PaymentService);
 
   constructor() {
     this.initializeRoutes();
@@ -175,6 +192,11 @@ export default class FinanceController implements IBaseController {
         commission_due: e.commissionDue,
         currency: 'EGP' as const,
         payout_method: presentPayoutMethod(await this.payouts.getMethod(profile._id)),
+        commission_limit: await this.commission.status(profile._id).then((s) => ({
+          max: s.limit,
+          warning: s.warning,
+          over_limit: s.overLimit,
+        })),
       });
     });
     this.mount(r.ledger, provider, async (req, res) => {
@@ -205,6 +227,28 @@ export default class FinanceController implements IBaseController {
       });
       return HttpResponse.ok(res, presentPayoutMethod(method));
     });
+
+    this.router.post(
+      r.payCommission.path,
+      CheckAppStatusMiddleware,
+      r.payCommission.validate,
+      ...Auth(UserRole.PROVIDER),
+      IdempotencyMiddleware,
+      this.wrap(async (req, res) => {
+        const body = req.body as z.infer<typeof FinanceSchemas.payCommissionBody>;
+        const profile = await this.profiles.getOwn(req.user!.id);
+        const payment = await this.payments.initiateCommissionPayment(req.user!.id, profile._id, {
+          amount: body.amount,
+          method: body.method === 'wallet' ? PaymentMethod.WALLET : PaymentMethod.CARD,
+        });
+        return HttpResponse.created(res, {
+          payment_id: String(payment._id),
+          checkout_url: payment.checkoutUrl,
+          amount: payment.amount,
+          expires_at: payment.expiresAt.toISOString(),
+        });
+      }),
+    );
 
     // Admin.
     this.admin(r.adminPayouts, async (req, res) => {
@@ -250,11 +294,14 @@ export default class FinanceController implements IBaseController {
     this.admin(r.commissionDues, async (req, res) => {
       const pagination = parsePagination(req.query);
       const { data, total } = await this.payouts.commissionDues(pagination);
+      const limit = await this.commission.limit();
       return HttpResponse.paginated(
         res,
+        // Most owed first, so providers over the limit are at the top.
         data.map((row) => ({
           provider: row.provider,
           amount_due: -row.wallet.balance,
+          over_limit: -row.wallet.balance > limit,
           updated_at: row.wallet.updatedAt.toISOString(),
         })),
         pagination,

@@ -1,5 +1,5 @@
 import { Container, Service } from 'typedi';
-import { Types } from 'mongoose';
+import { Types, type HydratedDocument } from 'mongoose';
 import { env } from '../../config/env.config';
 import { BookingModel } from '../../database/models/booking/booking.model';
 import { PaymentModel, RefundModel } from '../../database/models/payment/payment.models';
@@ -13,6 +13,8 @@ import {
   type IBooking,
 } from '../../interfaces/IBooking';
 import { NotificationType } from '../../interfaces/INotification';
+import { LedgerEntryType, LedgerOwnerType } from '../../interfaces/ILedger';
+import { withTransaction } from '../../database/transaction';
 import { PaymentPurpose, PaymentRecordStatus, RefundStatus, type IPayment } from '../../interfaces/IPayment';
 import { logger } from '../../utils/logger/winston';
 import type { Pagination } from '../../utils/response/pagination';
@@ -28,10 +30,14 @@ import type { AuditContext } from '../audit/audit.service';
 import { AuditService } from '../audit/audit.service';
 import { runBookingTransaction, transitionBooking } from '../booking/booking-transaction';
 import { NotificationService } from '../notification/notification.service';
+import { LedgerService } from '../ledger/ledger.service';
+import { CommissionService } from '../payouts/commission.service';
 import { SettingsService } from '../settings/settings.service';
 import { activeGateway, gatewayByName, InvalidWebhookSignatureError, type WebhookRequest } from './gateways';
 
 const CARD_METHODS = [PaymentMethod.CARD, PaymentMethod.WALLET];
+/** How long a commission checkout stays open. */
+const COMMISSION_CHECKOUT_MINUTES = 30;
 
 /**
  * Card and mobile-wallet payments (spec §4.8, §7.14), provider-agnostic: everything gateway-specific
@@ -89,35 +95,12 @@ export class PaymentService {
       gateway: gateway.name,
       expiresAt: deadline,
     });
-    const user = await UserModel.findById(userId).select('fullName phone email').lean();
-    const [firstName, ...rest] = (user?.fullName ?? '').trim().split(/\s+/);
-    const base = `${env.payments.publicApiUrl}${env.apiPrefix}`;
-    try {
-      const checkout = await gateway.createCheckout({
-        paymentId: String(payment._id),
-        amount: payment.amount,
-        method: payment.method,
-        description: `${booking.service.nameAr} — ${booking.referenceCode}`,
-        customer: {
-          firstName,
-          lastName: rest.join(' '),
-          phone: user?.phone ?? '',
-          email: user?.email ?? null,
-        },
-        webhookUrl: `${base}/webhooks/payments/${gateway.name}`,
-        returnUrl: `${base}/payments/${String(payment._id)}/return`,
-        expiresInSeconds: Math.max(60, Math.round((deadline.getTime() - Date.now()) / 1000)),
-      });
-      payment.checkoutUrl = checkout.checkoutUrl;
-      payment.gatewayOrderId = checkout.gatewayOrderId;
-      await payment.save();
-    } catch (err) {
-      logger.error(`Checkout failed for booking ${bookingId}`, err);
-      payment.status = PaymentRecordStatus.FAILED;
-      payment.failureReason = 'checkout_unavailable';
-      await payment.save();
-      throw new PaymentFailedError();
-    }
+    await this.startCheckout(
+      payment,
+      `${booking.service.nameAr} — ${booking.referenceCode}`,
+      userId,
+      deadline,
+    );
     await BookingModel.updateOne(
       { _id: booking._id, paymentStatus: { $ne: PaymentStatus.PAID } },
       { paymentStatus: PaymentStatus.PENDING },
@@ -325,7 +308,12 @@ export class PaymentService {
   }
 
   private async markPaid(payment: IPayment, transactionId: string, instrument: IPayment['instrument']) {
-    const booking = await BookingModel.findById(payment.bookingId).lean();
+    if (payment.purpose === PaymentPurpose.COMMISSION) {
+      await this.creditCommissionPayment(payment, transactionId, instrument);
+      return;
+    }
+    const bookingId = payment.bookingId!;
+    const booking = await BookingModel.findById(bookingId).lean();
     const alreadyPaid = await PaymentModel.exists({
       bookingId: payment.bookingId,
       status: PaymentRecordStatus.PAID,
@@ -356,14 +344,124 @@ export class PaymentService {
       return;
     }
     // Paid after the booking was cancelled / expired (e.g. the payment window closed mid-checkout): refund.
-    await BookingModel.updateOne({ _id: payment.bookingId }, { paymentStatus: PaymentStatus.PAID });
-    await this.refundBooking(
-      payment.bookingId,
-      { amount: null, reason: 'paid_after_booking_closed' },
-      null,
-    ).catch((err: unknown) =>
-      logger.error(`Automatic refund failed for payment ${String(payment._id)}`, err),
+    await BookingModel.updateOne({ _id: bookingId }, { paymentStatus: PaymentStatus.PAID });
+    await this.refundBooking(bookingId, { amount: null, reason: 'paid_after_booking_closed' }, null).catch(
+      (err: unknown) => logger.error(`Automatic refund failed for payment ${String(payment._id)}`, err),
     );
+  }
+
+  /**
+   * A provider's commission payment succeeded: mark it paid and credit their ledger in one transaction
+   * (the conditional update makes a repeat delivery a no-op). Then tell them.
+   */
+  private async creditCommissionPayment(
+    payment: IPayment,
+    transactionId: string,
+    instrument: IPayment['instrument'],
+  ) {
+    const providerProfileId = payment.providerProfileId!;
+    const credited = await withTransaction(async (session) => {
+      const updated = await PaymentModel.findOneAndUpdate(
+        { _id: payment._id, status: { $ne: PaymentRecordStatus.PAID } },
+        {
+          status: PaymentRecordStatus.PAID,
+          gatewayTransactionId: transactionId,
+          instrument,
+          paidAt: new Date(),
+          failureReason: null,
+        },
+        { new: true, session },
+      );
+      if (!updated) return false;
+      await Container.get(LedgerService).record(
+        {
+          ownerType: LedgerOwnerType.PROVIDER,
+          ownerId: providerProfileId,
+          bookingId: null,
+          type: LedgerEntryType.COMMISSION_PAYMENT,
+          amount: payment.amount,
+          note: `payment ${String(payment._id)}`,
+        },
+        session,
+      );
+      return true;
+    });
+    if (!credited) return;
+    await this.notifications.notify([payment.userId], {
+      type: NotificationType.PAYOUT,
+      template: 'commission_paid',
+      params: { amount: (payment.amount / 100).toFixed(2) },
+      data: { payment_id: String(payment._id) },
+    });
+  }
+
+  /**
+   * POST /provider/commission/pay — a checkout for (part of) the commission the provider owes on cash
+   * bookings. `amount` defaults to everything owed; at least 1 EGP.
+   */
+  async initiateCommissionPayment(
+    userId: string,
+    providerProfileId: Types.ObjectId,
+    input: { amount?: number; method: PaymentMethod.CARD | PaymentMethod.WALLET },
+  ) {
+    const gateway = activeGateway();
+    if (!gateway) throw new ServiceUnavailableError('errors.payments_unavailable');
+    const { due } = await Container.get(CommissionService).status(providerProfileId);
+    if (due <= 0) throw new ConflictError('errors.no_commission_due');
+    const amount = input.amount ?? due;
+    if (amount < 100 || amount > due) throw new ValidationError({ amount: ['validation.commission_amount'] });
+
+    const expiresAt = new Date(Date.now() + COMMISSION_CHECKOUT_MINUTES * 60_000);
+    const payment = await PaymentModel.create({
+      purpose: PaymentPurpose.COMMISSION,
+      providerProfileId,
+      userId,
+      amount,
+      method: input.method,
+      gateway: gateway.name,
+      expiresAt,
+    });
+    await this.startCheckout(payment, 'عمولة رعاية+ المستحقة', userId, expiresAt);
+    return payment.toObject();
+  }
+
+  /** Opens the gateway checkout for a just-created payment; marks it failed if the gateway refuses. */
+  private async startCheckout(
+    payment: HydratedDocument<IPayment>,
+    description: string,
+    userId: string,
+    deadline: Date,
+  ) {
+    const gateway = gatewayByName(payment.gateway)!;
+    const user = await UserModel.findById(userId).select('fullName phone email').lean();
+    const [firstName, ...rest] = (user?.fullName ?? '').trim().split(/\s+/);
+    const base = `${env.payments.publicApiUrl}${env.apiPrefix}`;
+    try {
+      const checkout = await gateway.createCheckout({
+        paymentId: String(payment._id),
+        amount: payment.amount,
+        method: payment.method,
+        description,
+        customer: {
+          firstName,
+          lastName: rest.join(' '),
+          phone: user?.phone ?? '',
+          email: user?.email ?? null,
+        },
+        webhookUrl: `${base}/webhooks/payments/${gateway.name}`,
+        returnUrl: `${base}/payments/${String(payment._id)}/return`,
+        expiresInSeconds: Math.max(60, Math.round((deadline.getTime() - Date.now()) / 1000)),
+      });
+      payment.checkoutUrl = checkout.checkoutUrl;
+      payment.gatewayOrderId = checkout.gatewayOrderId;
+      await payment.save();
+    } catch (err) {
+      logger.error(`Checkout failed for payment ${String(payment._id)}`, err);
+      payment.status = PaymentRecordStatus.FAILED;
+      payment.failureReason = 'checkout_unavailable';
+      await payment.save();
+      throw new PaymentFailedError();
+    }
   }
 
   /** Paid: awaiting_payment → pending; the provider gets the request now and their response clock starts. */

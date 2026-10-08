@@ -4,6 +4,8 @@ import type { PaymentMethod } from './IBooking';
 /** Spec §7.14 `purpose`. Packages arrive in M2.5. */
 export enum PaymentPurpose {
   BOOKING = 'booking',
+  /** A provider paying the commission they owe on cash bookings. */
+  COMMISSION = 'commission',
 }
 
 /** One checkout attempt. A booking can have several (a failed card, then a retry). */
@@ -33,7 +35,10 @@ export enum GatewayName {
 export interface IPayment {
   _id: Types.ObjectId;
   purpose: PaymentPurpose;
-  bookingId: Types.ObjectId;
+  /** Booking payments only. */
+  bookingId: Types.ObjectId | null;
+  /** Commission payments only: whose ledger is credited. */
+  providerProfileId: Types.ObjectId | null;
   userId: Types.ObjectId;
   /** Piastres. */
   amount: number;

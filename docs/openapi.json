@@ -6794,7 +6794,8 @@
           "purpose": {
             "type": "string",
             "enum": [
-              "booking"
+              "booking",
+              "commission"
             ]
           },
           "reference_id": {
@@ -6825,14 +6826,18 @@
             "example": "665f1c2b9e1d2a4c3b9e8f1a"
           },
           "booking_id": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "pattern": "^[0-9a-f]{24}$/i",
             "example": "665f1c2b9e1d2a4c3b9e8f1a"
           },
           "purpose": {
             "type": "string",
             "enum": [
-              "booking"
+              "booking",
+              "commission"
             ]
           },
           "amount": {
@@ -7040,6 +7045,25 @@
           },
           "payout_method": {
             "$ref": "#/components/schemas/PayoutMethod"
+          },
+          "commission_limit": {
+            "type": "object",
+            "properties": {
+              "max": {
+                "type": "number"
+              },
+              "warning": {
+                "type": "boolean"
+              },
+              "over_limit": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "max",
+              "warning",
+              "over_limit"
+            ]
           }
         },
         "required": [
@@ -7051,7 +7075,8 @@
           "wallet_balance",
           "commission_due",
           "currency",
-          "payout_method"
+          "payout_method",
+          "commission_limit"
         ]
       },
       "PayoutMethod": {
@@ -7121,7 +7146,8 @@
               "debit",
               "payout",
               "adjustment",
-              "commission_due"
+              "commission_due",
+              "commission_payment"
             ]
           },
           "amount": {
@@ -7183,6 +7209,40 @@
             "type": "string",
             "description": "Masked, e.g. \"بنك مصر •••• 4821\""
           },
+          "statement": {
+            "type": "object",
+            "properties": {
+              "card_earnings": {
+                "type": "number"
+              },
+              "commission_deducted": {
+                "type": "number",
+                "description": "Commission on cash bookings, taken from this payout"
+              },
+              "commission_paid": {
+                "type": "number",
+                "description": "Commission you paid from the app in this period"
+              },
+              "other_deductions": {
+                "type": "number",
+                "description": "e.g. dispute refunds you bore"
+              },
+              "adjustments": {
+                "type": "number"
+              },
+              "net": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "card_earnings",
+              "commission_deducted",
+              "commission_paid",
+              "other_deductions",
+              "adjustments",
+              "net"
+            ]
+          },
           "batch_date": {
             "type": "string"
           },
@@ -7207,6 +7267,7 @@
           "amount",
           "status",
           "destination",
+          "statement",
           "batch_date",
           "reference",
           "paid_at",
@@ -7262,6 +7323,51 @@
         ],
         "additionalProperties": false
       },
+      "CommissionCheckout": {
+        "type": "object",
+        "properties": {
+          "payment_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "checkout_url": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "expires_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "payment_id",
+          "checkout_url",
+          "amount",
+          "expires_at"
+        ]
+      },
+      "PayCommission": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "minimum": 100
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "card",
+              "wallet"
+            ]
+          }
+        },
+        "required": [
+          "method"
+        ],
+        "additionalProperties": false
+      },
       "AdminPayout": {
         "type": "object",
         "properties": {
@@ -7285,6 +7391,40 @@
           "destination": {
             "type": "string",
             "description": "Masked, e.g. \"بنك مصر •••• 4821\""
+          },
+          "statement": {
+            "type": "object",
+            "properties": {
+              "card_earnings": {
+                "type": "number"
+              },
+              "commission_deducted": {
+                "type": "number",
+                "description": "Commission on cash bookings, taken from this payout"
+              },
+              "commission_paid": {
+                "type": "number",
+                "description": "Commission you paid from the app in this period"
+              },
+              "other_deductions": {
+                "type": "number",
+                "description": "e.g. dispute refunds you bore"
+              },
+              "adjustments": {
+                "type": "number"
+              },
+              "net": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "card_earnings",
+              "commission_deducted",
+              "commission_paid",
+              "other_deductions",
+              "adjustments",
+              "net"
+            ]
           },
           "batch_date": {
             "type": "string"
@@ -7343,6 +7483,7 @@
           "amount",
           "status",
           "destination",
+          "statement",
           "batch_date",
           "reference",
           "paid_at",
@@ -7381,6 +7522,9 @@
           "amount_due": {
             "type": "number"
           },
+          "over_limit": {
+            "type": "boolean"
+          },
           "updated_at": {
             "type": "string"
           }
@@ -7388,6 +7532,7 @@
         "required": [
           "provider",
           "amount_due",
+          "over_limit",
           "updated_at"
         ]
       },
@@ -18029,6 +18174,69 @@
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/PayoutMethod"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/provider/commission/pay": {
+      "post": {
+        "summary": "Pay commission owed on cash bookings (all, or part) by card / wallet; credited when the gateway confirms. Poll GET /payments/{id}.",
+        "tags": [
+          "Provider — Earnings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "Idempotency-Key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayCommission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CommissionCheckout"
                     }
                   },
                   "required": [

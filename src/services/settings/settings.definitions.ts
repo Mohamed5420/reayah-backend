@@ -41,6 +41,10 @@ export interface Settings {
   payout_day: Weekday;
   /** Smallest balance paid out in a batch (piastres); smaller balances roll over to the next week. */
   payout_min_amount: number;
+  /** Commission a provider may owe on cash bookings (piastres) before new cash bookings stop. */
+  max_commission_due: number;
+  /** Warn the provider when commission due reaches this percent of max_commission_due. */
+  commission_warning_percent: number;
   support_phone: string;
   emergency_number: string;
   min_app_version: { android: string; ios: string };
@@ -63,6 +67,8 @@ export const SETTING_DEFAULTS: Settings = {
   referral_reward: 5000,
   payout_day: 'thursday',
   payout_min_amount: 10000,
+  max_commission_due: 100000,
+  commission_warning_percent: 80,
   support_phone: '',
   emergency_number: '123',
   min_app_version: { android: '1.0.0', ios: '1.0.0' },
@@ -106,6 +112,8 @@ export const SETTING_VALIDATORS: { [K in SettingKey]: Validator<Settings[K]> } =
   referral_reward: intBetween(0, 10_000_000),
   payout_day: (v): v is Weekday => WEEKDAYS.includes(v as Weekday),
   payout_min_amount: intBetween(0, 100_000_00),
+  max_commission_due: intBetween(0, 100_000_00),
+  commission_warning_percent: intBetween(1, 100),
   support_phone: isString,
   emergency_number: isString,
   min_app_version: shape<Settings['min_app_version']>({ android: isVersion, ios: isVersion }),

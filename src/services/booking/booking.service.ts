@@ -22,6 +22,7 @@ import type { Pagination } from '../../utils/response/pagination';
 import type { Language } from '../../utils/i18n';
 import {
   CancellationNotAllowedError,
+  ConflictError,
   InvalidStatusTransitionError,
   NotFoundError,
   ValidationError,
@@ -38,6 +39,7 @@ import {
 import { QuoteService, type BookingDraft } from './quote.service';
 import { PaymentService } from '../payments/payment.service';
 import { patientFeeFor } from './patient-fees';
+import { CommissionService } from '../payouts/commission.service';
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I
 
@@ -70,6 +72,12 @@ export class BookingService {
       throw new ValidationError({ payment_method: ['validation.payment_method_unavailable'] });
     }
     const draft = this.quotes.verifyToken(input.quoteToken, userId);
+    if (
+      input.paymentMethod === PaymentMethod.CASH &&
+      (await Container.get(CommissionService).overLimit(draft.providerId))
+    ) {
+      throw new ConflictError('errors.provider_cash_unavailable');
+    }
     const prepared = await this.quotes.prepare(userId, {
       ...draft,
       scheduledStart: new Date(draft.scheduledStart),

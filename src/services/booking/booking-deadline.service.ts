@@ -1,4 +1,5 @@
 import { Container, Service } from 'typedi';
+import { CommissionService } from '../payouts/commission.service';
 import type { Types } from 'mongoose';
 import { BookingModel } from '../../database/models/booking/booking.model';
 import { BookingOfferModel } from '../../database/models/booking/booking-offer.model';
@@ -7,6 +8,7 @@ import {
   BookingActor,
   BookingStatus,
   OfferStatus,
+  PaymentMethod,
   PreferredGender,
   type IBooking,
 } from '../../interfaces/IBooking';
@@ -153,7 +155,12 @@ export class BookingDeadlineService {
         },
         { page: 1, perPage: 500, skip: 0 },
       );
-      const ids = data.map((c) => c.profile._id).filter((id) => !id.equals(exclude));
+      let ids = data.map((c) => c.profile._id).filter((id) => !id.equals(exclude));
+      // Cash requests don't go to providers over the commission limit.
+      if (booking.paymentMethod === PaymentMethod.CASH) {
+        const blocked = await Container.get(CommissionService).overLimitAmong(ids);
+        ids = ids.filter((id) => !blocked.has(String(id)));
+      }
       const busy = await this.discovery.busyIntervals(
         ids,
         booking.scheduledStart,

@@ -13,6 +13,8 @@ export enum LedgerEntryType {
   ADJUSTMENT = 'adjustment',
   /** Cash bookings: the provider collected the money and owes the platform its commission. */
   COMMISSION_DUE = 'commission_due',
+  /** The provider paid commission they owed, through the payment gateway. */
+  COMMISSION_PAYMENT = 'commission_payment',
 }
 
 /**

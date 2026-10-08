@@ -18,6 +18,7 @@ import { socketIOHandler } from './gateway';
 import { registerBookingSocketEvents } from './emit/booking.emit';
 import { registerBookingNotifications } from './services/notification/booking-notifications';
 import { registerPaymentRefunds } from './services/payments/payment-refunds';
+import { registerCommissionAlerts } from './services/payouts/commission.service';
 import { getIO } from './helper/socket';
 import { initQueues } from './queues/queue-registry';
 import { initializeBullBoard } from './queues/bull-board';
@@ -77,6 +78,7 @@ export class Server {
     registerBookingSocketEvents();
     registerBookingNotifications();
     registerPaymentRefunds();
+    registerCommissionAlerts();
     initQueues();
 
     return new Promise((resolve) => {

@@ -28,6 +28,7 @@ import type { AuditContext } from '../audit/audit.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { PatientProfileService } from '../patient/patient-profile.service';
 import { patientFeeFor } from './patient-fees';
+import { CommissionService } from '../payouts/commission.service';
 import { auditNotesRead } from '../patient/medical-audit';
 import { SettingsService } from '../settings/settings.service';
 import { nextStatuses } from './booking-state';
@@ -156,6 +157,7 @@ export class ProviderBookingService {
     if (booking.assignmentDeadline && booking.assignmentDeadline <= new Date()) {
       throw new AssignmentDeadlinePassedError();
     }
+    await this.assertMayTakeCash(profile, booking);
     return runBookingTransaction(async (tx) => {
       await lockProviderSchedule(profile._id, tx.session);
       await assertProviderFree(
@@ -287,6 +289,7 @@ export class ProviderBookingService {
       if (!booking || booking.status !== BookingStatus.PENDING || booking.providerProfileId) {
         throw new OfferTakenError();
       }
+      await this.assertMayTakeCash(profile, booking);
       await lockProviderSchedule(profile._id, tx.session);
       await assertProviderFree(
         profile._id,
@@ -345,6 +348,14 @@ export class ProviderBookingService {
   }
 
   // ── Helpers ──
+
+  /** Over the commission limit, a provider can't take on a new cash booking until they pay down. */
+  private async assertMayTakeCash(profile: ProviderDoc, booking: Pick<IBooking, 'paymentMethod'>) {
+    if (booking.paymentMethod !== PaymentMethod.CASH) return;
+    if (await Container.get(CommissionService).overLimit(profile._id)) {
+      throw new ConflictError('errors.commission_limit_reached');
+    }
+  }
 
   /** A booking currently assigned to this provider; 404 otherwise (including other providers' bookings). */
   private async getAssigned(profile: ProviderDoc, bookingId: string) {

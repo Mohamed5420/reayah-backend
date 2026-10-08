@@ -14,7 +14,8 @@ import { baseSchemaOptions, piastresValidator } from '../../schema-options';
 const paymentSchema = new Schema<IPayment>(
   {
     purpose: { type: String, enum: Object.values(PaymentPurpose), required: true },
-    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', required: true },
+    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', default: null },
+    providerProfileId: { type: Schema.Types.ObjectId, ref: 'ProviderProfile', default: null },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     amount: { type: Number, required: true, validate: piastresValidator },
     currency: { type: String, enum: ['EGP'], default: 'EGP' },
@@ -39,10 +40,13 @@ paymentSchema.index({ bookingId: 1, createdAt: -1 });
 paymentSchema.index({ userId: 1, createdAt: -1 });
 paymentSchema.index({ gateway: 1, gatewayOrderId: 1 });
 paymentSchema.index({ status: 1, expiresAt: 1 });
-// At most one paid payment per booking.
+// At most one paid payment per booking (commission payments have no booking).
 paymentSchema.index(
   { bookingId: 1 },
-  { unique: true, partialFilterExpression: { status: { $in: [PaymentRecordStatus.PAID] } } },
+  {
+    unique: true,
+    partialFilterExpression: { purpose: PaymentPurpose.BOOKING, status: { $in: [PaymentRecordStatus.PAID] } },
+  },
 );
 
 export const PaymentModel = model<IPayment>('Payment', paymentSchema);

@@ -32,6 +32,16 @@ export interface IPayoutMethod {
   updatedAt: Date;
 }
 
+/** Piastres. Deductions are positive numbers; net = cardEarnings − commissionDeducted + commissionPaid − otherDeductions + adjustments. */
+export type PayoutStatement = {
+  cardEarnings: number;
+  commissionDeducted: number;
+  commissionPaid: number;
+  otherDeductions: number;
+  adjustments: number;
+  net: number;
+};
+
 export enum PayoutStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
@@ -50,6 +60,8 @@ export interface IPayout {
   destination: string;
   /** e.g. "بنك مصر •••• 4821" — safe to show anywhere. */
   destinationLabel: string;
+  /** How the amount came together since the previous payout (ledger totals; net = amount). */
+  statement: PayoutStatement;
   /** Cairo date of the batch that created it. */
   batchDate: string;
   reference: string | null;

@@ -113,10 +113,10 @@ export default class PaymentController implements IBaseController {
         });
       }),
     );
-    this.mount(r.get, [UserRole.PATIENT], async (req, res) =>
+    this.mount(r.get, [UserRole.PATIENT, UserRole.PROVIDER], async (req, res) =>
       HttpResponse.ok(res, presentPayment(await this.payments.get(req.user!.id, req.params.id))),
     );
-    this.mount(r.mine, [UserRole.PATIENT], async (req, res) => {
+    this.mount(r.mine, [UserRole.PATIENT, UserRole.PROVIDER], async (req, res) => {
       const pagination = parsePagination(req.query);
       const { data, total } = await this.payments.listMine(req.user!.id, pagination);
       return HttpResponse.paginated(res, data.map(presentPayment), pagination, total);

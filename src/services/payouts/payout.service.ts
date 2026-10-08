@@ -1,5 +1,5 @@
 import { Container, Service } from 'typedi';
-import { Types } from 'mongoose';
+import { Types, type ClientSession } from 'mongoose';
 import { withTransaction } from '../../database/transaction';
 import { BookingModel } from '../../database/models/booking/booking.model';
 import { WalletBalanceModel, WalletLedgerModel } from '../../database/models/ledger/wallet.model';
@@ -198,6 +198,7 @@ export class PayoutService {
           },
         ).lean();
         if (!current || current.balance < minimum) return null;
+        const statement = await this.statementSinceLastPayout(wallet.ownerId, current.balance, session);
         const [doc] = await PayoutModel.create(
           [
             {
@@ -212,6 +213,7 @@ export class PayoutService {
                 accountNumber: plain.accountNumber,
               }),
               destinationLabel: maskedLabel(plain),
+              statement,
               batchDate,
             },
           ],
@@ -302,7 +304,12 @@ export class PayoutService {
       await this.notifications.notify([profile.userId], {
         type: NotificationType.PAYOUT,
         template: 'payout_paid',
-        params: { amount: (payout.amount / 100).toFixed(2), destination: payout.destinationLabel },
+        params: {
+          amount: (payout.amount / 100).toFixed(2),
+          destination: payout.destinationLabel,
+          earnings: (payout.statement.cardEarnings / 100).toFixed(2),
+          commission: (payout.statement.commissionDeducted / 100).toFixed(2),
+        },
         data: { payout_id: id },
       });
     }
@@ -397,6 +404,46 @@ export class PayoutService {
       metadata: { amount: input.amount, reason: input.reason, entryId: String(entry._id) },
     });
     return entry.toObject();
+  }
+
+  /**
+   * What makes up a payout (product decision): the ledger entries since the provider's previous payout,
+   * grouped — card earnings, commission deducted for cash bookings, commission they paid, other
+   * deductions (dispute refunds), adjustments. They add up to the amount paid; any rounding gap from
+   * older history lands in adjustments so the statement always balances.
+   */
+  async statementSinceLastPayout(ownerId: Types.ObjectId, amount: number, session: ClientSession) {
+    const lastPayout = await WalletLedgerModel.findOne({
+      ownerType: PROVIDER,
+      ownerId,
+      type: LedgerEntryType.PAYOUT,
+    })
+      .sort({ createdAt: -1, _id: -1 })
+      .session(session)
+      .lean();
+    const entries = await WalletLedgerModel.find({
+      ownerType: PROVIDER,
+      ownerId,
+      type: { $ne: LedgerEntryType.PAYOUT },
+      ...(lastPayout ? { _id: { $gt: lastPayout._id } } : {}),
+    })
+      .session(session)
+      .lean();
+    const sum = (type: LedgerEntryType) =>
+      entries.filter((e) => e.type === type).reduce((t, e) => t + e.amount, 0);
+    const cardEarnings = sum(LedgerEntryType.CREDIT);
+    const commissionDeducted = -sum(LedgerEntryType.COMMISSION_DUE);
+    const commissionPaid = sum(LedgerEntryType.COMMISSION_PAYMENT);
+    const otherDeductions = -sum(LedgerEntryType.DEBIT);
+    const known = cardEarnings - commissionDeducted + commissionPaid - otherDeductions;
+    return {
+      cardEarnings,
+      commissionDeducted,
+      commissionPaid,
+      otherDeductions,
+      adjustments: amount - known,
+      net: amount,
+    };
   }
 
   async balance(ownerId: Types.ObjectId) {

@@ -5,7 +5,8 @@ import { objectId, paginationQuery, piastres, z } from '../zod';
 const payment = z
   .object({
     id: objectId,
-    booking_id: objectId,
+    /** null for a provider's commission payment. */
+    booking_id: objectId.nullable(),
     purpose: z.enum(PaymentPurpose),
     amount: z.number(),
     currency: z.literal('EGP'),

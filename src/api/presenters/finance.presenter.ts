@@ -31,6 +31,15 @@ export const presentPayout = (p: IPayout) => ({
   amount: p.amount,
   status: p.status,
   destination: p.destinationLabel,
+  /** How the amount came together: card earnings − commission for cash bookings ± the rest = net paid. */
+  statement: {
+    card_earnings: p.statement?.cardEarnings ?? 0,
+    commission_deducted: p.statement?.commissionDeducted ?? 0,
+    commission_paid: p.statement?.commissionPaid ?? 0,
+    other_deductions: p.statement?.otherDeductions ?? 0,
+    adjustments: p.statement?.adjustments ?? 0,
+    net: p.statement?.net ?? p.amount,
+  },
   batch_date: p.batchDate,
   reference: p.reference,
   paid_at: p.paidAt ? p.paidAt.toISOString() : null,

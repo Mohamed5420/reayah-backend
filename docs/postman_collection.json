@@ -6398,6 +6398,45 @@
               }
             }
           }
+        },
+        {
+          "name": "Pay commission owed on cash bookings (all, or part) by card / wallet; credited when the gateway confirms. Poll GET /payments/{id}.",
+          "request": {
+            "method": "POST",
+            "description": "Pay commission owed on cash bookings (all, or part) by card / wallet; credited when the gateway confirms. Poll GET /payments/{id}.",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/provider/commission/pay",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "provider",
+                "commission",
+                "pay"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100,\n  \"method\": \"card\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     }

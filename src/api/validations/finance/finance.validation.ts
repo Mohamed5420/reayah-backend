@@ -24,6 +24,17 @@ const payout = z
     amount: z.number(),
     status: z.enum(PayoutStatus),
     destination: z.string().openapi({ description: 'Masked, e.g. "بنك مصر •••• 4821"' }),
+    /** card_earnings − commission_deducted + commission_paid − other_deductions + adjustments = net. */
+    statement: z.object({
+      card_earnings: z.number(),
+      commission_deducted: z
+        .number()
+        .openapi({ description: 'Commission on cash bookings, taken from this payout' }),
+      commission_paid: z.number().openapi({ description: 'Commission you paid from the app in this period' }),
+      other_deductions: z.number().openapi({ description: 'e.g. dispute refunds you bore' }),
+      adjustments: z.number(),
+      net: z.number(),
+    }),
     batch_date: z.string(),
     reference: z.string().nullable(),
     paid_at: z.string().nullable(),
@@ -48,6 +59,8 @@ export const FinanceSchemas = {
       commission_due: z.number(),
       currency: z.literal('EGP'),
       payout_method: payoutMethod,
+      /** Cash-booking commission limit: warning from commission_warning_percent, over_limit = no new cash bookings. */
+      commission_limit: z.object({ max: z.number(), warning: z.boolean(), over_limit: z.boolean() }),
     })
     .openapi('ProviderEarnings'),
   ledgerEntry: z
@@ -101,6 +114,8 @@ export const FinanceSchemas = {
     .object({
       provider: z.object({ id: objectId, name: z.string(), phone: z.string() }).nullable(),
       amount_due: z.number(),
+      /** Above max_commission_due: no new cash bookings until paid down. Listed first. */
+      over_limit: z.boolean(),
       updated_at: z.string(),
     })
     .openapi('CommissionDue'),
@@ -117,4 +132,14 @@ export const FinanceSchemas = {
     })
     .openapi('LedgerAdjustment'),
   exportQuery: z.object({ type: z.enum(REPORT_TYPES), from: date, to: date }),
+  payCommissionBody: z
+    .strictObject({
+      /** Piastres; omit to pay everything owed. */
+      amount: z.number().int().min(100).optional(),
+      method: z.enum(['card', 'wallet']),
+    })
+    .openapi('PayCommission'),
+  commissionCheckout: z
+    .object({ payment_id: objectId, checkout_url: z.string(), amount: z.number(), expires_at: z.string() })
+    .openapi('CommissionCheckout'),
 };

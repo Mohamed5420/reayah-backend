@@ -21,6 +21,7 @@ import { DiscoveryService, assertQuantity } from '../discovery/discovery.service
 import { LocationService } from '../location/location.service';
 import { PatientProfileService } from '../patient/patient-profile.service';
 import { SettingsService } from '../settings/settings.service';
+import { CommissionService } from '../payouts/commission.service';
 import { computePrice } from './pricing';
 
 /** A quote is guaranteed for 10 minutes (spec §7.8). */
@@ -170,6 +171,8 @@ export class QuoteService {
     return {
       ...prepared,
       lines,
+      // Over the commission limit, a provider takes card / wallet only (product decision after M2.4).
+      cashAvailable: !(await Container.get(CommissionService).overLimit(draft.providerId)),
       cancellationPolicy: t(
         'app_config.cancellation_policy',
         { hours: settings.cancellation_free_window_hours },
