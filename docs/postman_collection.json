@@ -4769,6 +4769,11 @@
                   "key": "group_by",
                   "value": "day",
                   "disabled": true
+                },
+                {
+                  "key": "visit_type",
+                  "value": "home_visit",
+                  "disabled": true
                 }
               ],
               "variable": []
@@ -5492,6 +5497,11 @@
                 {
                   "key": "search",
                   "value": "string",
+                  "disabled": true
+                },
+                {
+                  "key": "visit_type",
+                  "value": "home_visit",
                   "disabled": true
                 },
                 {
@@ -6973,7 +6983,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"code\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"subtotal\": 25000\n}",
+              "raw": "{\n  \"code\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"subtotal\": 25000,\n  \"visit_type\": \"home_visit\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7058,7 +7068,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"code\": \"string\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"type\": \"percent\",\n  \"value\": 1,\n  \"max_discount\": 25000,\n  \"min_subtotal\": 25000,\n  \"max_uses\": 1,\n  \"per_user_limit\": 1,\n  \"valid_from\": \"2026-10-05T14:00:00Z\",\n  \"valid_to\": \"2026-10-05T14:00:00Z\",\n  \"service_ids\": [\n    \"665f1c2b9e1d2a4c3b9e8f1a\"\n  ],\n  \"first_booking_only\": true,\n  \"is_active\": true\n}",
+              "raw": "{\n  \"code\": \"string\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"type\": \"percent\",\n  \"value\": 1,\n  \"max_discount\": 25000,\n  \"min_subtotal\": 25000,\n  \"max_uses\": 1,\n  \"per_user_limit\": 1,\n  \"valid_from\": \"2026-10-05T14:00:00Z\",\n  \"valid_to\": \"2026-10-05T14:00:00Z\",\n  \"service_ids\": [\n    \"665f1c2b9e1d2a4c3b9e8f1a\"\n  ],\n  \"visit_types\": [\n    \"home_visit\"\n  ],\n  \"first_booking_only\": true,\n  \"is_active\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7098,7 +7108,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"code\": \"string\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"type\": \"percent\",\n  \"value\": 1,\n  \"max_discount\": 25000,\n  \"min_subtotal\": 25000,\n  \"max_uses\": 1,\n  \"per_user_limit\": 1,\n  \"valid_from\": \"2026-10-05T14:00:00Z\",\n  \"valid_to\": \"2026-10-05T14:00:00Z\",\n  \"service_ids\": [\n    \"665f1c2b9e1d2a4c3b9e8f1a\"\n  ],\n  \"first_booking_only\": true,\n  \"is_active\": true\n}",
+              "raw": "{\n  \"code\": \"string\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"type\": \"percent\",\n  \"value\": 1,\n  \"max_discount\": 25000,\n  \"min_subtotal\": 25000,\n  \"max_uses\": 1,\n  \"per_user_limit\": 1,\n  \"valid_from\": \"2026-10-05T14:00:00Z\",\n  \"valid_to\": \"2026-10-05T14:00:00Z\",\n  \"service_ids\": [\n    \"665f1c2b9e1d2a4c3b9e8f1a\"\n  ],\n  \"visit_types\": [\n    \"home_visit\"\n  ],\n  \"first_booking_only\": true,\n  \"is_active\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7204,7 +7214,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visit_type\": \"home_visit\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -7244,7 +7254,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visit_type\": \"home_visit\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -9327,7 +9337,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visit_type\": \"home_visit\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -9367,7 +9377,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
+              "raw": "{\n  \"name_ar\": \"مدينة نصر\",\n  \"name_en\": \"Nasr City\",\n  \"description_ar\": \"string\",\n  \"description_en\": \"string\",\n  \"service_id\": \"665f1c2b9e1d2a4c3b9e8f1a\",\n  \"visit_type\": \"home_visit\",\n  \"visits_count\": 1,\n  \"validity_days\": 1,\n  \"price\": 25000,\n  \"is_active\": true,\n  \"sort_order\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"

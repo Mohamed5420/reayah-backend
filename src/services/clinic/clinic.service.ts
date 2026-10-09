@@ -26,6 +26,7 @@ import { AuditService, type AuditContext } from '../audit/audit.service';
 import { NotificationService } from '../notification/notification.service';
 import type { Pagination } from '../../utils/response/pagination';
 import { logger } from '../../utils/logger/winston';
+import { t } from '../../utils/i18n';
 
 type ProfileDoc = HydratedDocument<IProviderProfile>;
 export type ClinicDoc = HydratedDocument<IClinic> & { softDelete: () => Promise<unknown> };
@@ -147,6 +148,7 @@ export class ClinicService {
     });
     const previous = clinic.licence?.fileKey;
     clinic.licence = { fileKey, uploadedAt: new Date(), expiresAt: input.expiresAt ?? null };
+    clinic.licenceNoticeAt = null;
     if (clinic.status === ClinicStatus.APPROVED) {
       clinic.status = ClinicStatus.PENDING;
       clinic.submittedAt = new Date();
@@ -312,6 +314,51 @@ export class ClinicService {
     return clinic;
   }
 
+  /**
+   * Daily (with providers' documents, 06:00 Cairo): licences expiring within `warnDays` → the owner is
+   * told once; expired licences of approved clinics → the clinic goes back to "changes requested" (not
+   * bookable) until a new licence is attached and approved. Audited.
+   */
+  async processLicenceExpiry(now: Date, warnDays: number) {
+    const horizon = new Date(now.getTime() + warnDays * 24 * 3600_000);
+    let warned = 0;
+    let paused = 0;
+    const expiring = await ClinicModel.find({
+      'licence.expiresAt': { $gt: now, $lte: horizon },
+      licenceNoticeAt: null,
+    }).lean();
+    for (const clinic of expiring) {
+      const claimed = await ClinicModel.updateOne(
+        { _id: clinic._id, licenceNoticeAt: null },
+        { licenceNoticeAt: now },
+      );
+      if (!claimed.modifiedCount) continue;
+      await this.notifyAbout(clinic, 'clinic_licence_expiring', {
+        clinic: clinic.name,
+        date: clinic.licence!.expiresAt!.toISOString().slice(0, 10),
+      });
+      warned++;
+    }
+    const expired = await ClinicModel.find({
+      status: ClinicStatus.APPROVED,
+      'licence.expiresAt': { $lte: now },
+    }).lean();
+    for (const clinic of expired) {
+      const updated = await ClinicModel.updateOne(
+        { _id: clinic._id, status: ClinicStatus.APPROVED },
+        { status: ClinicStatus.CHANGES_REQUESTED, adminMessage: t('errors.clinic_licence_expired') },
+      );
+      if (!updated.modifiedCount) continue;
+      paused++;
+      await this.audit.log(
+        { actorId: null },
+        { action: 'clinic.paused_licence_expired', entityType: 'clinic', entityId: String(clinic._id) },
+      );
+      await this.notifyAbout(clinic, 'clinic_licence_expired', { clinic: clinic.name });
+    }
+    return { warned, paused };
+  }
+
   // ── Helpers ──
 
   private assertIndependentDoctor(profile: IProviderProfile) {
@@ -358,6 +405,32 @@ export class ClinicService {
     clinicId: Types.ObjectId,
   ): IProviderClinic | null {
     return profile.clinics.find((l) => l.clinicId.equals(clinicId)) ?? null;
+  }
+
+  /** The doctor (own clinic) or the organization's owner (branch). */
+  private async ownerUserId(clinic: IClinic) {
+    return clinic.providerProfileId
+      ? (await ProviderProfileModel.findById(clinic.providerProfileId).select('userId').lean())?.userId
+      : (await OrganizationModel.findById(clinic.organizationId).select('ownerUserId').lean())?.ownerUserId;
+  }
+
+  private async notifyAbout(
+    clinic: IClinic,
+    template: 'clinic_licence_expiring' | 'clinic_licence_expired',
+    params: Record<string, string>,
+  ) {
+    const userId = await this.ownerUserId(clinic);
+    if (!userId) return;
+    await Container.get(NotificationService)
+      .notify([userId], {
+        type: NotificationType.VERIFICATION_RESULT,
+        template,
+        params,
+        data: { clinic_id: String(clinic._id) },
+      })
+      .catch((err: unknown) =>
+        logger.error(`Clinic notice ${template} failed for ${String(clinic._id)}`, err),
+      );
   }
 
   private async notifyOwner(clinic: IClinic, status: ClinicStatus, message: string | null) {

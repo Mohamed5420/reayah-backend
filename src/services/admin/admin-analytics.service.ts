@@ -4,7 +4,7 @@ import { BookingModel } from '../../database/models/booking/booking.model';
 import { UserModel } from '../../database/models/user/user.model';
 import { OrganizationModel } from '../../database/models/organization/organization.models';
 import { UserRole } from '../../interfaces/enums';
-import { BookingStatus } from '../../interfaces/IBooking';
+import { BookingStatus, BookingType } from '../../interfaces/IBooking';
 import { BadRequestError } from '../../utils/types-errors';
 import { addDays, cairoToUtc, CAIRO_TZ, dayOfWeek } from '../../utils/time/cairo';
 
@@ -39,7 +39,14 @@ const WEEK_START_DOW = 6;
  */
 @Service()
 export class AdminAnalyticsService {
-  async series(input: { metric: AnalyticsMetric; from: string; to: string; groupBy: AnalyticsGroup }) {
+  async series(input: {
+    metric: AnalyticsMetric;
+    from: string;
+    to: string;
+    groupBy: AnalyticsGroup;
+    /** Booking metrics: only this visit type (C5). */
+    visitType?: BookingType;
+  }) {
     const { metric, from, to, groupBy } = input;
     if (to < from) throw new BadRequestError('errors.analytics_range');
     const days = Math.round((Date.parse(to) - Date.parse(from)) / 864e5) + 1;
@@ -47,16 +54,29 @@ export class AdminAnalyticsService {
       throw new BadRequestError('errors.analytics_range_too_long', { days: MAX_RANGE_DAYS[groupBy] });
     }
     const range = { $gte: cairoToUtc(from, '00:00'), $lt: cairoToUtc(addDays(to, 1), '00:00') };
-    const rows = await this.aggregate(metric, range, groupBy);
+    const rows = await this.aggregate(metric, range, groupBy, input.visitType);
     const byPeriod = new Map(rows.map((r) => [r._id, r]));
     const series = this.buckets(from, to, groupBy).map((period) => ({
       period,
       value: this.value(metric, byPeriod.get(period)),
     }));
-    return { metric, groupBy, from, to, total: await this.total(metric, range, rows), series };
+    return {
+      metric,
+      groupBy,
+      from,
+      to,
+      total: await this.total(metric, range, rows, input.visitType),
+      series,
+    };
   }
 
-  private aggregate(metric: AnalyticsMetric, range: { $gte: Date; $lt: Date }, groupBy: AnalyticsGroup) {
+  private aggregate(
+    metric: AnalyticsMetric,
+    range: { $gte: Date; $lt: Date },
+    groupBy: AnalyticsGroup,
+    visitType?: BookingType,
+  ) {
+    const byType = visitType ? { type: visitType } : {};
     const bucket = (field: string) => ({
       $dateToString: {
         format: '%Y-%m-%d',
@@ -67,7 +87,12 @@ export class AdminAnalyticsService {
       },
     });
     // Test accounts (reviewers, testers) never count.
-    const completed = { status: BookingStatus.COMPLETED, completedAt: range, isTestAccount: { $ne: true } };
+    const completed = {
+      status: BookingStatus.COMPLETED,
+      completedAt: range,
+      isTestAccount: { $ne: true },
+      ...byType,
+    };
     const run = (model: 'booking' | 'user' | 'org', pipeline: PipelineStage[]) =>
       model === 'booking'
         ? BookingModel.aggregate<Row>(pipeline)
@@ -78,7 +103,7 @@ export class AdminAnalyticsService {
     switch (metric) {
       case 'bookings':
         return run('booking', [
-          { $match: { createdAt: range, isTestAccount: { $ne: true } } },
+          { $match: { createdAt: range, isTestAccount: { $ne: true }, ...byType } },
           { $group: { _id: bucket('createdAt'), value: { $sum: 1 } } },
         ]);
       case 'cancellation_rate':
@@ -88,6 +113,7 @@ export class AdminAnalyticsService {
               createdAt: range,
               status: { $ne: BookingStatus.AWAITING_PAYMENT },
               isTestAccount: { $ne: true },
+              ...byType,
             },
           },
           {
@@ -139,7 +165,12 @@ export class AdminAnalyticsService {
     return row?.value ?? 0;
   }
 
-  private async total(metric: AnalyticsMetric, range: { $gte: Date; $lt: Date }, rows: Row[]) {
+  private async total(
+    metric: AnalyticsMetric,
+    range: { $gte: Date; $lt: Date },
+    rows: Row[],
+    visitType?: BookingType,
+  ) {
     if (metric === 'cancellation_rate') {
       const sum = (key: 'cancelled' | 'count') => rows.reduce((total, r) => total + (r[key] ?? 0), 0);
       return rate(sum('cancelled'), sum('count'));
@@ -151,6 +182,7 @@ export class AdminAnalyticsService {
           status: BookingStatus.COMPLETED,
           completedAt: range,
           isTestAccount: { $ne: true },
+          ...(visitType ? { type: visitType } : {}),
         })
       ).length;
     }

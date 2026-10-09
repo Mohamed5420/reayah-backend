@@ -45,12 +45,20 @@ export class AdminBookingService {
   private readonly chat = Container.get(ChatService);
 
   async list(
-    filters: { status?: BookingStatus; dateFrom?: Date; dateTo?: Date; areaId?: string; search?: string },
+    filters: {
+      status?: BookingStatus;
+      dateFrom?: Date;
+      dateTo?: Date;
+      areaId?: string;
+      search?: string;
+      visitType?: BookingType;
+    },
     pagination: Pagination,
   ) {
     const query: FilterQuery<IBooking> = {
       ...(filters.status ? { status: filters.status } : {}),
       ...(filters.areaId ? { areaId: filters.areaId } : {}),
+      ...(filters.visitType ? { type: filters.visitType } : {}),
       ...(filters.dateFrom || filters.dateTo
         ? {
             scheduledStart: {

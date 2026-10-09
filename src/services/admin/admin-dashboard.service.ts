@@ -5,7 +5,7 @@ import { ProviderDocumentModel } from '../../database/models/provider/provider-d
 import { DisputeModel } from '../../database/models/aftercare/aftercare.models';
 import { AuditLogModel } from '../../database/models/audit-log/audit-log.model';
 import { VerificationStatus } from '../../interfaces/enums';
-import { BookingStatus } from '../../interfaces/IBooking';
+import { BookingStatus, BookingType } from '../../interfaces/IBooking';
 import { DisputeStatus } from '../../interfaces/IAftercare';
 import { addDays, cairoDate, cairoToUtc, CAIRO_TZ } from '../../utils/time/cairo';
 
@@ -119,6 +119,18 @@ export class AdminDashboardService {
         .limit(100)
         .lean(),
     ]);
-    return { expiredRequests, openDisputes, expiringDocuments, now };
+    // Clinic visits (C5): confirmed appointments never started 2 hours after their end (last 7 days).
+    const clinicNotStarted = await BookingModel.find({
+      type: BookingType.CLINIC_VISIT,
+      status: BookingStatus.ACCEPTED,
+      scheduledEnd: {
+        $lte: new Date(now.getTime() - 2 * 3600_000),
+        $gte: new Date(now.getTime() - 7 * 24 * 3600_000),
+      },
+    })
+      .sort({ scheduledEnd: 1 })
+      .limit(50)
+      .lean();
+    return { expiredRequests, openDisputes, expiringDocuments, clinicNotStarted, now };
   }
 }

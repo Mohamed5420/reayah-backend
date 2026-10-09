@@ -162,6 +162,7 @@ export default class MarketingController implements IBaseController {
       const { promo, discount } = await this.promos.evaluate(req.user!.id, body.code, {
         serviceId: body.service_id,
         subtotal: body.subtotal,
+        visitType: body.visit_type,
       });
       return HttpResponse.ok(res, {
         valid: true as const,

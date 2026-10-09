@@ -6656,12 +6656,19 @@
                 "expired"
               ]
             }
+          },
+          "clinic_visits_not_started": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminBooking"
+            }
           }
         },
         "required": [
           "expired_requests",
           "open_disputes",
-          "expiring_documents"
+          "expiring_documents",
+          "clinic_visits_not_started"
         ]
       },
       "AdminBooking": {
@@ -9298,6 +9305,9 @@
               "name"
             ]
           },
+          "visit_type": {
+            "type": "string"
+          },
           "visits_count": {
             "type": "number"
           },
@@ -9351,6 +9361,7 @@
           "name",
           "description",
           "service",
+          "visit_type",
           "visits_count",
           "validity_days",
           "price",
@@ -9564,6 +9575,13 @@
             "type": "integer",
             "minimum": 0,
             "example": 25000
+          },
+          "visit_type": {
+            "type": "string",
+            "enum": [
+              "home_visit",
+              "clinic_visit"
+            ]
           }
         },
         "required": [
@@ -9675,6 +9693,12 @@
               "example": "665f1c2b9e1d2a4c3b9e8f1a"
             }
           },
+          "visit_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "first_booking_only": {
             "type": "boolean"
           },
@@ -9703,6 +9727,7 @@
           "valid_from",
           "valid_to",
           "service_ids",
+          "visit_types",
           "first_booking_only",
           "is_active",
           "created_at",
@@ -9789,6 +9814,17 @@
               "example": "665f1c2b9e1d2a4c3b9e8f1a"
             },
             "maxItems": 100
+          },
+          "visit_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "home_visit",
+                "clinic_visit"
+              ]
+            },
+            "maxItems": 2
           },
           "first_booking_only": {
             "type": "boolean"
@@ -9885,6 +9921,17 @@
             },
             "maxItems": 100
           },
+          "visit_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "home_visit",
+                "clinic_visit"
+              ]
+            },
+            "maxItems": 2
+          },
           "first_booking_only": {
             "type": "boolean"
           },
@@ -9928,6 +9975,9 @@
             "pattern": "^[0-9a-f]{24}$/i",
             "example": "665f1c2b9e1d2a4c3b9e8f1a"
           },
+          "visit_type": {
+            "type": "string"
+          },
           "visits_count": {
             "type": "number"
           },
@@ -9963,6 +10013,7 @@
           "description_ar",
           "description_en",
           "service_id",
+          "visit_type",
           "visits_count",
           "validity_days",
           "price",
@@ -10010,6 +10061,13 @@
             "type": "string",
             "pattern": "^[0-9a-f]{24}$/i",
             "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "visit_type": {
+            "type": "string",
+            "enum": [
+              "home_visit",
+              "clinic_visit"
+            ]
           },
           "visits_count": {
             "type": "integer",
@@ -10078,6 +10136,13 @@
             "type": "string",
             "pattern": "^[0-9a-f]{24}$/i",
             "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "visit_type": {
+            "type": "string",
+            "enum": [
+              "home_visit",
+              "clinic_visit"
+            ]
           },
           "visits_count": {
             "type": "integer",
@@ -21201,6 +21266,18 @@
             "required": false,
             "name": "group_by",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home_visit",
+                "clinic_visit"
+              ]
+            },
+            "required": false,
+            "name": "visit_type",
+            "in": "query"
           }
         ],
         "responses": {
@@ -22378,6 +22455,18 @@
             },
             "required": false,
             "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "home_visit",
+                "clinic_visit"
+              ]
+            },
+            "required": false,
+            "name": "visit_type",
             "in": "query"
           },
           {

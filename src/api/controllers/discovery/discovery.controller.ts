@@ -174,15 +174,14 @@ export default class DiscoveryController implements IBaseController {
     try {
       const q = req.query as unknown as z.infer<typeof DiscoverySchemas.searchQuery>;
       const pagination = parsePagination(req.query);
-      // Packages cover home visits only (until C5); clinic search is one card per doctor and clinic (C2).
-      if (q.visit_type === BookingType.CLINIC_VISIT && q.package_id) {
-        throw new ValidationError({ package_id: ['validation.package_home_only'] });
-      }
       if (q.package_id) {
         // Booking with a package: only providers at or below its per-visit value (product decision).
         const { pkg } = await this.packages.getAvailable(q.package_id);
         if (String(pkg.serviceId) !== q.service_id) {
           throw new ValidationError({ package_id: ['validation.package_other_service'] });
+        }
+        if ((pkg.visitType ?? BookingType.HOME_VISIT) !== q.visit_type) {
+          throw new ValidationError({ package_id: ['validation.package_other_visit_type'] });
         }
         q.max_price = Math.min(q.max_price ?? Infinity, perVisitValue(pkg));
       }

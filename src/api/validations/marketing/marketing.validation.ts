@@ -1,4 +1,5 @@
 import { PaymentMethod } from '../../../interfaces/IBooking';
+import { BookingType } from '../../../interfaces/IBooking';
 import {
   BannerAction,
   BroadcastStatus,
@@ -17,6 +18,8 @@ const packageView = z
     name: z.string(),
     description: z.string().nullable(),
     service: z.object({ id: objectId, name: z.string() }),
+    /** home_visit or clinic_visit: the visits it covers. */
+    visit_type: z.string(),
     visits_count: z.number(),
     validity_days: z.number(),
     price: z.number(),
@@ -68,6 +71,11 @@ const promoBody = z.strictObject({
   valid_from: instant.nullable().optional(),
   valid_to: instant.nullable().optional(),
   service_ids: z.array(objectId).max(100).optional(),
+  /** Empty or omitted = home and clinic visits. */
+  visit_types: z
+    .array(z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]))
+    .max(2)
+    .optional(),
   first_booking_only: z.boolean().optional(),
   is_active: z.boolean().optional(),
 });
@@ -88,6 +96,7 @@ const adminPromo = z
     valid_from: z.string().nullable(),
     valid_to: z.string().nullable(),
     service_ids: z.array(objectId),
+    visit_types: z.array(z.string()),
     first_booking_only: z.boolean(),
     is_active: z.boolean(),
     ...timestamps,
@@ -100,6 +109,8 @@ const packageBody = z.strictObject({
   description_ar: description.optional(),
   description_en: description.optional(),
   service_id: objectId,
+  /** Default home_visit. A clinic package covers clinic visits of the service. */
+  visit_type: z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]).optional(),
   visits_count: z.number().int().min(1).max(100),
   validity_days: z.number().int().min(1).max(730),
   price: piastres.min(100),
@@ -115,6 +126,7 @@ const adminPackage = z
     description_ar: z.string().nullable(),
     description_en: z.string().nullable(),
     service_id: objectId,
+    visit_type: z.string(),
     visits_count: z.number(),
     validity_days: z.number(),
     price: z.number(),
@@ -237,6 +249,8 @@ export const MarketingSchemas = {
       code: z.string().trim().min(1).max(32),
       service_id: objectId,
       subtotal: piastres,
+      /** Default home_visit. */
+      visit_type: z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]).optional(),
     })
     .openapi('ValidatePromo'),
   promoValidation: z

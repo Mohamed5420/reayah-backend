@@ -9,6 +9,7 @@ import { AuditService } from '../audit/audit.service';
 import { PROVIDER_PRICES_CACHE } from '../catalog/catalog.service';
 import { NotificationService } from '../notification/notification.service';
 import { DOCUMENT_EXPIRY_WARNING_DAYS } from '../admin/admin-dashboard.service';
+import { ClinicService } from '../clinic/clinic.service';
 
 /**
  * Daily document check (spec §4.4, decision 14):
@@ -80,6 +81,11 @@ export class DocumentExpiryService {
       });
     }
     if (paused) await invalidateCacheNamespace(PROVIDER_PRICES_CACHE);
-    return { warned, paused };
+    // Clinic and branch licences (clinic visits, C5).
+    const clinics = await Container.get(ClinicService).processLicenceExpiry(
+      now,
+      DOCUMENT_EXPIRY_WARNING_DAYS,
+    );
+    return { warned: warned + clinics.warned, paused: paused + clinics.paused };
   }
 }

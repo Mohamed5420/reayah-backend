@@ -42,6 +42,8 @@ export interface IClinic {
   adminMessage: string | null;
   /** The clinic's licence (private storage key, never a URL). */
   licence: { fileKey: string; uploadedAt: Date; expiresAt: Date | null } | null;
+  /** When the owner was warned that the licence is about to expire (once per licence). */
+  licenceNoticeAt?: Date | null;
   submittedAt: Date | null;
   reviewedAt: Date | null;
   reviewedBy: Types.ObjectId | null;

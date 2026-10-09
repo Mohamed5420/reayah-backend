@@ -79,6 +79,8 @@ export const AdminSchemas = {
     from: z.iso.date().openapi({ example: '2026-09-01' }),
     to: z.iso.date().openapi({ example: '2026-09-30' }),
     group_by: z.enum(ANALYTICS_GROUPS).default('day'),
+    /** Booking metrics only: home_visit or clinic_visit (C5). */
+    visit_type: z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]).optional(),
   }),
   analytics: z
     .object({
@@ -126,6 +128,8 @@ export const AdminSchemas = {
           expired: z.boolean(),
         }),
       ),
+      /** Clinic visits confirmed but never started, 2 h after their end (last 7 days). */
+      clinic_visits_not_started: z.array(adminBooking),
     })
     .openapi('AdminAttention'),
 
@@ -267,6 +271,8 @@ export const AdminSchemas = {
     area_id: objectId.optional(),
     /** Reference code, or part of it. */
     search: z.string().trim().min(2).max(20).optional(),
+    /** home_visit or clinic_visit (C5). */
+    visit_type: z.enum([BookingType.HOME_VISIT, BookingType.CLINIC_VISIT]).optional(),
   }),
   booking: adminBooking,
   bookingDetail: z

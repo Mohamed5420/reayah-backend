@@ -31,6 +31,7 @@ const clinicSchema = new Schema<IClinic, ClinicModelType, SoftDeleteMethods>(
       ),
       default: null,
     },
+    licenceNoticeAt: { type: Date, default: null },
     submittedAt: { type: Date, default: null },
     reviewedAt: { type: Date, default: null },
     reviewedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },

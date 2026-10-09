@@ -1,3 +1,4 @@
+import { BookingType } from '../../../interfaces/IBooking';
 import { Schema, model, type Model } from 'mongoose';
 import {
   BannerAction,
@@ -31,6 +32,11 @@ const packageSchema = new Schema<IPackage, PackageModelType, SoftDeleteMethods>(
     descriptionAr: { type: String, default: null },
     descriptionEn: { type: String, default: null },
     serviceId: { type: Schema.Types.ObjectId, ref: 'CatalogService', required: true },
+    visitType: {
+      type: String,
+      enum: [BookingType.HOME_VISIT, BookingType.CLINIC_VISIT],
+      default: BookingType.HOME_VISIT,
+    },
     visitsCount: { type: Number, required: true, min: 1 },
     validityDays: { type: Number, required: true, min: 1 },
     price: money,
@@ -56,6 +62,7 @@ const packageSubscriptionSchema = new Schema<IPackageSubscription>(
       nameEn: { type: String, default: null },
       organizationId: { type: Schema.Types.ObjectId, default: null },
       serviceId: { type: Schema.Types.ObjectId, required: true },
+      visitType: { type: String, default: BookingType.HOME_VISIT },
       visitsCount: { type: Number, required: true },
       validityDays: { type: Number, required: true },
       price: money,
@@ -105,6 +112,7 @@ const promoCodeSchema = new Schema<IPromoCode, PromoCodeModelType, SoftDeleteMet
     validFrom: { type: Date, default: null },
     validTo: { type: Date, default: null },
     serviceIds: { type: [Schema.Types.ObjectId], default: [] },
+    visitTypes: { type: [String], enum: [BookingType.HOME_VISIT, BookingType.CLINIC_VISIT], default: [] },
     firstBookingOnly: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
   },

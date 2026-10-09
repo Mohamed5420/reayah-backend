@@ -31,6 +31,9 @@ import { PatientProfileService } from '../patient/patient-profile.service';
 import { SettingsService } from '../settings/settings.service';
 import { offeredEntry } from '../catalog/visit-types';
 import { BookingType } from '../../interfaces/IBooking';
+import { ClinicModel } from '../../database/models/clinic/clinic.model';
+import { ClinicStatus } from '../../interfaces/IClinic';
+import { visitTypeMatch } from '../catalog/visit-types';
 
 const DAY_MS = 24 * 3600_000;
 
@@ -120,6 +123,7 @@ export class PackageService {
         nameEn: pkg.nameEn,
         organizationId: pkg.organizationId ?? null,
         serviceId: pkg.serviceId,
+        visitType: pkg.visitType ?? BookingType.HOME_VISIT,
         visitsCount: pkg.visitsCount,
         validityDays: pkg.validityDays,
         price: pkg.price,
@@ -178,6 +182,8 @@ export class PackageService {
       providerPrice: number;
       /** The organization being booked, if any. */
       organizationId?: string | null;
+      /** Home or clinic visit: a package covers one of them (C5). */
+      visitType?: BookingType;
     },
     rescheduling = false,
   ) {
@@ -206,6 +212,9 @@ export class PackageService {
       throw new ValidationError({ package_subscription_id: ['validation.package_other_service'] });
     }
     if (booking.quantity !== 1) throw new ValidationError({ quantity: ['validation.package_one_visit'] });
+    if ((sub.package.visitType ?? BookingType.HOME_VISIT) !== (booking.visitType ?? BookingType.HOME_VISIT)) {
+      throw new ValidationError({ package_subscription_id: ['validation.package_other_visit_type'] });
+    }
     if (sub.package.organizationId) {
       // An organization's package: that organization only; the visit is priced at the per-visit value.
       if (String(sub.package.organizationId) !== String(booking.organizationId ?? '')) {
@@ -387,8 +396,39 @@ export class PackageService {
   }
 
   /** At least one approved, accepting provider covers the area and offers the service at ≤ the per-visit value. */
+  /** A clinic package can be used in the area: a doctor's clinic at or below its value, or its organization's branch. */
+  private async clinicIn(pkg: IPackage, areaId: string) {
+    const clinics = await ClinicModel.find({
+      areaId: new Types.ObjectId(areaId),
+      status: ClinicStatus.APPROVED,
+      isActive: true,
+      ...(pkg.organizationId ? { organizationId: pkg.organizationId } : { providerProfileId: { $ne: null } }),
+    })
+      .select('providerProfileId')
+      .lean();
+    if (pkg.organizationId) return clinics.length > 0;
+    return Boolean(
+      await ProviderProfileModel.exists({
+        _id: { $in: clinics.map((c) => c.providerProfileId) },
+        verificationStatus: VerificationStatus.APPROVED,
+        isAcceptingBookings: true,
+        services: {
+          $elemMatch: {
+            serviceId: pkg.serviceId,
+            isActive: true,
+            ...visitTypeMatch(BookingType.CLINIC_VISIT),
+            price: { $lte: perVisitValue(pkg) },
+          },
+        },
+      }),
+    );
+  }
+
   private async servedIn(pkg: IPackage, areaId: string) {
     if (!Types.ObjectId.isValid(areaId)) return false;
+    // Clinic packages (C5): a clinic or branch in the area where the package can be used.
+    if ((pkg.visitType ?? BookingType.HOME_VISIT) === BookingType.CLINIC_VISIT)
+      return this.clinicIn(pkg, areaId);
     const orgs = Container.get(OrgDiscoveryService);
     // An organization's package: that organization has a staff member for the area and service.
     if (pkg.organizationId) {
@@ -404,7 +444,12 @@ export class PackageService {
       organizationId: null,
       'serviceAreas.areaId': area,
       services: {
-        $elemMatch: { serviceId: pkg.serviceId, isActive: true, price: { $lte: perVisitValue(pkg) } },
+        $elemMatch: {
+          serviceId: pkg.serviceId,
+          isActive: true,
+          ...visitTypeMatch(BookingType.HOME_VISIT),
+          price: { $lte: perVisitValue(pkg) },
+        },
       },
     });
     if (independent) return true;
@@ -413,7 +458,12 @@ export class PackageService {
       verificationStatus: VerificationStatus.APPROVED,
       serviceAreas: { $elemMatch: { areaId: area, isActive: true } },
       services: {
-        $elemMatch: { serviceId: pkg.serviceId, isActive: true, price: { $lte: perVisitValue(pkg) } },
+        $elemMatch: {
+          serviceId: pkg.serviceId,
+          isActive: true,
+          ...visitTypeMatch(BookingType.HOME_VISIT),
+          price: { $lte: perVisitValue(pkg) },
+        },
       },
     })
       .select('_id')
@@ -432,6 +482,8 @@ export type PackageInput = {
   descriptionAr?: string | null;
   descriptionEn?: string | null;
   serviceId: string;
+  /** Default home visit (C5). */
+  visitType?: BookingType;
   visitsCount: number;
   validityDays: number;
   price: number;
@@ -467,7 +519,7 @@ export class PackageAdminService {
   }
 
   async create(input: PackageInput, context: AuditContext) {
-    await this.assertService(input.serviceId);
+    await this.assertService(input.serviceId, input.visitType);
     const pkg = await PackageModel.create({ ...input, organizationId: null });
     await this.audit.log(context, {
       action: 'package.create',
@@ -483,7 +535,9 @@ export class PackageAdminService {
       ? await PackageModel.findOne({ _id: id, organizationId: null })
       : null;
     if (!pkg) throw new NotFoundError('errors.package_not_found');
-    if (patch.serviceId) await this.assertService(patch.serviceId);
+    if (patch.serviceId || patch.visitType) {
+      await this.assertService(patch.serviceId ?? String(pkg.serviceId), patch.visitType ?? pkg.visitType);
+    }
     const changes = applyPatch(pkg, patch);
     if (Object.keys(changes).length) {
       await pkg.save();
@@ -501,9 +555,12 @@ export class PackageAdminService {
     return { ...pkg.toObject(), soldCount };
   }
 
-  private async assertService(serviceId: string) {
-    const exists = (await Container.get(CatalogService).activeServices()).some((s) => s.id === serviceId);
-    if (!exists) throw new ValidationError({ service_id: ['validation.invalid_value'] });
+  private async assertService(serviceId: string, visitType: BookingType = BookingType.HOME_VISIT) {
+    const service = (await Container.get(CatalogService).activeServices()).find((s) => s.id === serviceId);
+    if (!service) throw new ValidationError({ service_id: ['validation.invalid_value'] });
+    if (!service.visitTypes.includes(visitType)) {
+      throw new ValidationError({ visit_type: ['validation.visit_type_not_offered'] });
+    }
   }
 }
 
@@ -522,7 +579,7 @@ export class OrgPackageService {
     org: { _id: Types.ObjectId; services: Array<{ serviceId: Types.ObjectId; isActive: boolean }> },
     input: PackageInput,
   ) {
-    this.assertOffered(org, input.serviceId);
+    this.assertOffered(org, input.serviceId, input.visitType);
     const pkg = await PackageModel.create({ ...input, organizationId: org._id });
     return pkg.toObject();
   }
@@ -536,7 +593,9 @@ export class OrgPackageService {
       ? await PackageModel.findOne({ _id: id, organizationId: org._id })
       : null;
     if (!pkg) throw new NotFoundError('errors.package_not_found');
-    if (patch.serviceId) this.assertOffered(org, patch.serviceId);
+    if (patch.serviceId || patch.visitType) {
+      this.assertOffered(org, patch.serviceId ?? String(pkg.serviceId), patch.visitType ?? pkg.visitType);
+    }
     applyPatch(pkg, patch);
     await pkg.save();
     return pkg.toObject();
@@ -553,9 +612,10 @@ export class OrgPackageService {
   private assertOffered(
     org: { services: Array<{ serviceId: Types.ObjectId; isActive: boolean; visitType?: BookingType }> },
     serviceId: string,
+    visitType: BookingType = BookingType.HOME_VISIT,
   ) {
-    // Packages are home visits until C5 adds a visit type to packages.
-    if (!offeredEntry(org.services, serviceId, BookingType.HOME_VISIT)) {
+    // The organization must price the service for the package's visit type.
+    if (!offeredEntry(org.services, serviceId, visitType)) {
       throw new ValidationError({ service_id: ['validation.service_not_offered_by_org'] });
     }
   }

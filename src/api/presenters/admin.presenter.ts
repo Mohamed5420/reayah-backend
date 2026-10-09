@@ -196,6 +196,7 @@ export const presentAttention = (a: {
   expiredRequests: IBooking[];
   openDisputes: IDispute[];
   expiringDocuments: IProviderDocument[];
+  clinicNotStarted?: IBooking[];
   now: Date;
 }) => ({
   expired_requests: a.expiredRequests.map(presentAdminBooking),
@@ -212,4 +213,5 @@ export const presentAttention = (a: {
     expires_at: d.expiresAt!.toISOString(),
     expired: d.expiresAt! <= a.now,
   })),
+  clinic_visits_not_started: (a.clinicNotStarted ?? []).map(presentAdminBooking),
 });

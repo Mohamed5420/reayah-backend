@@ -294,7 +294,7 @@ Doctor bookings become a **clinic visit** (patient goes to the clinic) or a **ho
 - [x] **Branch reception** role (added at approval): invited by the owner per branch; sees only that branch's appointments for today (patient name, time, doctor, status); checks in with the visit code and marks no-shows; no medical data, booking notes, visit reports, finance or prices; every action audited; in the permission tests and the data inventory.
 
 ### C5 Money, admin and hand-off
-- [ ] Packages and promos by visit type, optional clinic commission, admin filters and analytics by visit type, needs-attention, data inventory, mobile change notes.
+- [x] Packages and promos by visit type, optional clinic commission, admin filters and analytics by visit type, needs-attention, data inventory, mobile change notes. *(Packages have `visit_type` (a clinic package covers clinic visits only, its area check uses clinics); promo codes may be limited to visit types; `/admin/bookings` and `/admin/analytics` take `visit_type`; `/admin/attention` lists clinic visits never started; clinic and branch licences: a warning 30 days ahead and, once expired, the clinic goes back to "changes requested" until renewed (daily document job). Also fixed: a home package's area check no longer counts clinic prices. Mobile notes: `docs/MOBILE_CHANGES_CLINIC_VISITS.md`.)*
 
 ---
 

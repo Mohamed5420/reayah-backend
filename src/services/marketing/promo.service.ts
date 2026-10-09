@@ -2,7 +2,7 @@ import { Container, Service } from 'typedi';
 import { Types, type ClientSession, type FilterQuery } from 'mongoose';
 import { BookingModel } from '../../database/models/booking/booking.model';
 import { PromoCodeModel, PromoRedemptionModel } from '../../database/models/marketing/marketing.models';
-import { BookingStatus, type IBooking } from '../../interfaces/IBooking';
+import { BookingType, BookingStatus, type IBooking } from '../../interfaces/IBooking';
 import { PromoType, type IPromoCode } from '../../interfaces/IMarketing';
 import type { Language } from '../../utils/i18n';
 import type { Pagination } from '../../utils/response/pagination';
@@ -47,7 +47,7 @@ export class PromoService {
   async evaluate(
     userId: string,
     code: string,
-    input: { serviceId: string; subtotal: number },
+    input: { serviceId: string; subtotal: number; visitType?: BookingType },
     now = new Date(),
   ) {
     const promo = await PromoCodeModel.findOne({ code: normalizePromoCode(code) }).lean();
@@ -56,6 +56,9 @@ export class PromoService {
     if (promo.validTo && now > promo.validTo) throw new PromoExpiredError();
     if (promo.serviceIds.length && !promo.serviceIds.some((id) => String(id) === input.serviceId)) {
       throw new PromoInvalidError('errors.promo_not_for_service');
+    }
+    if (promo.visitTypes?.length && !promo.visitTypes.includes(input.visitType ?? BookingType.HOME_VISIT)) {
+      throw new PromoInvalidError('errors.promo_not_for_visit_type');
     }
     if (input.subtotal < promo.minSubtotal) throw new PromoInvalidError('errors.promo_min_subtotal');
     if (promo.maxUses !== null && promo.usesCount >= promo.maxUses) throw new PromoLimitReachedError();
@@ -132,6 +135,8 @@ export type PromoInput = {
   validFrom?: Date | null;
   validTo?: Date | null;
   serviceIds?: string[];
+  /** Empty = home and clinic visits. */
+  visitTypes?: BookingType[];
   firstBookingOnly?: boolean;
   isActive?: boolean;
 };

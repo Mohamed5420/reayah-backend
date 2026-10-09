@@ -1,3 +1,4 @@
+import type { BookingType } from './IBooking';
 import type { Types } from 'mongoose';
 
 /**
@@ -13,6 +14,8 @@ export interface IPackage {
   descriptionAr: string | null;
   descriptionEn: string | null;
   serviceId: Types.ObjectId;
+  /** home_visit (also when missing) or clinic_visit (C5): which visits of the service it covers. */
+  visitType?: BookingType;
   visitsCount: number;
   validityDays: number;
   /** Piastres, for all visits. */
@@ -53,6 +56,7 @@ export interface IPackageSubscription {
     /** An organization's package: book that organization (the visit is priced at perVisitValue). */
     organizationId: Types.ObjectId | null;
     serviceId: Types.ObjectId;
+    visitType?: BookingType;
     visitsCount: number;
     validityDays: number;
     price: number;
@@ -100,6 +104,8 @@ export interface IPromoCode {
   validTo: Date | null;
   /** Empty = every service. */
   serviceIds: Types.ObjectId[];
+  /** Empty = home and clinic visits (C5). */
+  visitTypes?: BookingType[];
   /** Only for patients without any earlier booking (cancelled / declined / expired ones don't count). */
   firstBookingOnly: boolean;
   isActive: boolean;

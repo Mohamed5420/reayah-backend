@@ -172,7 +172,8 @@ describe('GET /providers?visit_type=clinic_visit', () => {
     const homeOnly = await newDoctor(null);
     await approvedClinic(homeOnly);
     expect((await clinicSearch()).body.data).toEqual([]);
-    expect((await clinicSearch(world.nasrCity, '&package_id=' + clinicId)).status).toBe(422);
+    // Packages follow the visit type since C5 (clinic-packages tests); an unknown package is a 404.
+    expect((await clinicSearch(world.nasrCity, '&package_id=' + clinicId)).status).toBe(404);
   });
 
   it('date and time keep only doctors free then', async () => {

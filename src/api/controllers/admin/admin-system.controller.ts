@@ -112,6 +112,7 @@ export default class AdminSystemController implements IBaseController {
         from: q.from,
         to: q.to,
         groupBy: q.group_by,
+        visitType: q.visit_type,
       });
       return { ...rest, group_by: groupBy };
     });

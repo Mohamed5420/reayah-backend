@@ -23,6 +23,7 @@ export const presentPackage = (
   name: localized(pkg.nameAr, pkg.nameEn, lang),
   description: localizedOrNull(pkg.descriptionAr, pkg.descriptionEn, lang),
   service: { id: service.id, name: localized(service.nameAr, service.nameEn, lang) },
+  visit_type: pkg.visitType ?? 'home_visit',
   visits_count: pkg.visitsCount,
   validity_days: pkg.validityDays,
   price: pkg.price,
@@ -65,6 +66,7 @@ export const presentAdminPromo = (p: IPromoCode) => ({
   valid_from: iso(p.validFrom),
   valid_to: iso(p.validTo),
   service_ids: p.serviceIds.map(String),
+  visit_types: p.visitTypes ?? [],
   first_booking_only: p.firstBookingOnly,
   is_active: p.isActive,
 });
@@ -76,6 +78,7 @@ export const presentAdminPackage = (p: IPackage & { soldCount: number }) => ({
   description_ar: p.descriptionAr,
   description_en: p.descriptionEn,
   service_id: String(p.serviceId),
+  visit_type: p.visitType ?? 'home_visit',
   visits_count: p.visitsCount,
   validity_days: p.validityDays,
   price: p.price,

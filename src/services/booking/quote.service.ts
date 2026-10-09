@@ -119,10 +119,6 @@ export class QuoteService {
     const clinicVisit = input.type === BookingType.CLINIC_VISIT;
     if (clinicVisit) {
       await Container.get(ClinicDiscoveryService).assertEnabled();
-      // Packages cover home visits only (until C5).
-      if (input.packageSubscriptionId) {
-        throw new ValidationError({ package_subscription_id: ['validation.package_home_only'] });
-      }
       if (!input.clinicId) throw new ValidationError({ clinic_id: ['validation.required'] });
     } else if (!input.addressId) {
       throw new ValidationError({ address_id: ['validation.required'] });
@@ -221,6 +217,7 @@ export class QuoteService {
           scheduledStart: input.scheduledStart,
           providerPrice: unitPrice,
           organizationId: input.organizationId,
+          visitType: input.type,
         },
         rescheduling,
       );
@@ -234,6 +231,7 @@ export class QuoteService {
         ? await Container.get(PromoService).evaluate(userId, input.promoCode, {
             serviceId: service.id,
             subtotal: computePrice(base).subtotal,
+            visitType: input.type,
           })
         : null;
     const price = computePrice({

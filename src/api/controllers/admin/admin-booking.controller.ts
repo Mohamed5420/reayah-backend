@@ -143,6 +143,7 @@ export default class AdminBookingController implements IBaseController {
           dateFrom: q.date_from ? new Date(q.date_from) : undefined,
           dateTo: q.date_to ? new Date(q.date_to) : undefined,
           areaId: q.area_id,
+          visitType: q.visit_type,
           search: q.search,
         },
         pagination,
