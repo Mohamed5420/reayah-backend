@@ -27,7 +27,7 @@ services:
 
   api:
     <<: *restart
-    image: ${IMAGE:-ghcr.io/OWNER/reaya-api}:${IMAGE_TAG:-latest}
+    image: ${IMAGE:-ghcr.io/owner/reaya-api}:${IMAGE_TAG:-latest}
     env_file: .env
     environment:
       NODE_ENV: ${NODE_ENV:-production} # `staging` prints OTP codes in the log and serves /docs
