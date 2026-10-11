@@ -12,6 +12,7 @@ import type { IOrganization } from '../../interfaces/IOrganization';
 import { t, type Language } from '../../utils/i18n';
 import { addDays, cairoDate, cairoToUtc } from '../../utils/time/cairo';
 import { CommissionService } from '../payouts/commission.service';
+import { ratio } from '../../utils/ratio';
 
 export type DashboardPeriod = 'today' | 'week' | 'month';
 /** `branch`: by clinic branch (C4); home visits are one row of their own. */
@@ -25,8 +26,6 @@ const ENDED = [
 ];
 const DONE = [BookingStatus.COMPLETED, BookingStatus.DISPUTED];
 const ACTIVE_VISIT = [BookingStatus.ACCEPTED, BookingStatus.ON_THE_WAY, BookingStatus.IN_PROGRESS];
-
-const ratio = (part: number, whole: number) => (whole ? Math.round((part / whole) * 100) / 100 : null);
 
 /**
  * The owner's dashboard and reports (spec §7.11 `/org/dashboard`, `/org/reports`; M3.4). Built from the

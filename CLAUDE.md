@@ -111,7 +111,7 @@ Domain services so far:
 ### Models
 - Start schemas from `baseSchemaOptions` (`src/database/schema-options.ts`) and add `schema.plugin(softDeletePlugin)` (spec: soft delete everywhere; see `user.model.ts` for the typing). Queries then skip deleted docs automatically; use `.setOptions({ withDeleted: true })` to include them, `doc.softDelete()` / `doc.restore()` to change them. Unique indexes still see deleted docs — use partial indexes where that matters.
 - Sensitive fields (medical data, national ID, license numbers — spec §9) use `encryptedString()` from `src/utils/crypto/field-encryption.ts` and the schema needs `toJSON/toObject: { getters: true }`. `.lean()` returns ciphertext, and encrypted fields can't be queried by value. Models read with `.lean()` everywhere (bookings, disputes) use `encryptOnWrite()` instead: decrypt with `decryptNullable()` in the presenter, and audit the read where it is shown (`auditNotesRead` / `auditDisputeRead`).
-- Money is integer piastres (`piastresValidator` in models, `piastres` in zod); times are UTC `Date`s. Shared enums with the frontend live in `src/interfaces/enums.ts`.
+- Money is integer piastres (`piastresValidator` in models, `piastres` in zod); times are UTC `Date`s. Rates in responses are 0–1 fractions from `ratio()` (`src/utils/ratio.ts`; null when nothing to count). Shared enums with the frontend live in `src/interfaces/enums.ts`.
 - Unique indexes use `uniqueAmongActive` (partial on `deletedAt` null) so soft-deleted records don't block their name.
 - Seeds (`src/database/seed/`) run on every boot: `bulkWrite` upserts with `$setOnInsert` only, so admin edits are never overwritten and soft-deleted records aren't re-created. Seed data lives in `seed/data/`.
 

@@ -97,6 +97,8 @@ Public routes (no token): `/health*`, `/app-config`, `/governorates`, `/governor
 ### Money, dates, times
 
 - Money is a whole number of piastres (`15000` = 150 EGP), with `currency: "EGP"`.
+- Rates (`cancellation_rate`, `on_time_rate`) are fractions from 0 to 1 with three decimals (`0.064` =
+  6.4%), and `null` when there is nothing to count: show "—", not "0%".
 - Instants are UTC ISO strings (`scheduled_start`, `created_at`, …).
 - Calendar dates (`date`, `from`, `to`) are Cairo dates, `YYYY-MM-DD`.
 - Weekly hours are Cairo local time `"HH:mm"`; `day_of_week` 0 is Sunday.

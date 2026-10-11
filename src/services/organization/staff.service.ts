@@ -12,6 +12,7 @@ import { ACTIVE_BOOKING_STATUSES, BookingStatus } from '../../interfaces/IBookin
 import { LedgerOwnerType } from '../../interfaces/ILedger';
 import { NotificationType } from '../../interfaces/INotification';
 import { env } from '../../config/env.config';
+import { ratio } from '../../utils/ratio';
 import {
   LAPSED_INVITE_RETENTION_DAYS,
   STAFF_INVITE_DAYS,
@@ -368,7 +369,7 @@ export class StaffService {
         completedLast30Days: recent,
         ratingAvg: profile.ratingAvg,
         ratingCount: profile.ratingCount,
-        onTimeRate: timing?.total ? Math.round((timing.onTime / timing.total) * 100) : null,
+        onTimeRate: ratio(timing?.onTime ?? 0, timing?.total ?? 0),
       },
     };
   }

@@ -6554,7 +6554,10 @@
             "type": "string"
           },
           "total": {
-            "type": "number"
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "series": {
             "type": "array",
@@ -6565,7 +6568,10 @@
                   "type": "string"
                 },
                 "value": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 }
               },
               "required": [

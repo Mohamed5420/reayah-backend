@@ -88,10 +88,10 @@ export const AdminSchemas = {
       group_by: z.enum(ANALYTICS_GROUPS),
       from: z.string(),
       to: z.string(),
-      /** Whole range: a sum, the overall rate (cancellation_rate, %), or distinct providers (active_providers). */
-      total: z.number(),
-      /** One point per period, keyed by its first Cairo day (weeks start on Saturday); empty periods are 0. */
-      series: z.array(z.object({ period: z.string(), value: z.number() })),
+      /** Whole range: a sum, the overall rate (cancellation_rate: 0–1, null without bookings), or distinct providers (active_providers). */
+      total: z.number().nullable(),
+      /** One point per period, keyed by its first Cairo day (weeks start on Saturday); empty periods are 0 (null for a rate). */
+      series: z.array(z.object({ period: z.string(), value: z.number().nullable() })),
     })
     .openapi('AdminAnalytics'),
 

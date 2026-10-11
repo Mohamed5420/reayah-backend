@@ -6,6 +6,7 @@ import { OrganizationModel } from '../../database/models/organization/organizati
 import { UserRole } from '../../interfaces/enums';
 import { BookingStatus, BookingType } from '../../interfaces/IBooking';
 import { BadRequestError } from '../../utils/types-errors';
+import { ratio } from '../../utils/ratio';
 import { addDays, cairoToUtc, CAIRO_TZ, dayOfWeek } from '../../utils/time/cairo';
 
 export const ANALYTICS_METRICS = [
@@ -32,7 +33,7 @@ const WEEK_START_DOW = 6;
 /**
  * Admin time series (spec §7.15 `/admin/analytics`; M3.5). Buckets are Cairo calendar days / weeks /
  * months, keyed by their first day ("YYYY-MM-DD"), zero-filled. Money is piastres.
- * - bookings, cancellation_rate: by creation time (rate = cancelled ÷ bookings, %, unpaid card bookings
+ * - bookings, cancellation_rate: by creation time (rate = cancelled ÷ bookings, a 0–1 fraction, null without bookings; unpaid card bookings
  *   left out); completed_visits, gmv (`price.total`), revenue (commission), active_providers (distinct
  *   providers with a completed visit): by completion time; new_*: by sign-up time.
  * Aggregates only — no personal data leaves this service.
@@ -161,7 +162,7 @@ export class AdminAnalyticsService {
   }
 
   private value(metric: AnalyticsMetric, row: Row | undefined) {
-    if (metric === 'cancellation_rate') return rate(row?.cancelled ?? 0, row?.count ?? 0);
+    if (metric === 'cancellation_rate') return ratio(row?.cancelled ?? 0, row?.count ?? 0);
     return row?.value ?? 0;
   }
 
@@ -173,7 +174,7 @@ export class AdminAnalyticsService {
   ) {
     if (metric === 'cancellation_rate') {
       const sum = (key: 'cancelled' | 'count') => rows.reduce((total, r) => total + (r[key] ?? 0), 0);
-      return rate(sum('cancelled'), sum('count'));
+      return ratio(sum('cancelled'), sum('count'));
     }
     // A provider active in two weeks counts once over the whole range.
     if (metric === 'active_providers') {
@@ -210,6 +211,3 @@ export class AdminAnalyticsService {
 }
 
 type Row = { _id: string; value?: number; count?: number; cancelled?: number };
-
-/** Percent with one decimal; 0 when there's nothing to divide by. */
-const rate = (part: number, whole: number) => (whole ? Math.round((part / whole) * 1000) / 10 : 0);

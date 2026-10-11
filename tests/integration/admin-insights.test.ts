@@ -70,9 +70,10 @@ describe('GET /admin/analytics', () => {
         `/admin/analytics?metric=${metric}&from=${from}&to=${today}${extra}`,
       );
       expect(res.status, metric).toBe(200);
-      return res.body.data as { total: number; series: Array<{ period: string; value: number }> };
+      return res.body.data as { total: number; series: Array<{ period: string; value: number | null }> };
     };
-    const byDay = (values: number[]) => values.map((value, i) => ({ period: addDays(from, i), value }));
+    const byDay = (values: Array<number | null>) =>
+      values.map((value, i) => ({ period: addDays(from, i), value }));
 
     expect(await get('bookings')).toMatchObject({
       metric: 'bookings',
@@ -83,7 +84,9 @@ describe('GET /admin/analytics', () => {
     expect(await get('completed_visits')).toMatchObject({ total: 1, series: byDay([0, 1, 0]) });
     expect((await get('gmv')).series).toEqual(byDay([0, done.price.total, 0]));
     expect((await get('revenue')).total).toBe(done.price.commissionAmount);
-    expect((await get('cancellation_rate')).total).toBe(33.3);
+    const cancellation = await get('cancellation_rate');
+    expect(cancellation.total).toBe(0.333);
+    expect(cancellation.series).toEqual(byDay([null, null, 0.333]));
     expect((await get('active_providers')).total).toBe(1);
     expect((await get('new_patients')).total).toBe(3);
     expect((await get('new_providers')).total).toBe(1);
