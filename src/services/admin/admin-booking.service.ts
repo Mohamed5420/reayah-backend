@@ -192,6 +192,7 @@ export class AdminBookingService {
         booking.scheduledEnd,
         tx.session,
         booking._id,
+        booking.type,
       );
       const set = {
         providerProfileId: target._id,

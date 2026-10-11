@@ -3,6 +3,7 @@ import { CommissionService } from '../payouts/commission.service';
 import type { Types } from 'mongoose';
 import { BookingModel } from '../../database/models/booking/booking.model';
 import { BookingOfferModel } from '../../database/models/booking/booking-offer.model';
+import { bookableOrg } from '../organization/bookable';
 import {
   ACTIVE_BOOKING_STATUSES,
   BookingType,
@@ -21,7 +22,6 @@ import { DiscoveryService, ProviderSort } from '../discovery/discovery.service';
 import { overlaps } from '../discovery/slot-engine';
 import { SettingsService } from '../settings/settings.service';
 import { OrganizationModel } from '../../database/models/organization/organization.models';
-import { VerificationStatus } from '../../interfaces/enums';
 import { LedgerOwnerType } from '../../interfaces/ILedger';
 import { NotificationType } from '../../interfaces/INotification';
 import { NotificationService } from '../notification/notification.service';
@@ -160,6 +160,7 @@ export class BookingDeadlineService {
             booking.scheduledEnd,
             tx.session,
             booking._id,
+            booking.type,
           );
           await confirmClinicVisit(tx, booking, { providerProfileId: doctor.profile._id });
         });
@@ -280,7 +281,7 @@ export class BookingDeadlineService {
     try {
       const orgs = Container.get(OrgDiscoveryService);
       const candidates = await OrganizationModel.find({
-        verificationStatus: VerificationStatus.APPROVED,
+        ...bookableOrg(),
         ...(booking.organizationId ? { _id: { $ne: booking.organizationId } } : {}),
         ...sameWorld(booking.isTestAccount),
         serviceAreas: { $elemMatch: { areaId: booking.areaId, isActive: true } },

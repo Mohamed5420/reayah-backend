@@ -26,6 +26,10 @@ export const ACTIVE_BOOKING_STATUSES = [
   BookingStatus.IN_PROGRESS,
 ];
 
+/** Why an owner moved a booking to another staff member (internal). */
+export const REASSIGN_REASONS = ['staff_unavailable', 'patient_request', 'other'] as const;
+export type ReassignReason = (typeof REASSIGN_REASONS)[number];
+
 export enum BookingType {
   HOME_VISIT = 'home_visit',
   VIDEO = 'video',
@@ -112,6 +116,8 @@ export interface IBooking {
   visitCodeAttempts?: number;
   /** How a clinic visit was started: with the code, or without it (reason, audited). */
   checkIn?: { method: 'code' | 'without_code'; reason: string | null; at: Date } | null;
+  /** The owner's last change of staff member: internal (staff and admins see it, never the patient). */
+  reassignment?: { reasonCode: ReassignReason; reasonText: string | null; at: Date } | null;
   patientProfileId: Types.ObjectId;
   addressId: Types.ObjectId | null;
   address: {
@@ -213,5 +219,6 @@ export interface IBookingStatusHistory {
   actor: BookingActor;
   changedBy: Types.ObjectId | null;
   note: string | null;
+  internalReason?: { code: string; text: string | null } | null;
   createdAt: Date;
 }

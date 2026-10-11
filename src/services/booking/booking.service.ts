@@ -134,7 +134,7 @@ export class BookingService {
       // A provider's time is held from the request on; an organization's staff is picked later.
       if (draft.providerId) {
         await lockProviderSchedule(draft.providerId, tx.session);
-        await assertProviderFree(draft.providerId, start, end, tx.session);
+        await assertProviderFree(draft.providerId, start, end, tx.session, undefined, draft.type);
       }
       const [booking] = await BookingModel.create(
         [
@@ -348,7 +348,7 @@ export class BookingService {
 
     await runBookingTransaction(async (tx) => {
       await lockProviderSchedule(booking.providerProfileId!, tx.session);
-      await assertProviderFree(booking.providerProfileId!, start, end, tx.session, booking._id);
+      await assertProviderFree(booking.providerProfileId!, start, end, tx.session, booking._id, booking.type);
       let updated: IBooking | null;
       if (booking.status === BookingStatus.ACCEPTED) {
         updated = (
@@ -430,7 +430,7 @@ export class BookingService {
       const staff = booking.providerProfileId;
       await runBookingTransaction(async (tx) => {
         await lockProviderSchedule(staff, tx.session);
-        await assertProviderFree(staff, newStart, newEnd, tx.session, booking._id);
+        await assertProviderFree(staff, newStart, newEnd, tx.session, booking._id, booking.type);
         const updated = await BookingModel.findOneAndUpdate(
           { _id: booking._id, status: BookingStatus.ACCEPTED, providerProfileId: staff },
           {

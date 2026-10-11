@@ -230,6 +230,48 @@ Only differences are listed. Anything not mentioned works as the spec says.
 Staff members of an organization (`provider_staff`) use the same provider routes, but cannot change areas
 or services and have no earnings screens.
 
+#### Added during the provider app review (M21)
+
+- **Reply countdown.** `GET /provider/bookings`, `GET /provider/bookings/{id}` and `/provider/home` →
+  `pending_requests[]` carry `respond_by` (ISO) and `seconds_remaining` (by the server's clock when the
+  response was made) on a request still waiting for the provider; both `null` otherwise. Count down from
+  `seconds_remaining`, not from the phone's clock. Offers (`GET /provider/offers`) add `seconds_remaining`
+  next to `expires_at`.
+- **Pause until.** `PATCH /provider/accepting` takes `{ is_accepting_bookings: false, resumes_at }` where
+  `resumes_at` is `"end_of_day"` (the next midnight, Cairo time) or an ISO time up to 7 days ahead. A past
+  time, more than 7 days, or `resumes_at` with `is_accepting_bookings: true` → `422` on
+  `fields.resumes_at`. Turning accepting on by hand clears it. The profile shows `accepting_resumes_at`.
+  When the time comes accepting turns back on by itself (checked every 5 minutes) and the provider gets a
+  notification `accepting_resumed` (type `account`); it does not turn back on for a provider suspended
+  meanwhile.
+- **Rating summary.** `GET /provider/reviews/summary` →
+  `{ rating_avg, rating_count, distribution: { "1": n, …, "5": n }, top_tags: [{ tag, count }] }` (visible
+  reviews only; up to 5 tags, most chosen first).
+- **Sorting reviews.** `GET /provider/reviews?sort=newest|highest|lowest` (default `newest`).
+- **Contacting support about a review** (instead of replying or reporting): open the support channel
+  (`support_phone` in `GET /app-config`) with the review `id` in the message. Support finds it with
+  `GET /admin/reviews?review_id=`. Replying to and reporting reviews come after launch.
+- **Documents: back page and criminal record.** `POST /provider/documents` takes an optional
+  `back_file_key` (the back of a card, uploaded with `POST /uploads`, purpose `provider_document`);
+  documents return `back_file_url` and `back_mime` (`null` when there is no back). Not for
+  `national_id_front` / `national_id_back`, which stay two separate types (`422` on
+  `fields.back_file_key`). New type `criminal_record` («الفيش الجنائي») with `expires_at`: optional;
+  when the admin setting `criminal_record_required` is on it counts in `onboarding.documents_uploaded`, and
+  an expired one pauses the provider (notification `criminal_record_expired`).
+- **Break between visits and daily maximum.** `GET` / `PUT /provider/availability` (and the owner's
+  `PUT /org/staff/{id}/availability`) carry `break_minutes` (0–120, default 15: kept free before and after
+  each home visit for travel) and `max_visits_per_day` (1–20, or `null` = no limit). In `PUT` both are
+  optional (omitted = unchanged). Unknown fields are now refused with `422` by name. Search, slots, booking
+  and accepting offers all apply them; a day at the maximum offers no slots, and booking it answers
+  `409 SLOT_UNAVAILABLE`. Home visits only: clinic appointments follow the clinic's own appointment length.
+- **Earnings.** `GET /provider/earnings` adds:
+  - `days[]`: `{ date, completed_visits, net }` for every Cairo day of the period, zeros included;
+  - `cash_collected`: cash taken from patients for visits completed in the period;
+  - `next_payout`: `{ date, amount, minimum_amount, eligible, reason }` — `date` is the next weekly payout
+    (Cairo date), `reason` (when not eligible) is `payout_in_progress`, `commission_due`,
+    `no_payout_method` or `below_minimum`; map it to your own Arabic text.
+  - The period is at most 366 days; `to` before `from` → `422`.
+
 ### Organization owner
 
 | Endpoint                                | Change                                                                                                                                                                                                                                                                    |
@@ -247,6 +289,39 @@ or services and have no earnings screens.
 | `GET /org/reports`                      | `group_by` adds `branch`. Rows: `{ key, label, visits, revenue, rating, on_time_rate }`.                                                                                                                                                                                  |
 | `GET /org/invoices`                     | These are monthly statements (`kind: "statement"`), not tax invoices. `…/pdf` returns `{ url, expires_in }`.                                                                                                                                                              |
 | `GET /org/subscription`                 | `{ plan, period, usage: { staff, pending_invites, max_staff }, unpaid: { amount, since } }`. `POST` body `{ plan_id }`.                                                                                                                                                   |
+
+#### Added during the owner app review (M21)
+
+- **Organization details.** `POST` / `PATCH /org` take `governorate_id` + `area_id` (together; a bookable
+  area of that governorate, else `422` on `area_id`), `manager_name` and optional `email`. `GET /org`
+  returns `governorate { id, name }`, `area { id, name }`, `manager_name`, `email` and `paused`
+  (`{ reason: "activity_licence_expired", since }` or `null`). `onboarding.info_completed` now also needs
+  the area and the manager's name.
+- **Documents.** Four required types: `commercial_register`, `tax_card`, `activity_licence` (with
+  `issuing_authority`: `ministry_of_health`, `ministry_of_social_solidarity` or `other`, and
+  `expires_at`, both required) and `manager_id` (front in `file_key`, back in `back_file_key`).
+  `issuing_authority` on another type → `422`. Documents return `back_file_url`, `back_mime`,
+  `issuing_authority`. The submit error for missing documents names the four.
+- **Licence expiry.** The owner is told 30 days before (`org_licence_expiring`). When it expires the
+  organization is paused: patients can't find or book it, `GET /org` shows `paused`, and the owner gets
+  `org_licence_expired`. Uploading a valid licence and having it approved lifts the pause.
+- **Invites.** `POST /org/staff/invite` takes optional `area_ids` and `service_ids` (from the
+  organization's lists; `422` on `area_ids.N` / `service_ids.N`), applied when the person joins. Invites
+  return `area_ids`, `service_ids`, `last_sent_at`. **NEW** `POST /org/staff/invites/{id}/resend`:
+  valid 7 more days and the SMS again; once an hour per invite (`429`), within the 30-a-day limit.
+- **Suspending a member.** `PATCH /org/staff/{id}` takes `reason` and `ends_at` with
+  `status: "suspended"` (up to 90 days; omit `ends_at` = until reactivated; either without suspending →
+  `422`). Their active bookings in the suspension period (all of them when there's no end) go back to the
+  owner's queue with a fresh deadline, as on removal. It lifts by itself (checked every 5 minutes) and
+  the member gets `staff_activated`. Members return `suspension: { reason, ends_at }` or `null`; the
+  member's `staff_suspended` notice includes the end date and reason.
+- **Reassigning.** `POST /org/bookings/{id}/reassign` requires `reason_code` (`staff_unavailable`,
+  `patient_request`, `other`) and takes `reason_text`. It is internal: the new member sees it in
+  `GET /provider/bookings/{id}` → `reassignment { reason_code, reason_text, at }`, admins in the booking
+  history (`internal_reason`); the patient never sees it and is told `booking_provider_changed` (no
+  second "accepted").
+- **Reports.** `GET /org/reports` rows and summary add `commission` and `net`. `revenue` is service price
+  - travel fee of completed visits, before commission.
 
 ### Chat
 
@@ -360,27 +435,27 @@ and dispute descriptions come back as `null` for every role except super admin a
 
 Values marked **NEW** are not in the spec.
 
-| Enum                                              | Values                                                                                                                                                                                                                                                              |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| User role                                         | `patient`, `provider`, `provider_staff`, `owner`, `admin`, **NEW** `reception`                                                                                                                                                                                      |
-| Admin role                                        | `super_admin`, `verifier`, `support`, `finance`, **NEW** `marketing`                                                                                                                                                                                                |
-| Verification status (providers and organizations) | `draft`, `pending`, `changes_requested`, `approved`, `rejected`, `suspended`                                                                                                                                                                                        |
-| Booking status                                    | **NEW** `awaiting_payment`, `pending`, `accepted`, `declined`, `expired`, `on_the_way`, `in_progress`, `completed`, `cancelled`, `no_show`, `disputed`                                                                                                              |
-| Booking type / `visit_type`                       | `home_visit`, **NEW** `clinic_visit` (`video` exists but is refused)                                                                                                                                                                                                |
-| Payment method                                    | `cash`, `card`, `wallet`, **NEW** `covered`                                                                                                                                                                                                                         |
-| Booking `payment_status`                          | `unpaid`, `pending`, `paid`, `refunded`, `failed`                                                                                                                                                                                                                   |
-| Payment `status`                                  | `pending`, `paid`, `failed`, `expired`, `partially_refunded`, `refunded`                                                                                                                                                                                            |
-| Payment `purpose`                                 | `booking`, `package`, **NEW** `commission`, `plan_fee`                                                                                                                                                                                                              |
-| Clinic status                                     | **NEW** `draft`, `pending`, `approved`, `changes_requested`, `rejected`                                                                                                                                                                                             |
-| Consent kind                                      | **NEW** `terms`, `privacy`, `health_data`                                                                                                                                                                                                                           |
-| Notification type                                 | `booking_request`, `booking_offer`, `assignment_deadline_warning`, `booking_status`, `booking_reminder`, `chat_message`, `visit_report`, `review_request`, `verification_result`, `payout`, `package_expiry`, `promo`, **NEW** `account`, `dispute`, `announcement` |
-| Document review status                            | `pending`, `matching`, `not_matching`                                                                                                                                                                                                                               |
-| Payout status                                     | `pending`, `approved`, `paid`, **NEW** `cancelled`                                                                                                                                                                                                                  |
-| Package subscription status                       | `pending_payment`, `active`, `used_up`, `expired`, `cancelled`                                                                                                                                                                                                      |
-| Staff invite                                      | status `pending`, `accepted`, `declined`, `revoked`; kind `staff`, `reception`                                                                                                                                                                                      |
-| Dispute                                           | status `open`, `resolved`; resolution `refund`, `partial_refund`, `no_action`                                                                                                                                                                                       |
-| Banner action                                     | `none`, `promo`, `service`, `category`, `package`, `url`                                                                                                                                                                                                            |
-| Broadcast type                                    | `marketing`, `announcement`                                                                                                                                                                                                                                         |
+| Enum                                              | Values                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| User role                                         | `patient`, `provider`, `provider_staff`, `owner`, `admin`, **NEW** `reception`                                                                                                                                                                                                                            |
+| Admin role                                        | `super_admin`, `verifier`, `support`, `finance`, **NEW** `marketing`                                                                                                                                                                                                                                      |
+| Verification status (providers and organizations) | `draft`, `pending`, `changes_requested`, `approved`, `rejected`, `suspended`                                                                                                                                                                                                                              |
+| Booking status                                    | **NEW** `awaiting_payment`, `pending`, `accepted`, `declined`, `expired`, `on_the_way`, `in_progress`, `completed`, `cancelled`, `no_show`, `disputed`                                                                                                                                                    |
+| Booking type / `visit_type`                       | `home_visit`, **NEW** `clinic_visit` (`video` exists but is refused)                                                                                                                                                                                                                                      |
+| Payment method                                    | `cash`, `card`, `wallet`, **NEW** `covered`                                                                                                                                                                                                                                                               |
+| Booking `payment_status`                          | `unpaid`, `pending`, `paid`, `refunded`, `failed`                                                                                                                                                                                                                                                         |
+| Payment `status`                                  | `pending`, `paid`, `failed`, `expired`, `partially_refunded`, `refunded`                                                                                                                                                                                                                                  |
+| Payment `purpose`                                 | `booking`, `package`, **NEW** `commission`, `plan_fee`                                                                                                                                                                                                                                                    |
+| Clinic status                                     | **NEW** `draft`, `pending`, `approved`, `changes_requested`, `rejected`                                                                                                                                                                                                                                   |
+| Consent kind                                      | **NEW** `terms`, `privacy`, `health_data`                                                                                                                                                                                                                                                                 |
+| Notification type                                 | `booking_request`, `booking_offer`, `assignment_deadline_warning`, `booking_status`, `booking_reminder`, `chat_message`, `visit_report`, `review_request`, `verification_result`, `payout`, `package_expiry`, `promo`, **NEW** `account`, `dispute`, `announcement`, `review_received`, `statement_ready` |
+| Document review status                            | `pending`, `matching`, `not_matching`                                                                                                                                                                                                                                                                     |
+| Payout status                                     | `pending`, `approved`, `paid`, **NEW** `cancelled`                                                                                                                                                                                                                                                        |
+| Package subscription status                       | `pending_payment`, `active`, `used_up`, `expired`, `cancelled`                                                                                                                                                                                                                                            |
+| Staff invite                                      | status `pending`, `accepted`, `declined`, `revoked`; kind `staff`, `reception`                                                                                                                                                                                                                            |
+| Dispute                                           | status `open`, `resolved`; resolution `refund`, `partial_refund`, `no_action`                                                                                                                                                                                                                             |
+| Banner action                                     | `none`, `promo`, `service`, `category`, `package`, `url`                                                                                                                                                                                                                                                  |
+| Broadcast type                                    | `marketing`, `announcement`                                                                                                                                                                                                                                                                               |
 
 Unchanged from the spec: gender, preferred gender, provider type, assignment mode, pricing unit, relation,
 document types, organization type, promo type.
@@ -434,17 +509,70 @@ duplicate record. For these, show `error.message`.
 
 Treat an event as "something changed" and load the object again with the REST endpoint.
 
-### Push (FCM)
+### Push (FCM) and routing
 
 - Register the device with `POST /me/devices`.
-- `data` holds strings only: always `type`, plus `notification_id` (not on chat pushes), and, depending on
-  the notification, `booking_id`, `status`, `payment_id`, `invite_id`, `organization_id`, `document_id`,
-  `broadcast_id`, `action`. Use `type` and the ids to open the right screen. `action: "choose_again"`
-  means "open search again".
-- Chat pushes never include the message text, and are not sent while the user has that chat open.
-- `PUT /me/notification-settings` silences push only; the in-app list keeps everything.
-  `reminders` → `booking_reminder`, `promotions` → `promo`, `chat` → `chat_message`. Every other type is
-  always pushed.
+- Every notification — the in-app record's `data`, the push `data` and the `notification.new` socket
+  event — carries **`type`** and **`event`**, plus `notification_id` (not on chat pushes, which have no
+  in-app record) and the ids in the table. All values are strings. **Route on `type` + `event`.** An
+  unknown `event` → open the notifications list.
+- Pushes never carry chat text, health data or review comments. Chat pushes are not sent while the user has
+  that chat open.
+- `PUT /me/notification-settings` `{ reminders, promotions, chat, reviews }` silences the push only; the
+  in-app list keeps everything. `reminders` → `booking_reminder`, `promotions` → `promo`, `chat` →
+  `chat_message`, `reviews` → `review_received`. Every other type is always pushed.
+
+#### Routing table
+
+| type                          | event                                                                                                                                                                | Who gets it                                     | data (besides type, event, notification_id)           | Open                                                 |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------- |
+| `booking_request`             | `booking_request`, `booking_rescheduled`                                                                                                                             | Provider (direct request)                       | `booking_id`                                          | Provider booking detail (answer before `respond_by`) |
+| `booking_request`             | `booking_assigned`                                                                                                                                                   | Staff member assigned by the owner              | `booking_id`                                          | Provider booking detail                              |
+| `booking_request`             | `clinic_booking_new`                                                                                                                                                 | Doctor (clinic appointment)                     | `booking_id`                                          | Provider booking detail                              |
+| `booking_request`             | `org_booking_request`, `org_booking_rescheduled`, `org_booking_returned`, `org_booking_time_changed`                                                                 | Organization owner                              | `booking_id`                                          | Owner booking (queue) detail                         |
+| `booking_offer`               | `booking_offer`                                                                                                                                                      | Providers / staff offered the request           | `booking_id`                                          | Offers list                                          |
+| `booking_offer`               | `booking_offer_taken`                                                                                                                                                | Providers whose offer someone else took         | `booking_id`                                          | Offers list (refresh)                                |
+| `booking_offer`               | `org_booking_offer`                                                                                                                                                  | Organization owner                              | `booking_id`                                          | Owner offers (`GET /org/offers`)                     |
+| `assignment_deadline_warning` | `org_deadline_warning`                                                                                                                                               | Organization owner                              | `booking_id`                                          | Owner booking detail (assign now)                    |
+| `booking_status`              | `booking_accepted`, `booking_declined`, `booking_expired`, `booking_on_the_way`, `booking_started`, `booking_no_show`, `booking_fallback`, `booking_payment_expired` | Patient                                         | `booking_id`, `status`                                | Booking detail                                       |
+| `booking_status`              | `clinic_booking_confirmed`, `clinic_booking_no_show`                                                                                                                 | Patient                                         | `booking_id`, `status`                                | Booking detail                                       |
+| `booking_status`              | `clinic_booking_expired`                                                                                                                                             | Patient                                         | `booking_id`, `status`, `action: choose_again`        | Search (choose again)                                |
+| `booking_status`              | `booking_cancelled`                                                                                                                                                  | The other side (and the owner)                  | `booking_id`, `status`                                | Booking detail of the recipient's app                |
+| `booking_status`              | `payment_refunded`                                                                                                                                                   | Patient                                         | `booking_id`, `payment_id`                            | Booking detail                                       |
+| `booking_status`              | `booking_provider_changed`                                                                                                                                           | Patient (another provider took the booking)     | `booking_id`, `status`                                | Booking detail                                       |
+| `booking_status`              | `booking_time_changed`, `booking_unassigned`                                                                                                                         | Staff member                                    | `booking_id`                                          | Provider booking detail / bookings list              |
+| `booking_reminder`            | `booking_reminder_day`, `booking_reminder_hour`                                                                                                                      | Patient and provider                            | `booking_id`                                          | Booking detail                                       |
+| `review_request`              | `review_request`                                                                                                                                                     | Patient                                         | `booking_id`                                          | Rate the visit                                       |
+| `visit_report`                | `visit_report_ready`                                                                                                                                                 | Patient                                         | `booking_id`, `report_id`, `patient_profile_id`       | Visit report                                         |
+| `chat_message`                | `chat_message`                                                                                                                                                       | The other side of the chat (push only)          | `booking_id`                                          | Chat                                                 |
+| `dispute`                     | `dispute_resolved`                                                                                                                                                   | Patient and / or provider                       | `dispute_id`, `booking_id`                            | Booking detail (dispute)                             |
+| `review_received`             | `review_received`                                                                                                                                                    | Provider                                        | `review_id`, `booking_id`, `rating`                   | My reviews                                           |
+| `verification_result`         | `verification_approved`, `verification_changes_requested`, `verification_rejected`                                                                                   | Provider                                        | `status`                                              | Verification status                                  |
+| `verification_result`         | `document_expiring`, `license_expired`, `criminal_record_expired`                                                                                                    | Provider                                        | `document_id`, `document_type`                        | Documents                                            |
+| `verification_result`         | `clinic_approved`, `clinic_changes_requested`, `clinic_rejected`                                                                                                     | Doctor / owner                                  | `clinic_id`, `status`                                 | Clinic (or branch) detail                            |
+| `verification_result`         | `clinic_licence_expiring`, `clinic_licence_expired`                                                                                                                  | Doctor / owner                                  | `clinic_id`                                           | Clinic (or branch) detail, licence                   |
+| `verification_result`         | `org_verification_approved`, `org_verification_changes_requested`, `org_verification_rejected`                                                                       | Organization owner                              | `organization_id`, `status`                           | Organization verification                            |
+| `verification_result`         | `org_licence_expiring`, `org_licence_expired`                                                                                                                        | Organization owner                              | `document_id`, `document_type`                        | Organization documents                               |
+| `payout`                      | `payout_paid`                                                                                                                                                        | Provider / owner                                | `payout_id`                                           | Payouts                                              |
+| `payout`                      | `commission_paid`                                                                                                                                                    | Provider / owner                                | `payment_id`                                          | Earnings                                             |
+| `payout`                      | `commission_due_warning`, `commission_limit_reached`                                                                                                                 | Provider / owner                                | `commission_due`                                      | Earnings → pay commission                            |
+| `payout`                      | `plan_fee_paid`                                                                                                                                                      | Organization owner                              | `payment_id`                                          | Subscription                                         |
+| `statement_ready`             | `statement_ready`                                                                                                                                                    | Organization owner                              | `statement_id`, `period`                              | Statements (`GET /org/invoices`)                     |
+| `package_expiry`              | `package_activated`, `package_expiring`, `package_expired`, `package_low_visits`                                                                                     | Patient                                         | `package_subscription_id`                             | Package detail                                       |
+| `account`                     | `account_suspended`, `account_suspended_until`, `account_reactivated`                                                                                                | Any user                                        | `status`                                              | Account status (home)                                |
+| `account`                     | `account_warning`                                                                                                                                                    | Any user                                        | `warning_id`                                          | Account status (home)                                |
+| `account`                     | `health_data_paused`, `health_data_resumed`                                                                                                                          | Patient                                         | `kind`                                                | Consents / medical profile                           |
+| `account`                     | `referral_reward_referred`, `referral_reward_referrer`                                                                                                               | Patient                                         | —                                                     | Referral                                             |
+| `account`                     | `staff_invite`                                                                                                                                                       | Independent provider invited by an organization | `invite_id`                                           | Staff invites                                        |
+| `account`                     | `staff_joined`                                                                                                                                                       | Organization owner                              | `organization_id`                                     | Team                                                 |
+| `account`                     | `staff_suspended`, `staff_activated`, `staff_removed`                                                                                                                | Staff member                                    | `organization_id` (+ `ends_at` on a timed suspension) | Provider home                                        |
+| `account`                     | `plan_fee_overdue`, `plan_downgraded`                                                                                                                                | Organization owner                              | `organization_id`                                     | Subscription                                         |
+| `account`                     | `accepting_resumed`                                                                                                                                                  | Provider                                        | `is_accepting_bookings`                               | Provider home                                        |
+| `promo`                       | `broadcast`                                                                                                                                                          | Marketing audience                              | `broadcast_id`                                        | Notifications list (or home)                         |
+| `announcement`                | `broadcast`                                                                                                                                                          | Announcement audience                           | `broadcast_id`                                        | Notifications list                                   |
+
+`event` is the name of the message (its template); `type` is the family and decides muting. New events may
+be added to a type later, so keep a fallback per type.
 
 ---
 

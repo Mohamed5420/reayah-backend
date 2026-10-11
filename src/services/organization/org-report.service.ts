@@ -187,6 +187,8 @@ export class OrgReportService {
       return {
         visits: done.length,
         revenue: done.reduce((total, b) => total + b.price.subtotal + b.price.travelFee, 0),
+        commission: done.reduce((total, b) => total + b.price.commissionAmount, 0),
+        net: done.reduce((total, b) => total + b.price.providerPayout, 0),
         rating: rated.length ? Math.round((rated.reduce((a, r) => a + r, 0) / rated.length) * 10) / 10 : null,
         on_time_rate: ratio(timed.filter((b) => b.isOnTime).length, timed.length),
         cancellation_rate: ratio(
@@ -201,6 +203,8 @@ export class OrgReportService {
       summary: {
         visits: summary.visits,
         revenue: summary.revenue,
+        commission: summary.commission,
+        net: summary.net,
         avg_rating: summary.rating,
         cancellation_rate: summary.cancellation_rate,
         on_time_rate: summary.on_time_rate,
@@ -213,6 +217,8 @@ export class OrgReportService {
             label: g.label,
             visits: s.visits,
             revenue: s.revenue,
+            commission: s.commission,
+            net: s.net,
             rating: s.rating,
             on_time_rate: s.on_time_rate,
           };

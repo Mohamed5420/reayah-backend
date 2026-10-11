@@ -9,6 +9,8 @@ const bookingStatusHistorySchema = new Schema<IBookingStatusHistory>(
     actor: { type: String, enum: Object.values(BookingActor), required: true },
     changedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     note: { type: String, default: null },
+    /** Internal reason (reassignment): staff and admins only, never in the patient's timeline. */
+    internalReason: { type: { code: String, text: String }, default: null, _id: false },
   },
   { timestamps: { createdAt: true, updatedAt: false }, versionKey: false },
 );

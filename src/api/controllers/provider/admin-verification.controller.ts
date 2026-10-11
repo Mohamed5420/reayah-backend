@@ -248,12 +248,12 @@ export default class AdminVerificationController implements IBaseController {
         auditContextFrom(req),
       );
       if (orgDocument) {
-        const [{ fileUrl }] = await this.documents.withUrls([orgDocument]);
-        return HttpResponse.ok(res, presentOrgDocument(orgDocument, fileUrl));
+        const [{ fileUrl, backFileUrl }] = await this.documents.withUrls([orgDocument]);
+        return HttpResponse.ok(res, presentOrgDocument(orgDocument, fileUrl, backFileUrl));
       }
       const document = await this.verification.reviewDocument(req.params.id, input, auditContextFrom(req));
-      const [{ fileUrl }] = await this.documents.withUrls([document]);
-      return HttpResponse.ok(res, presentProviderDocument(document, fileUrl));
+      const [{ fileUrl, backFileUrl }] = await this.documents.withUrls([document]);
+      return HttpResponse.ok(res, presentProviderDocument(document, fileUrl, backFileUrl));
     } catch (err) {
       next(err);
     }

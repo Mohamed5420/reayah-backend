@@ -5,8 +5,11 @@ import { ProviderProfileModel } from '../../database/models/provider/provider-pr
 import { ProviderTimeOffModel } from '../../database/models/provider/provider-time-off.model';
 import { withTransaction } from '../../database/transaction';
 import { bookingEvents, type BookingEvent } from '../../events/booking.events';
+import { DEFAULT_BREAK_MINUTES } from '../../interfaces/IProfiles';
+import { addDays, cairoDate, cairoToUtc } from '../../utils/time/cairo';
 import {
   ACTIVE_BOOKING_STATUSES,
+  BookingType,
   type BookingActor,
   type BookingStatus,
   type IBooking,
@@ -51,14 +54,29 @@ export const assertProviderFree = async (
   end: Date,
   session: ClientSession,
   excludeBookingId?: Types.ObjectId | string,
+  /** The visit being placed: home visits also count toward the provider's daily maximum. */
+  visitType: BookingType = BookingType.HOME_VISIT,
 ) => {
+  const rules = await ProviderProfileModel.findById(providerProfileId)
+    .select('breakMinutes maxVisitsPerDay')
+    .session(session)
+    .lean();
+  // Existing home visits keep the provider's break free on both sides (same rule as busyIntervals).
+  const pad = (rules?.breakMinutes ?? DEFAULT_BREAK_MINUTES) * 60_000;
+  const others = excludeBookingId ? { _id: { $ne: excludeBookingId } } : {};
   const [booking, timeOff] = await Promise.all([
     BookingModel.exists({
       providerProfileId,
       status: { $in: ACTIVE_BOOKING_STATUSES },
-      scheduledStart: { $lt: end },
-      scheduledEnd: { $gt: start },
-      ...(excludeBookingId ? { _id: { $ne: excludeBookingId } } : {}),
+      ...others,
+      $or: [
+        {
+          type: { $ne: BookingType.CLINIC_VISIT },
+          scheduledStart: { $lt: new Date(end.getTime() + pad) },
+          scheduledEnd: { $gt: new Date(start.getTime() - pad) },
+        },
+        { type: BookingType.CLINIC_VISIT, scheduledStart: { $lt: end }, scheduledEnd: { $gt: start } },
+      ],
     }).session(session),
     ProviderTimeOffModel.exists({
       providerProfileId,
@@ -67,6 +85,17 @@ export const assertProviderFree = async (
     }).session(session),
   ]);
   if (booking || timeOff) throw new SlotUnavailableError();
+  if (visitType !== BookingType.CLINIC_VISIT && rules?.maxVisitsPerDay) {
+    const day = cairoDate(start);
+    const sameDay = await BookingModel.countDocuments({
+      providerProfileId,
+      status: { $in: ACTIVE_BOOKING_STATUSES },
+      type: { $ne: BookingType.CLINIC_VISIT },
+      scheduledStart: { $gte: cairoToUtc(day, '00:00'), $lt: cairoToUtc(addDays(day, 1), '00:00') },
+      ...others,
+    }).session(session);
+    if (sameDay >= rules.maxVisitsPerDay) throw new SlotUnavailableError();
+  }
 };
 
 /**
@@ -124,7 +153,9 @@ export const recordHistory = (
   actor: BookingActor,
   changedBy: string | null,
   note: string | null,
+  internalReason: { code: string; text: string | null } | null = null,
 ) =>
-  BookingStatusHistoryModel.create([{ bookingId, fromStatus: from, toStatus: to, actor, changedBy, note }], {
-    session: tx.session,
-  });
+  BookingStatusHistoryModel.create(
+    [{ bookingId, fromStatus: from, toStatus: to, actor, changedBy, note, internalReason }],
+    { session: tx.session },
+  );

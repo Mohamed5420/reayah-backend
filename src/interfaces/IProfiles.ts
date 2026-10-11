@@ -48,6 +48,9 @@ export interface IAvailabilitySlot {
 }
 
 /** Spec §4.4 `provider_profiles`. Created as a draft at sign-up; onboarding + verification in M1.4. */
+/** Default break around home visits for profiles that never set one (lean reads skip schema defaults). */
+export const DEFAULT_BREAK_MINUTES = 15;
+
 export interface IProviderProfile {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
@@ -55,6 +58,9 @@ export interface IProviderProfile {
   organizationId: Types.ObjectId | null;
   /** Staff only: suspended by their organization's owner (not an admin account suspension). */
   staffSuspended: boolean;
+  /** Owner's suspension: why (shown to the member) and when it lifts by itself (null = until reactivated). */
+  staffSuspendedReason?: string | null;
+  staffSuspendedUntil?: Date | null;
   /** Chosen during onboarding. */
   type: ProviderType | null;
   specialty: string | null;
@@ -80,6 +86,12 @@ export interface IProviderProfile {
   ratingCount: number;
   completedVisitsCount: number;
   isAcceptingBookings: boolean;
+  /** Minutes kept free before and after each home visit (travel between patients). */
+  breakMinutes: number;
+  /** Home visits per Cairo day at most; null = no limit. */
+  maxVisitsPerDay: number | null;
+  /** A pause the provider set: accepting turns back on by itself at this time. */
+  acceptingResumesAt: Date | null;
   /** Copied from the account at sign-up (test numbers); test providers only meet test patients in production. */
   isTestAccount: boolean;
   /** Internal: serializes booking transactions per provider. */

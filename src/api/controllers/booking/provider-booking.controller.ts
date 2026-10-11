@@ -5,7 +5,7 @@ import { CheckAppStatusMiddleware } from '../../middlewares/app';
 import { Auth } from '../../middlewares/auth';
 import { BookingSchemas } from '../../validations/booking/booking.validation';
 import { AftercareSchemas } from '../../validations/aftercare/aftercare.validation';
-import { paginationQuery, z } from '../../validations/zod';
+import { z } from '../../validations/zod';
 import { presentOffer, presentProviderDetail, presentProviderItem } from '../../presenters/booking.presenter';
 import { presentProviderReview, presentVisitReport } from '../../presenters/aftercare.presenter';
 import { defineRoute, type DefinedRoute } from '../../../docs/openapi';
@@ -124,11 +124,19 @@ const r = {
   reviews: defineRoute({
     method: 'get',
     path: '/provider/reviews',
-    summary: 'My reviews (visible ones), newest first',
+    summary: 'My reviews (visible ones): sort newest (default), highest or lowest rating',
     tags: ['Provider — Reviews'],
     auth,
-    request: { query: paginationQuery },
+    request: { query: AftercareSchemas.providerReviewsQuery },
     response: { schema: AftercareSchemas.providerReview, paginated: true },
+  }),
+  reviewSummary: defineRoute({
+    method: 'get',
+    path: '/provider/reviews/summary',
+    summary: 'My rating at a glance: average and count, visible reviews per star, the most chosen tags',
+    tags: ['Provider — Reviews'],
+    auth,
+    response: { schema: AftercareSchemas.reviewSummary },
   }),
 };
 
@@ -288,13 +296,33 @@ export default class ProviderBookingController implements IBaseController {
     });
 
     this.router.get(
+      r.reviewSummary.path,
+      ...this.chain(r.reviewSummary),
+      async (req: Request, res: Response, next: NextFunction) => {
+        try {
+          const profile = await this.profile(req);
+          const summary = await this.reviews.summaryForProvider(profile._id);
+          return HttpResponse.ok(res, {
+            rating_avg: profile.ratingAvg,
+            rating_count: profile.ratingCount,
+            distribution: summary.distribution,
+            top_tags: summary.topTags,
+          });
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.get(
       r.reviews.path,
       ...this.chain(r.reviews),
       async (req: Request, res: Response, next: NextFunction) => {
         try {
           const pagination = parsePagination(req.query);
           const profile = await this.profile(req);
-          const { data, total } = await this.reviews.listForProvider(profile._id, pagination);
+          const q = req.query as unknown as { sort: 'newest' | 'highest' | 'lowest' };
+          const { data, total } = await this.reviews.listForProvider(profile._id, pagination, q.sort);
           return HttpResponse.paginated(res, data.map(presentProviderReview), pagination, total);
         } catch (err) {
           next(err);

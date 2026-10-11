@@ -161,6 +161,19 @@ export const presentDetail = (input: {
   };
 };
 
+/**
+ * A direct request still waiting for this provider's answer: the deadline and the seconds left by the
+ * server's clock (so a countdown doesn't depend on the phone's clock). null once answered.
+ */
+const responseWindow = (b: IBooking) => {
+  const deadline = b.status === BookingStatus.PENDING ? b.assignmentDeadline : null;
+  return {
+    respond_by: deadline ? deadline.toISOString() : null,
+    seconds_remaining: deadline ? secondsUntil(deadline) : null,
+  };
+};
+const secondsUntil = (at: Date) => Math.max(0, Math.floor((at.getTime() - Date.now()) / 1000));
+
 export const presentProviderItem = (b: IBooking, lang: Language) => ({
   id: String(b._id),
   reference_code: b.referenceCode,
@@ -172,6 +185,7 @@ export const presentProviderItem = (b: IBooking, lang: Language) => ({
   total: b.price.total,
   provider_payout: b.price.providerPayout,
   payment_method: b.paymentMethod,
+  ...responseWindow(b),
 });
 
 export const presentProviderDetail = (input: {
@@ -227,6 +241,15 @@ export const presentProviderDetail = (input: {
       : null,
     allowed_actions: input.allowedActions,
     can_chat: chatOpen(b),
+    ...responseWindow(b),
+    /** Moved to this provider by the owner: the internal reason (staff only; never the patient). */
+    reassignment: b.reassignment
+      ? {
+          reason_code: b.reassignment.reasonCode,
+          reason_text: b.reassignment.reasonText,
+          at: b.reassignment.at.toISOString(),
+        }
+      : null,
   };
 };
 
@@ -239,4 +262,5 @@ export const presentOffer = (offer: IBookingOffer, b: IBooking, lang: Language) 
   scheduled_end: b.scheduledEnd.toISOString(),
   provider_payout: b.price.providerPayout,
   expires_at: offer.expiresAt.toISOString(),
+  seconds_remaining: secondsUntil(offer.expiresAt),
 });

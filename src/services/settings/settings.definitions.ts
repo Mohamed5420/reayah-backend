@@ -35,6 +35,8 @@ export interface Settings {
   travel_fee_on_late_cancellation: boolean;
   /** Provider records a no-show → the patient is charged the booking's travel fee (to the provider). */
   travel_fee_on_no_show: boolean;
+  /** Providers must upload a criminal record certificate to submit (off until counsel confirms). */
+  criminal_record_required: boolean;
   /** Referral credit for each side, piastres. */
   referral_reward: number;
   /** Organizations: tell the owner a plan fee is still unpaid this many days after it was charged. */
@@ -85,6 +87,7 @@ export const SETTING_DEFAULTS: Settings = {
   card_payment_window_minutes: 15,
   travel_fee_on_late_cancellation: true,
   travel_fee_on_no_show: true,
+  criminal_record_required: false,
   referral_reward: 5000,
   package_expiry_notice_days: 3,
   plan_fee_notice_days: 14,
@@ -141,6 +144,7 @@ export const SETTING_VALIDATORS: { [K in SettingKey]: Validator<Settings[K]> } =
   card_payment_window_minutes: intBetween(5, 24 * 60),
   travel_fee_on_late_cancellation: isBoolean,
   travel_fee_on_no_show: isBoolean,
+  criminal_record_required: isBoolean,
   referral_reward: intBetween(0, 10_000_000),
   package_expiry_notice_days: intBetween(0, 60),
   plan_fee_notice_days: intBetween(1, 90),

@@ -15,12 +15,25 @@ export enum OrganizationType {
 export enum OrganizationDocumentType {
   COMMERCIAL_REGISTER = 'commercial_register',
   TAX_CARD = 'tax_card',
+  /** The licence to operate, from whichever authority licenses this kind of organization; expires. */
+  ACTIVITY_LICENCE = 'activity_licence',
+  /** The manager's national ID card (front, and back as the second page). */
+  MANAGER_ID = 'manager_id',
 }
 
-/** Both are needed before an organization can submit for verification. */
+/** Who issued the activity licence (not every organization type is licensed by the Ministry of Health). */
+export enum IssuingAuthority {
+  MINISTRY_OF_HEALTH = 'ministry_of_health',
+  MINISTRY_OF_SOCIAL_SOLIDARITY = 'ministry_of_social_solidarity',
+  OTHER = 'other',
+}
+
+/** All are needed before an organization can submit for verification. */
 export const REQUIRED_ORGANIZATION_DOCUMENTS = [
   OrganizationDocumentType.COMMERCIAL_REGISTER,
   OrganizationDocumentType.TAX_CARD,
+  OrganizationDocumentType.ACTIVITY_LICENCE,
+  OrganizationDocumentType.MANAGER_ID,
 ];
 
 /**
@@ -40,6 +53,14 @@ export interface IOrganization {
   phone: string | null;
   /** Free-text business address — text only, never coordinates (spec §1). */
   addressText: string | null;
+  /** Where the organization is based (a bookable area of the governorate). */
+  governorateId: Types.ObjectId | null;
+  areaId: Types.ObjectId | null;
+  /** The responsible manager (their ID card is a verification document). */
+  managerName: string | null;
+  email: string | null;
+  /** Set while the activity licence has expired: not bookable until a valid one is approved. */
+  licencePausedAt: Date | null;
   logoKey: string | null;
   verificationStatus: VerificationStatus;
   rejectionReason: string | null;
@@ -72,6 +93,13 @@ export interface IOrganizationDocument {
   type: OrganizationDocumentType;
   fileKey: string;
   mime: string;
+  /** Optional second page (the back of a card). */
+  backFileKey?: string | null;
+  backMime?: string | null;
+  /** Activity licence only. */
+  issuingAuthority?: IssuingAuthority | null;
+  /** When the owner was last warned this document expires soon (daily job). */
+  expiryNoticeAt?: Date | null;
   status: DocumentReviewStatus;
   expiresAt: Date | null;
   reviewedBy: Types.ObjectId | null;
@@ -120,6 +148,11 @@ export interface IStaffInvite {
   kind?: 'staff' | 'reception';
   /** Reception invites: the branch. */
   clinicId?: Types.ObjectId | null;
+  /** Staff invites: the organization's areas and services the member gets on joining. */
+  areaIds?: Types.ObjectId[];
+  serviceIds?: Types.ObjectId[];
+  /** When the invite SMS was last sent (resend is limited to once an hour). */
+  lastSentAt?: Date | null;
   status: StaffInviteStatus;
   invitedBy: Types.ObjectId;
   expiresAt: Date;

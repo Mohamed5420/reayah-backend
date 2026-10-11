@@ -19,14 +19,16 @@ const notification = z
     type: z.enum(NotificationType),
     title: z.string(),
     body: z.string(),
+    /** Deep-link ids; always `event` (route on type + event) — see the mobile notes' routing table. */
     data: z.record(z.string(), z.string()),
     read_at: z.string().nullable(),
     created_at: z.string(),
   })
   .openapi('Notification');
 
+/** Each mutes one kind of push (the in-app list keeps everything). reviews: providers' new ratings. */
 const settings = z
-  .object({ reminders: z.boolean(), promotions: z.boolean(), chat: z.boolean() })
+  .object({ reminders: z.boolean(), promotions: z.boolean(), chat: z.boolean(), reviews: z.boolean() })
   .openapi('NotificationSettings');
 
 const r = {

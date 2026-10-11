@@ -71,7 +71,11 @@ export class ProviderCoverageService {
   }
 
   /** Weekly home-visit hours; slots must not overlap each other or the doctor's clinic hours. */
-  async replaceAvailability(profile: ProfileDoc, slots: IAvailabilitySlot[]) {
+  async replaceAvailability(
+    profile: ProfileDoc,
+    slots: IAvailabilitySlot[],
+    rules: { breakMinutes?: number; maxVisitsPerDay?: number | null } = {},
+  ) {
     Container.get(ClinicService).assertNoOverlap({ availability: [], clinics: profile.clinics }, slots, {
       clinicId: null,
       field: 'slots',
@@ -93,6 +97,8 @@ export class ProviderCoverageService {
       (a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime),
     );
     profile.set('availability', sorted);
+    if (rules.breakMinutes !== undefined) profile.breakMinutes = rules.breakMinutes;
+    if (rules.maxVisitsPerDay !== undefined) profile.maxVisitsPerDay = rules.maxVisitsPerDay;
     await profile.save();
     return profile;
   }

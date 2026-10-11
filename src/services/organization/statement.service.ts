@@ -15,6 +15,19 @@ import { cairoDate, cairoToUtc } from '../../utils/time/cairo';
 import { NotFoundError } from '../../utils/types-errors';
 import { StorageService } from '../storage/storage.service';
 import { renderStatementPdf } from './statement-pdf';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../../interfaces/INotification';
+import type { Language } from '../../utils/i18n';
+
+/** "سبتمبر 2026" for "2026-09". */
+const monthName = (period: string, lang: Language) => {
+  const [year, month] = period.split('-').map(Number);
+  return new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : 'ar-EG-u-nu-latn', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, 1)));
+};
 
 /** [start, end) of a Cairo month "YYYY-MM". */
 export const monthRange = (period: string) => {
@@ -126,6 +139,12 @@ export class StatementService {
       'application/pdf',
     );
     await statement.save();
+    await Container.get(NotificationService).notify([org.ownerUserId], {
+      type: NotificationType.STATEMENT_READY,
+      template: 'statement_ready',
+      params: (lang) => ({ period: monthName(period, lang) }),
+      data: { statement_id: String(statement._id), period },
+    });
     return statement.toObject();
   }
 

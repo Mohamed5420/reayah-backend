@@ -21,6 +21,7 @@ import type { IOrganization } from '../../interfaces/IOrganization';
 import type { OrgCard } from '../organization/org-discovery.service';
 import { Gender, ProviderType } from '../../interfaces/enums';
 import type { SearchCard } from './discovery.service';
+import { bookableOrg } from '../organization/bookable';
 
 /** Next-free-appointment look-ahead on cards (same as home visits). */
 const NEXT_AVAILABLE_DAYS = 7;
@@ -234,7 +235,7 @@ export class ClinicDiscoveryService {
     if (!branches.length) return [];
     const orgs = await OrganizationModel.find({
       _id: { $in: branches.map((b) => b.organizationId) },
-      verificationStatus: VerificationStatus.APPROVED,
+      ...bookableOrg(),
       ...sameWorld(filters.testAccount),
     }).lean();
     const cards: OrgCard[] = [];
@@ -317,10 +318,7 @@ export class ClinicDiscoveryService {
   async bookableBranch(orgId: string, serviceId: string, branchId: string, doctorId?: string | null) {
     const service = await this.catalog.getActiveService(serviceId);
     const org = Types.ObjectId.isValid(orgId)
-      ? await OrganizationModel.findOne({
-          _id: orgId,
-          verificationStatus: VerificationStatus.APPROVED,
-        }).lean()
+      ? await OrganizationModel.findOne({ _id: orgId, ...bookableOrg() }).lean()
       : null;
     if (!org) throw new NotFoundError('errors.organization_not_found');
     const branch = Types.ObjectId.isValid(branchId)

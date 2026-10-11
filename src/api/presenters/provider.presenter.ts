@@ -9,6 +9,7 @@ import { localized } from './localize';
 import { presentSpecialty } from '../../services/catalog/specialties';
 import { priceBounds, visitTypeOf } from '../../services/catalog/visit-types';
 import type { BookingType } from '../../interfaces/IBooking';
+import { DEFAULT_BREAK_MINUTES } from '../../interfaces/IProfiles';
 
 /** Maps provider data to the API shapes in provider.validation.ts. */
 
@@ -45,15 +46,22 @@ const profileFields = (p: IProviderProfile) => ({
 /** GET /provider/profile (spec §7.10). */
 export const presentProviderProfile = (p: IProviderProfile, checklist: OnboardingChecklist) => ({
   ...profileFields(p),
+  accepting_resumes_at: p.acceptingResumesAt ? p.acceptingResumesAt.toISOString() : null,
   onboarding: presentChecklist(checklist),
 });
 
-export const presentProviderDocument = (d: IProviderDocument, fileUrl: string) => ({
+export const presentProviderDocument = (
+  d: IProviderDocument,
+  fileUrl: string,
+  backFileUrl: string | null = null,
+) => ({
   id: String(d._id),
   type: d.type,
   status: d.status,
   mime: d.mime,
   file_url: fileUrl,
+  back_file_url: backFileUrl,
+  back_mime: d.backMime ?? null,
   expires_at: dateOnly(d.expiresAt),
   review_note: d.reviewNote,
   uploaded_at: d.createdAt.toISOString(),
@@ -118,6 +126,15 @@ export const presentProviderServices = (
 export const presentAvailability = (slots: IAvailabilitySlot[]) =>
   slots.map((s) => ({ day_of_week: s.dayOfWeek, start_time: s.startTime, end_time: s.endTime }));
 
+/** GET / PUT /provider/availability: weekly hours plus the home-visit rules. */
+export const presentSchedule = (
+  p: Pick<IProviderProfile, 'availability' | 'breakMinutes' | 'maxVisitsPerDay'>,
+) => ({
+  slots: presentAvailability(p.availability),
+  break_minutes: p.breakMinutes ?? DEFAULT_BREAK_MINUTES,
+  max_visits_per_day: p.maxVisitsPerDay ?? null,
+});
+
 export const presentTimeOff = (t: IProviderTimeOff) => ({
   id: String(t._id),
   starts_at: t.startsAt.toISOString(),
@@ -142,7 +159,7 @@ export const presentReviewDetail = (input: {
   profile: IProviderProfile;
   user: IUser;
   checklist: OnboardingChecklist;
-  documents: Array<{ document: IProviderDocument; fileUrl: string }>;
+  documents: Array<{ document: IProviderDocument; fileUrl: string; backFileUrl?: string | null }>;
   places: Map<string, AreaDescription>;
   catalog: Map<string, { service: ICatalogService; available: boolean }>;
   lang: Language;
@@ -158,7 +175,9 @@ export const presentReviewDetail = (input: {
   submitted_at: iso(input.profile.submittedAt),
   rejection_reason: input.profile.rejectionReason,
   admin_message: input.profile.adminMessage,
-  documents: input.documents.map(({ document, fileUrl }) => presentProviderDocument(document, fileUrl)),
+  documents: input.documents.map(({ document, fileUrl, backFileUrl }) =>
+    presentProviderDocument(document, fileUrl, backFileUrl ?? null),
+  ),
   service_areas: presentServiceAreas(input.profile, input.places, input.lang),
   services: presentProviderServices(input.profile, input.catalog, input.lang),
   availability: presentAvailability(input.profile.availability),

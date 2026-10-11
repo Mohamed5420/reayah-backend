@@ -20,6 +20,10 @@ export enum NotificationType {
   DISPUTE = 'dispute',
   /** Not in the spec list: admin service announcements (M3.5) — always pushed, no opt-out. */
   ANNOUNCEMENT = 'announcement',
+  /** Not in the spec list: a patient rated the provider (push muted by the `reviews` setting). */
+  REVIEW_RECEIVED = 'review_received',
+  /** Not in the spec list: an organization's monthly statement is ready (always pushed). */
+  STATEMENT_READY = 'statement_ready',
 }
 
 /** Spec §7.13 `/me/notification-settings`. Turning one off silences its push; the in-app list keeps everything. */
@@ -27,12 +31,15 @@ export interface INotificationSettings {
   reminders: boolean;
   promotions: boolean;
   chat: boolean;
+  /** Providers: new ratings. */
+  reviews: boolean;
 }
 
 export const DEFAULT_NOTIFICATION_SETTINGS: INotificationSettings = {
   reminders: true,
   promotions: true,
   chat: true,
+  reviews: true,
 };
 
 /** Which setting (if any) controls a type's push. Everything else is transactional and always pushed. */
@@ -40,6 +47,7 @@ export const NOTIFICATION_SETTING_FOR: Partial<Record<NotificationType, keyof IN
   [NotificationType.BOOKING_REMINDER]: 'reminders',
   [NotificationType.PROMO]: 'promotions',
   [NotificationType.CHAT_MESSAGE]: 'chat',
+  [NotificationType.REVIEW_RECEIVED]: 'reviews',
 };
 
 /** Spec §4.9 `notifications`: the in-app inbox. Text is stored in the recipient's language. */
@@ -49,7 +57,10 @@ export interface INotification {
   type: NotificationType;
   title: string;
   body: string;
-  /** Deep-link ids, all strings (FCM `data` only carries strings). */
+  /**
+   * Deep-link ids, all strings (FCM `data` only carries strings). Always has `event` (the template
+   * name, e.g. `license_expired`): apps route on type + event.
+   */
   data: Record<string, string>;
   readAt: Date | null;
   /** Set when a message must reach each user at most once (e.g. `broadcast:<id>`); unique per user. */

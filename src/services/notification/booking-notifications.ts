@@ -112,6 +112,16 @@ export const handleBookingEvent = async (event: BookingEvent) => {
   }
 
   const statusData = { ...data, status: event.to };
+  // Another provider takes an accepted booking (owner or admin reassignment): say so, not "accepted" again.
+  if (event.reason === 'reassigned' && event.from === event.to) {
+    await notifications.notify([booking.patientUserId], {
+      type: NotificationType.BOOKING_STATUS,
+      template: 'booking_provider_changed',
+      params,
+      data: statusData,
+    });
+    return;
+  }
   if (event.to === BookingStatus.PENDING) {
     if (event.reason === 'sent_to_other_providers') {
       await notifications.notify([booking.patientUserId], {

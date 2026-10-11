@@ -1,5 +1,5 @@
 import { Schema, model, type Model } from 'mongoose';
-import type { IProviderProfile } from '../../../interfaces/IProfiles';
+import { DEFAULT_BREAK_MINUTES, type IProviderProfile } from '../../../interfaces/IProfiles';
 import { ProviderType, VerificationStatus } from '../../../interfaces/enums';
 import { baseSchemaOptions, piastresValidator, uniqueAmongActive } from '../../schema-options';
 import { softDeletePlugin, type SoftDeleteMethods } from '../../plugins/soft-delete.plugin';
@@ -13,6 +13,8 @@ const providerProfileSchema = new Schema<IProviderProfile, ProviderProfileModelT
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     organizationId: { type: Schema.Types.ObjectId, ref: 'Organization', default: null },
     staffSuspended: { type: Boolean, default: false },
+    staffSuspendedReason: { type: String, default: null },
+    staffSuspendedUntil: { type: Date, default: null },
     type: { type: String, enum: Object.values(ProviderType), default: null },
     specialty: { type: String, trim: true, default: null },
     yearsOfExperience: { type: Number, min: 0, default: null },
@@ -104,6 +106,9 @@ const providerProfileSchema = new Schema<IProviderProfile, ProviderProfileModelT
     ratingCount: { type: Number, default: 0 },
     completedVisitsCount: { type: Number, default: 0 },
     isAcceptingBookings: { type: Boolean, default: false },
+    breakMinutes: { type: Number, default: DEFAULT_BREAK_MINUTES, min: 0, max: 120 },
+    maxVisitsPerDay: { type: Number, default: null, min: 1, max: 20 },
+    acceptingResumesAt: { type: Date, default: null },
     isTestAccount: { type: Boolean, default: false },
     // Bumped inside every booking transaction for this provider: concurrent ones then conflict, and the
     // retry sees the other booking — this is what prevents double booking (see booking-transaction.ts).
@@ -118,6 +123,10 @@ providerProfileSchema.index({ userId: 1 }, uniqueAmongActive);
 providerProfileSchema.index({ verificationStatus: 1, submittedAt: 1 });
 // Search (M1.5): bookable providers by area. MongoDB can't index two arrays together, so services are filtered after.
 providerProfileSchema.index({ verificationStatus: 1, isAcceptingBookings: 1, 'serviceAreas.areaId': 1 });
+providerProfileSchema.index(
+  { acceptingResumesAt: 1 },
+  { partialFilterExpression: { acceptingResumesAt: { $type: 'date' } } },
+);
 providerProfileSchema.index({ organizationId: 1 });
 
 export const ProviderProfileModel = model<IProviderProfile, ProviderProfileModelType>(

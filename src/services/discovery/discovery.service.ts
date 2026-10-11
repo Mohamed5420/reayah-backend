@@ -17,6 +17,8 @@ import { BOOKING_HORIZON_DAYS, slotsForDay, type Interval, type Slot } from './s
 import { sameWorld } from '../auth/test-accounts';
 import type { OrgCard } from '../organization/org-discovery.service';
 import { HOME_VISIT, isVisitType, visitTypeExpr, visitTypeMatch } from '../catalog/visit-types';
+import { BookingType } from '../../interfaces/IBooking';
+import { DEFAULT_BREAK_MINUTES } from '../../interfaces/IProfiles';
 
 export enum ProviderSort {
   RATING = 'rating',
@@ -264,7 +266,9 @@ export class DiscoveryService {
     to: Date,
     excludeBookingId?: string,
   ): Promise<Map<string, Interval[]>> {
-    const [timeOff, bookings] = await Promise.all([
+    // Home visits are padded by the provider's break on both sides (travel between patients).
+    const maxPad = 120 * 60_000;
+    const [timeOff, bookings, rules] = await Promise.all([
       ProviderTimeOffModel.find({
         providerProfileId: { $in: profileIds },
         startsAt: { $lt: to },
@@ -273,21 +277,73 @@ export class DiscoveryService {
       BookingModel.find({
         providerProfileId: { $in: profileIds },
         status: { $in: ACTIVE_BOOKING_STATUSES },
-        scheduledStart: { $lt: to },
-        scheduledEnd: { $gt: from },
+        scheduledStart: { $lt: new Date(to.getTime() + maxPad) },
+        scheduledEnd: { $gt: new Date(from.getTime() - maxPad) },
         ...(excludeBookingId ? { _id: { $ne: excludeBookingId } } : {}),
       })
-        .select('providerProfileId scheduledStart scheduledEnd')
+        .select('providerProfileId scheduledStart scheduledEnd type')
+        .lean(),
+      ProviderProfileModel.find({ _id: { $in: profileIds } })
+        .select('breakMinutes')
         .lean(),
     ]);
+    const breakOf = new Map(
+      rules.map((r) => [String(r._id), (r.breakMinutes ?? DEFAULT_BREAK_MINUTES) * 60_000]),
+    );
     const busy = new Map<string, Interval[]>();
     const add = (id: unknown, interval: Interval) => {
       const key = String(id);
       busy.set(key, [...(busy.get(key) ?? []), interval]);
     };
     for (const t of timeOff) add(t.providerProfileId, { start: t.startsAt, end: t.endsAt });
-    for (const b of bookings) add(b.providerProfileId, { start: b.scheduledStart, end: b.scheduledEnd });
+    for (const b of bookings) {
+      const pad = b.type === BookingType.CLINIC_VISIT ? 0 : (breakOf.get(String(b.providerProfileId)) ?? 0);
+      add(b.providerProfileId, {
+        start: new Date(b.scheduledStart.getTime() - pad),
+        end: new Date(b.scheduledEnd.getTime() + pad),
+      });
+    }
     return busy;
+  }
+
+  /**
+   * Cairo days on which a provider already has `maxVisitsPerDay` home visits (active ones): no more home
+   * visits are offered or taken that day. Clinic appointments don't count (their own schedule).
+   */
+  async fullDays(profileIds: Types.ObjectId[], days: string[], excludeBookingId?: string) {
+    const full = new Map<string, Set<string>>();
+    if (!days.length) return full;
+    const capped = await ProviderProfileModel.find({
+      _id: { $in: profileIds },
+      maxVisitsPerDay: { $ne: null },
+    })
+      .select('maxVisitsPerDay')
+      .lean();
+    if (!capped.length) return full;
+    const sorted = [...days].sort();
+    const bookings = await BookingModel.find({
+      providerProfileId: { $in: capped.map((c) => c._id) },
+      status: { $in: ACTIVE_BOOKING_STATUSES },
+      type: { $ne: BookingType.CLINIC_VISIT },
+      scheduledStart: {
+        $gte: cairoToUtc(sorted[0], '00:00'),
+        $lt: cairoToUtc(addDays(sorted[sorted.length - 1], 1), '00:00'),
+      },
+      ...(excludeBookingId ? { _id: { $ne: excludeBookingId } } : {}),
+    })
+      .select('providerProfileId scheduledStart')
+      .lean();
+    for (const profile of capped) {
+      const counts = new Map<string, number>();
+      for (const b of bookings) {
+        if (!b.providerProfileId?.equals(profile._id)) continue;
+        const day = cairoDate(b.scheduledStart);
+        counts.set(day, (counts.get(day) ?? 0) + 1);
+      }
+      const days = new Set([...counts].filter(([, n]) => n >= profile.maxVisitsPerDay!).map(([d]) => d));
+      if (days.size) full.set(String(profile._id), days);
+    }
+    return full;
   }
 
   async slotsForMany(
@@ -303,17 +359,15 @@ export class DiscoveryService {
       addDays(date, service.pricingUnit === PricingUnit.PER_DAY ? quantity + 1 : 1),
       '00:00',
     );
-    const busy = await this.busyIntervals(
-      profiles.map((p) => p._id),
-      from,
-      to,
-      excludeBookingId,
-    );
+    const ids = profiles.map((p) => p._id);
+    const [busy, full] = await Promise.all([
+      this.busyIntervals(ids, from, to, excludeBookingId),
+      this.fullDays(ids, [date], excludeBookingId),
+    ]);
     const now = new Date();
     return new Map(
-      profiles.map((p) => [
-        String(p._id),
-        slotsForDay({
+      profiles.map((p) => {
+        const slots = slotsForDay({
           availability: p.availability,
           date,
           pricingUnit: service.pricingUnit,
@@ -321,8 +375,11 @@ export class DiscoveryService {
           quantity,
           busy: busy.get(String(p._id)) ?? [],
           now,
-        }),
-      ]),
+        });
+        // A day already at the provider's daily maximum offers nothing more.
+        const dayFull = full.get(String(p._id))?.has(date);
+        return [String(p._id), dayFull ? slots.map((s) => ({ ...s, available: false })) : slots];
+      }),
     );
   }
 
@@ -338,14 +395,19 @@ export class DiscoveryService {
       ? [date]
       : Array.from({ length: NEXT_AVAILABLE_DAYS }, (_, i) => addDays(cairoDate(), i));
     // One busy-time query for the whole window, then pure computation per provider and day.
-    const busy = await this.busyIntervals(
-      profiles.map((p) => p._id),
-      cairoToUtc(days[0], '00:00'),
-      cairoToUtc(addDays(days[days.length - 1], 2), '00:00'),
-    );
+    const ids = profiles.map((p) => p._id);
+    const [busy, full] = await Promise.all([
+      this.busyIntervals(
+        ids,
+        cairoToUtc(days[0], '00:00'),
+        cairoToUtc(addDays(days[days.length - 1], 2), '00:00'),
+      ),
+      this.fullDays(ids, days),
+    ]);
     const now = new Date();
     for (const profile of profiles) {
       for (const day of days) {
+        if (full.get(String(profile._id))?.has(day)) continue;
         const first = slotsForDay({
           availability: profile.availability,
           date: day,

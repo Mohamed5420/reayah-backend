@@ -309,6 +309,8 @@ export const AdminSchemas = {
           to_status: z.string(),
           changed_by: objectId.nullable(),
           note: z.string().nullable(),
+          /** Internal reason (an owner's reassignment); never shown to patients. */
+          internal_reason: z.object({ code: z.string(), text: z.string().nullable() }).nullable(),
           at: z.string(),
         }),
       ),

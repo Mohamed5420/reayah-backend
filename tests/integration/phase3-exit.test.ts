@@ -82,12 +82,21 @@ describe('Phase 3 exit', () => {
       tax_id: '987-654-321',
       phone: '+20222223333',
       address_text: '12 شارع مكرم عبيد، مدينة نصر',
+      governorate_id: world.cairo,
+      area_id: world.nasrCity,
+      manager_name: 'أحمد سمير',
     });
     expect(created.status).toBe(201);
     const orgId: string = created.body.data.id;
-    for (const type of ['commercial_register', 'tax_card']) {
+    for (const type of ['commercial_register', 'tax_card', 'activity_licence', 'manager_id']) {
       await api(owner.auth)
-        .post('/org/documents', { type, file_key: await upload(owner.auth, 'org_document') })
+        .post('/org/documents', {
+          type,
+          file_key: await upload(owner.auth, 'org_document'),
+          ...(type === 'activity_licence'
+            ? { issuing_authority: 'ministry_of_social_solidarity', expires_at: '2030-12-31' }
+            : {}),
+        })
         .expect(201);
     }
     await api(owner.auth)

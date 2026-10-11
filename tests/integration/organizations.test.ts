@@ -49,6 +49,9 @@ const orgBody = (overrides: object = {}) => ({
   tax_id: '987-654-321',
   phone: '+20222223333',
   address_text: '12 شارع مكرم عبيد، مدينة نصر',
+  governorate_id: world.cairo,
+  area_id: world.nasrCity,
+  manager_name: 'أحمد سمير',
   ...overrides,
 });
 
@@ -62,14 +65,28 @@ const upload = async (auth: string, purpose: string, file = sampleFiles.pdf, nam
   return res.body.data.file_key as string;
 };
 
-const attach = async (type: 'commercial_register' | 'tax_card') =>
-  api(owner.auth).post('/org/documents', { type, file_key: await upload(owner.auth, 'org_document') });
+type OrgDocumentType = 'commercial_register' | 'tax_card' | 'activity_licence' | 'manager_id';
+/** The extra fields each type needs: the licence's authority and expiry, the ID card's back. */
+const attach = async (type: OrgDocumentType) =>
+  api(owner.auth).post('/org/documents', {
+    type,
+    file_key: await upload(owner.auth, 'org_document'),
+    ...(type === 'activity_licence'
+      ? { issuing_authority: 'ministry_of_health', expires_at: '2030-12-31' }
+      : {}),
+    ...(type === 'manager_id' ? { back_file_key: await upload(owner.auth, 'org_document') } : {}),
+  });
+const ALL_DOCUMENTS: OrgDocumentType[] = [
+  'commercial_register',
+  'tax_card',
+  'activity_licence',
+  'manager_id',
+];
 
-/** Info, both documents, one area, one service: ready to submit. */
+/** Info, all four documents, one area, one service: ready to submit. */
 const setUp = async () => {
   await api(owner.auth).post('/org', orgBody()).expect(201);
-  await attach('commercial_register');
-  await attach('tax_card');
+  for (const type of ALL_DOCUMENTS) await attach(type);
   await api(owner.auth)
     .put('/org/service-areas', { areas: [{ area_id: world.nasrCity, travel_fee: 3000 }] })
     .expect(200);
@@ -88,6 +105,11 @@ describe('organization setup', () => {
       type: 'nursing_center',
       verification_status: 'draft',
       logo_url: null,
+      governorate: { id: world.cairo, name: expect.any(String) },
+      area: { id: world.nasrCity, name: 'مدينة نصر' },
+      manager_name: 'أحمد سمير',
+      email: null,
+      paused: null,
       onboarding: {
         info_completed: true,
         documents_uploaded: false,
@@ -192,10 +214,12 @@ describe('verification', () => {
     const early = await api(owner.auth).post('/org/submit-verification');
     expect(early.status).toBe(422);
     expect(Object.keys(early.body.error.fields).sort()).toEqual(['documents', 'service_areas', 'services']);
+    expect(early.body.error.fields.documents).toEqual([
+      'ارفع السجل التجاري والبطاقة الضريبية وترخيص مزاولة النشاط وبطاقة المدير',
+    ]);
 
     await api(owner.auth).patch('/org', { name: 'مركز الشفاء' }).expect(200); // editable while draft
-    await attach('commercial_register');
-    await attach('tax_card');
+    for (const type of ALL_DOCUMENTS) await attach(type);
     await api(owner.auth).put('/org/service-areas', {
       areas: [{ area_id: world.nasrCity, travel_fee: 3000 }],
     });
@@ -214,7 +238,7 @@ describe('verification', () => {
       expect.objectContaining({
         type: 'organization',
         name: 'مركز الشفاء',
-        documents_count: 2,
+        documents_count: 4,
         status: 'pending',
       }),
     ]);
@@ -230,7 +254,7 @@ describe('verification', () => {
       service_areas: [expect.objectContaining({ travel_fee: 3000 })],
       services: [expect.objectContaining({ price: 30000 })],
     });
-    expect(detail.body.data.documents).toHaveLength(2);
+    expect(detail.body.data.documents).toHaveLength(4);
 
     const changes = await api(admin.auth).post(`/admin/verifications/${id}/request-changes`, {
       message: 'صورة البطاقة الضريبية غير واضحة',

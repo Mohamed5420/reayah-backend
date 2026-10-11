@@ -194,7 +194,7 @@ export default class AdminBookingController implements IBaseController {
     this.list(r.reviews, async (req, pagination) => {
       const q = req.query as unknown as z.infer<typeof AftercareSchemas.adminReviewsQuery>;
       const { data, total } = await this.reviews.adminList(
-        { flagged: q.flagged, providerProfileId: q.provider_profile_id },
+        { flagged: q.flagged, providerProfileId: q.provider_profile_id, reviewId: q.review_id },
         pagination,
       );
       return { data: data.map(presentAdminReview), total };

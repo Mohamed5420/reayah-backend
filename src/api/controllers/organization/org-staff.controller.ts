@@ -54,6 +54,16 @@ const r = {
     auth,
     response: { schema: StaffSchemas.invite.array() },
   }),
+  resend: defineRoute({
+    method: 'post',
+    path: '/org/staff/invites/:id/resend',
+    summary:
+      'Send a pending invite again (staff or reception): valid 7 more days. Once an hour per invite (429), within the 30-a-day invite limit.',
+    tags,
+    auth,
+    request: { params },
+    response: { schema: StaffSchemas.invite },
+  }),
   revoke: defineRoute({
     method: 'delete',
     path: '/org/staff/invites/:id',
@@ -183,9 +193,14 @@ export default class OrgStaffController implements IBaseController {
         phone: body.phone,
         fullName: body.full_name,
         type: body.type,
+        areaIds: body.area_ids,
+        serviceIds: body.service_ids,
       });
       return HttpResponse.created(res, presentStaffInvite(invite));
     });
+    this.mount(r.resend, owner, async (req, res) =>
+      HttpResponse.ok(res, presentStaffInvite(await this.staff.resend(await org(req), req.params.id))),
+    );
     // Before /:id so "invites" isn't taken for an id.
     this.mount(r.invites, owner, async (req, res) =>
       HttpResponse.ok(res, (await this.staff.pendingInvites((await org(req))._id)).map(presentStaffInvite)),
@@ -203,6 +218,8 @@ export default class OrgStaffController implements IBaseController {
       await this.staff.update(organization, req.params.id, {
         status: body.status,
         serviceIds: body.service_ids,
+        reason: body.reason,
+        endsAt: body.ends_at ? new Date(body.ends_at) : null,
       });
       return HttpResponse.ok(res, await this.detail(organization._id, req.params.id, req));
     });
@@ -217,6 +234,7 @@ export default class OrgStaffController implements IBaseController {
         organization._id,
         req.params.id,
         body.slots.map((s) => ({ dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time })),
+        { breakMinutes: body.break_minutes, maxVisitsPerDay: body.max_visits_per_day },
       );
       return HttpResponse.ok(res, await this.detail(organization._id, req.params.id, req));
     });

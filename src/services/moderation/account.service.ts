@@ -65,8 +65,9 @@ export class AccountService {
     await this.tokens.revokeAllForUser(userId);
 
     const provider = await ProviderProfileModel.findOne({ userId: user._id });
-    if (provider?.isAcceptingBookings) {
+    if (provider && (provider.isAcceptingBookings || provider.acceptingResumesAt)) {
       provider.isAcceptingBookings = false;
+      provider.acceptingResumesAt = null;
       await provider.save();
       await invalidateCacheNamespace(PROVIDER_PRICES_CACHE);
     }

@@ -1,5 +1,7 @@
 import { Container, Service } from 'typedi';
 import { Types, type ClientSession, type FilterQuery } from 'mongoose';
+import { invalidateCacheNamespace } from '../../utils/cache/cache';
+import { PROVIDER_PRICES_CACHE } from '../catalog/catalog.service';
 import {
   OrganizationDocumentModel,
   OrganizationModel,
@@ -9,10 +11,10 @@ import { withTransaction } from '../../database/transaction';
 import { VerificationStatus } from '../../interfaces/enums';
 import { DocumentReviewStatus } from '../../interfaces/IProvider';
 import { NotificationType } from '../../interfaces/INotification';
-import type {
-  IOrganization,
+import {
   OrganizationDocumentType,
-  OrganizationType,
+  type IOrganization,
+  type OrganizationType,
 } from '../../interfaces/IOrganization';
 import type { Pagination } from '../../utils/response/pagination';
 import { escapeRegExp } from '../../utils/text/arabic';
@@ -201,6 +203,17 @@ export class OrganizationAdminService {
       entityId: documentId,
       metadata: { status: input.status, organizationId: String(document.organizationId) },
     });
+    if (
+      document.type === OrganizationDocumentType.ACTIVITY_LICENCE &&
+      document.status === DocumentReviewStatus.MATCHING &&
+      (!document.expiresAt || document.expiresAt > new Date())
+    ) {
+      const lifted = await OrganizationModel.updateOne(
+        { _id: document.organizationId, licencePausedAt: { $ne: null } },
+        { licencePausedAt: null },
+      );
+      if (lifted.modifiedCount) await invalidateCacheNamespace(PROVIDER_PRICES_CACHE);
+    }
     return document;
   }
 

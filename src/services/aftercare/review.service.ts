@@ -9,6 +9,8 @@ import type { IReview } from '../../interfaces/IAftercare';
 import type { Pagination } from '../../utils/response/pagination';
 import { AlreadyReviewedError, ConflictError, NotFoundError } from '../../utils/types-errors';
 import { AuditService, type AuditContext } from '../audit/audit.service';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../../interfaces/INotification';
 
 /** Phone numbers, emails and links — contact details shouldn't be shared in public reviews. */
 // Digits include Arabic-Indic (٠-٩) and Persian (۰-۹) forms — Arabic comments often use them.
@@ -31,6 +33,16 @@ export const reviewerName = (fullName: string | undefined) => {
  * Reviews (spec §6.8, §7.8). One per completed booking. The provider's rating is recalculated right away
  * from visible reviews (create, hide, unhide) — cheap, and never stale.
  */
+export const REVIEW_SORT_KEYS = ['newest', 'highest', 'lowest'] as const;
+export type ReviewSort = (typeof REVIEW_SORT_KEYS)[number];
+const REVIEW_SORTS: Record<ReviewSort, Record<string, 1 | -1>> = {
+  newest: { createdAt: -1, _id: -1 },
+  highest: { rating: -1, createdAt: -1, _id: -1 },
+  lowest: { rating: 1, createdAt: -1, _id: -1 },
+};
+/** How many of the most chosen tags the summary lists. */
+const TOP_TAGS = 5;
+
 @Service()
 export class ReviewService {
   private readonly audit = Container.get(AuditService);
@@ -64,7 +76,24 @@ export class ReviewService {
       throw err;
     });
     await this.recalculate(booking.providerProfileId);
+    if (!review.flagged) await this.notifyProvider(review.toObject());
     return review.toObject();
+  }
+
+  /** "You have a new rating ★N" — never the comment text (lock screens). */
+  private async notifyProvider(review: IReview) {
+    const provider = await ProviderProfileModel.findById(review.providerProfileId).select('userId').lean();
+    if (!provider) return;
+    await Container.get(NotificationService).notify([provider.userId], {
+      type: NotificationType.REVIEW_RECEIVED,
+      template: 'review_received',
+      params: { rating: review.rating },
+      data: {
+        review_id: String(review._id),
+        booking_id: String(review.bookingId),
+        rating: String(review.rating),
+      },
+    });
   }
 
   async hasReview(bookingId: Types.ObjectId | string) {
@@ -76,16 +105,39 @@ export class ReviewService {
   async listForProvider(
     providerProfileId: Types.ObjectId | string | Types.ObjectId[],
     pagination: Pagination,
+    sort: ReviewSort = 'newest',
   ) {
     const query = {
       providerProfileId: Array.isArray(providerProfileId) ? { $in: providerProfileId } : providerProfileId,
       isVisible: true,
     };
+    const order = REVIEW_SORTS[sort];
     const [reviews, total] = await Promise.all([
-      ReviewModel.find(query).sort({ createdAt: -1 }).skip(pagination.skip).limit(pagination.perPage).lean(),
+      ReviewModel.find(query).sort(order).skip(pagination.skip).limit(pagination.perPage).lean(),
       ReviewModel.countDocuments(query),
     ]);
     return { data: await this.withNames(reviews), total };
+  }
+
+  /** The provider's rating at a glance: visible reviews by stars, and the most chosen tags. */
+  async summaryForProvider(providerProfileId: Types.ObjectId) {
+    const [stars, tags] = await Promise.all([
+      ReviewModel.aggregate<{ _id: number; n: number }>([
+        { $match: { providerProfileId, isVisible: true } },
+        { $group: { _id: '$rating', n: { $sum: 1 } } },
+      ]),
+      ReviewModel.aggregate<{ _id: string; n: number }>([
+        { $match: { providerProfileId, isVisible: true } },
+        { $unwind: '$tags' },
+        { $group: { _id: '$tags', n: { $sum: 1 } } },
+        { $sort: { n: -1, _id: 1 } },
+        { $limit: TOP_TAGS },
+      ]),
+    ]);
+    const distribution = Object.fromEntries(
+      [1, 2, 3, 4, 5].map((star) => [String(star), stars.find((s) => s._id === star)?.n ?? 0]),
+    ) as Record<'1' | '2' | '3' | '4' | '5', number>;
+    return { distribution, topTags: tags.map((t) => ({ tag: t._id, count: t.n })) };
   }
 
   async recentForProvider(providerProfileId: Types.ObjectId | string | Types.ObjectId[], limit = 3) {
@@ -99,8 +151,13 @@ export class ReviewService {
     return this.withNames(reviews);
   }
 
-  async adminList(filters: { flagged?: boolean; providerProfileId?: string }, pagination: Pagination) {
+  async adminList(
+    filters: { flagged?: boolean; providerProfileId?: string; reviewId?: string },
+    pagination: Pagination,
+  ) {
     const query = {
+      // Support looks up the review a provider wrote in about (the app sends its id).
+      ...(filters.reviewId ? { _id: filters.reviewId } : {}),
       ...(filters.flagged !== undefined ? { flagged: filters.flagged } : {}),
       ...(filters.providerProfileId ? { providerProfileId: filters.providerProfileId } : {}),
     };

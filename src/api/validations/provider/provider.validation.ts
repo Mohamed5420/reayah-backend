@@ -35,6 +35,8 @@ const providerProfile = z
     syndicate_number: z.string().nullable(),
     verification_status: z.enum(VerificationStatus),
     is_accepting_bookings: z.boolean(),
+    /** A pause set with resumes_at: when accepting turns back on by itself; null otherwise. */
+    accepting_resumes_at: z.string().nullable(),
     organization: z.null(),
     rating_avg: z.number(),
     rating_count: z.number(),
@@ -51,6 +53,9 @@ const document = z
     mime: z.string(),
     /** Signed, valid 10 minutes. */
     file_url: z.string(),
+    /** The back of a card, when uploaded (signed, 10 minutes); null otherwise. */
+    back_file_url: z.string().nullable(),
+    back_mime: z.string().nullable(),
     expires_at: z.string().nullable(),
     review_note: z.string().nullable(),
     uploaded_at: z.string(),
@@ -136,7 +141,10 @@ export const ProviderSchemas = {
   attachDocumentBody: z
     .object({
       type: z.enum(ProviderDocumentType),
+      /** The document, or the front of a card (POST /uploads, purpose provider_document). */
       file_key: z.string().min(1).max(300),
+      /** Optional back of a card, uploaded the same way. Not for national_id_front / national_id_back. */
+      back_file_key: z.string().min(1).max(300).nullable().optional(),
       expires_at: date.nullable().optional(),
     })
     .openapi('AttachProviderDocument'),
@@ -163,8 +171,21 @@ export const ProviderSchemas = {
       )
       .max(50),
   }),
-  availability: z.object({ slots: z.array(slot) }).openapi('Availability'),
-  availabilityBody: z.object({ slots: z.array(slot).max(50) }),
+  availability: z
+    .object({
+      slots: z.array(slot),
+      /** Minutes kept free before and after each home visit (travel between patients). */
+      break_minutes: z.number().int(),
+      /** Home visits per day at most; null = no limit. */
+      max_visits_per_day: z.number().int().nullable(),
+    })
+    .openapi('Availability'),
+  /** Unknown fields → 422 by name. Omitted break_minutes / max_visits_per_day keep their current values. */
+  availabilityBody: z.strictObject({
+    slots: z.array(slot).max(50),
+    break_minutes: z.number().int().min(0).max(120).optional(),
+    max_visits_per_day: z.number().int().min(1).max(20).nullable().optional(),
+  }),
   timeOff: z
     .object({ id: objectId, starts_at: z.string(), ends_at: z.string(), reason: z.string().nullable() })
     .openapi('TimeOff'),
@@ -173,7 +194,17 @@ export const ProviderSchemas = {
     ends_at: dateTime,
     reason: z.string().trim().max(200).nullable().optional(),
   }),
-  acceptingBody: z.object({ is_accepting_bookings: z.boolean() }),
+  acceptingBody: z.strictObject({
+    is_accepting_bookings: z.boolean(),
+    /**
+     * With is_accepting_bookings=false: turn accepting back on by itself — an ISO time (future, at most 7
+     * days ahead) or "end_of_day" (the next midnight, Cairo time). Omit or null: paused until turned on.
+     */
+    resumes_at: z
+      .union([z.literal('end_of_day'), z.iso.datetime({ offset: true })])
+      .nullable()
+      .optional(),
+  }),
 
   // ── Admin verification ──
   queueQuery: paginationQuery.extend({

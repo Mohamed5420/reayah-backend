@@ -5,7 +5,7 @@ import {
   ProviderAction,
   RefundBearer,
 } from '../../../interfaces/IAftercare';
-import { objectId, z } from '../zod';
+import { objectId, z, paginationQuery } from '../zod';
 
 /** Upload keys from POST /uploads (`tmp/...`), or keys already on the record when editing. */
 const fileKeys = z.array(z.string().trim().min(1).max(300)).max(10);
@@ -188,7 +188,22 @@ export const AftercareSchemas = {
       .transform((v) => v === 'true')
       .optional(),
     provider_profile_id: objectId.optional(),
+    /** One review by id (a provider contacting support about a review sends its id). */
+    review_id: objectId.optional(),
   }),
+  providerReviewsQuery: paginationQuery.extend({
+    sort: z.enum(['newest', 'highest', 'lowest']).default('newest'),
+  }),
+  reviewSummary: z
+    .object({
+      rating_avg: z.number(),
+      rating_count: z.number(),
+      /** Visible reviews per star, "1" … "5" (zeros included). */
+      distribution: z.object({ 1: z.number(), 2: z.number(), 3: z.number(), 4: z.number(), 5: z.number() }),
+      /** The most chosen tags, most first (up to 5). */
+      top_tags: z.array(z.object({ tag: z.string(), count: z.number() })),
+    })
+    .openapi('ProviderReviewSummary'),
   moderateBody: z
     .strictObject({
       is_visible: z.boolean().optional(),

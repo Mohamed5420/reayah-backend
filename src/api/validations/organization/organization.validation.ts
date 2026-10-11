@@ -1,14 +1,16 @@
 import { Gender, ProviderType, VerificationStatus } from '../../../interfaces/enums';
 import { EGYPT_MOBILE } from '../../../services/auth/auth.constants';
+import { DocumentReviewStatus } from '../../../interfaces/IProvider';
 import {
   BookingStatus,
   BookingType,
   PaymentMethod,
   PaymentStatus,
   PreferredGender,
+  REASSIGN_REASONS,
 } from '../../../interfaces/IBooking';
-import { DocumentReviewStatus } from '../../../interfaces/IProvider';
 import {
+  IssuingAuthority,
   OrganizationDocumentType,
   OrganizationType,
   StaffInviteStatus,
@@ -34,6 +36,11 @@ const document = z
     mime: z.string(),
     /** Signed, valid 10 minutes. */
     file_url: z.string(),
+    /** The back of a card (manager_id), signed 10 minutes; null when none. */
+    back_file_url: z.string().nullable(),
+    back_mime: z.string().nullable(),
+    /** activity_licence only. */
+    issuing_authority: z.enum(IssuingAuthority).nullable(),
     expires_at: z.string().nullable(),
     review_note: z.string().nullable(),
     uploaded_at: z.string(),
@@ -61,6 +68,11 @@ const fields = {
     .nullable(),
   /** Text only — never coordinates (spec §1). */
   address_text: z.string().trim().max(300).nullable(),
+  /** Where the organization is based: a bookable area of the governorate (both or neither). */
+  governorate_id: objectId.nullable(),
+  area_id: objectId.nullable(),
+  manager_name: z.string().trim().min(2).max(120).nullable(),
+  email: z.email().max(200).nullable(),
 };
 
 const organization = z
@@ -73,6 +85,12 @@ const organization = z
     description: z.string().nullable(),
     phone: z.string().nullable(),
     address_text: z.string().nullable(),
+    governorate: z.object({ id: objectId, name: z.string() }).nullable(),
+    area: z.object({ id: objectId, name: z.string() }).nullable(),
+    manager_name: z.string().nullable(),
+    email: z.string().nullable(),
+    /** Not bookable while set: the activity licence expired (until a valid one is approved). */
+    paused: z.object({ reason: z.literal('activity_licence_expired'), since: z.string() }).nullable(),
     /** Signed, valid 10 minutes. */
     logo_url: z.string().nullable(),
     verification_status: z.enum(VerificationStatus),
@@ -98,6 +116,10 @@ export const OrganizationSchemas = {
       description: fields.description.optional(),
       phone: fields.phone.optional(),
       address_text: fields.address_text.optional(),
+      governorate_id: fields.governorate_id.optional(),
+      area_id: fields.area_id.optional(),
+      manager_name: fields.manager_name.optional(),
+      email: fields.email.optional(),
     })
     .openapi('CreateOrganization'),
   updateBody: z.strictObject(fields).partial().openapi('UpdateOrganization'),
@@ -107,8 +129,12 @@ export const OrganizationSchemas = {
   attachDocumentBody: z
     .strictObject({
       type: z.enum(OrganizationDocumentType),
-      /** From POST /uploads with purpose `org_document`. */
+      /** From POST /uploads with purpose `org_document` (the front of a card). */
       file_key: z.string().min(1).max(300),
+      /** Optional back of a card (manager_id), uploaded the same way. */
+      back_file_key: z.string().min(1).max(300).nullable().optional(),
+      /** Required for activity_licence (with expires_at); refused for other types. */
+      issuing_authority: z.enum(IssuingAuthority).nullable().optional(),
       expires_at: date.nullable().optional(),
     })
     .openapi('AttachOrganizationDocument'),
@@ -220,6 +246,8 @@ const staffMember = z
     completed_visits: z.number(),
     service_area_ids: z.array(objectId),
     service_ids: z.array(objectId),
+    /** While suspended by the owner: the reason given and when it lifts (null = until reactivated). */
+    suspension: z.object({ reason: z.string().nullable(), ends_at: z.string().nullable() }).nullable(),
   })
   .openapi('StaffMember');
 
@@ -231,6 +259,10 @@ export const StaffSchemas = {
       phone: z.string().trim().regex(EGYPT_MOBILE, { error: 'validation.phone' }),
       full_name: z.string().trim().min(2).max(100),
       type: z.enum(ProviderType),
+      /** Optional: the organization's areas the member gets on joining (its travel fee applies). */
+      area_ids: z.array(objectId).max(100).optional(),
+      /** Optional: the organization's home-visit services of this type the member gets on joining. */
+      service_ids: z.array(objectId).max(100).optional(),
     })
     .openapi('StaffInviteRequest'),
   invite: z
@@ -240,7 +272,11 @@ export const StaffSchemas = {
       full_name: z.string(),
       type: z.enum(ProviderType),
       status: z.enum(StaffInviteStatus),
+      area_ids: z.array(objectId),
+      service_ids: z.array(objectId),
       expires_at: z.string(),
+      /** When the SMS was last sent (resend: once an hour). */
+      last_sent_at: z.string().nullable(),
       created_at: z.string(),
     })
     .openapi('StaffInvite'),
@@ -268,7 +304,7 @@ export const StaffSchemas = {
         completed_last_30_days: z.number(),
         rating_avg: z.number(),
         rating_count: z.number(),
-        /** Percent of visits started within the grace period; null before the first one. */
+        /** Share of visits started within the grace period (0–1); null before the first one. */
         on_time_rate: z.number().nullable(),
       }),
       joined_at: z.string(),
@@ -279,6 +315,9 @@ export const StaffSchemas = {
       status: z.enum(['active', 'suspended']).optional(),
       /** From the organization's services, matching the member's type (nurse / doctor). */
       service_ids: z.array(objectId).max(100).optional(),
+      /** With status=suspended: why (the member sees it) and when it lifts by itself (≤ 90 days; omit = until reactivated). */
+      reason: z.string().trim().max(300).nullable().optional(),
+      ends_at: z.iso.datetime({ offset: true }).nullable().optional(),
     })
     .openapi('UpdateStaffMember'),
   areasBody: z
@@ -348,6 +387,14 @@ export const OrgBookingSchemas = {
     })
     .openapi('EligibleStaff'),
   assignBody: z.strictObject({ provider_profile_id: objectId }).openapi('AssignStaff'),
+  /** Internal: kept in the booking history and shown to the staff and admins, never to the patient. */
+  reassignBody: z
+    .strictObject({
+      provider_profile_id: objectId,
+      reason_code: z.enum(REASSIGN_REASONS),
+      reason_text: z.string().trim().max(300).nullable().optional(),
+    })
+    .openapi('ReassignStaff'),
   broadcastResult: z.object({ offered: z.number() }),
   declineBody: z.strictObject({ reason_code: z.enum(['no_staff_available', 'not_in_area', 'other']) }),
   declineResult: z.object({
@@ -409,8 +456,12 @@ const planBody = z.strictObject({
 
 const reportNumbers = {
   visits: z.number(),
-  /** What patients paid for completed visits (service + travel fee). */
+  /** Completed visits' service price + travel fee, before commission (platform discounts not taken off). */
   revenue: z.number(),
+  /** The platform's commission on those visits. */
+  commission: z.number(),
+  /** What the organization earns from them (revenue − commission). */
+  net: z.number(),
 };
 
 /** Owner dashboard, reports, statements, finance and plan (spec §7.11, M3.4). */

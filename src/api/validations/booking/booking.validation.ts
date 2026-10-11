@@ -1,12 +1,13 @@
 import { Gender, PricingUnit } from '../../../interfaces/enums';
+import { objectId, paginationQuery, z } from '../zod';
 import {
   BookingStatus,
   BookingType,
   PaymentMethod,
   PaymentStatus,
   PreferredGender,
+  REASSIGN_REASONS,
 } from '../../../interfaces/IBooking';
-import { objectId, paginationQuery, z } from '../zod';
 
 const instant = z.iso.datetime({ offset: true }).openapi({ example: '2026-10-05T14:00:00Z' });
 const money = z.number();
@@ -65,6 +66,13 @@ const listItem = z
   })
   .openapi('BookingListItem');
 
+/** A pending direct request: answer before respond_by, or it moves on to other providers. */
+const responseWindow = {
+  respond_by: z.string().nullable(),
+  /** Seconds left by the server's clock when the response was made (0 when passed). */
+  seconds_remaining: z.number().int().nullable(),
+};
+
 const providerItem = z
   .object({
     id: objectId,
@@ -77,6 +85,7 @@ const providerItem = z
     total: money,
     provider_payout: money,
     payment_method: z.enum(PaymentMethod),
+    ...responseWindow,
   })
   .openapi('ProviderBookingItem');
 
@@ -265,6 +274,11 @@ export const BookingSchemas = {
       allowed_actions: z.array(z.string()),
       /** Chat open: from accepted until 24 h after completed. */
       can_chat: z.boolean(),
+      ...responseWindow,
+      /** Organization bookings the owner moved to this member: the internal reason. */
+      reassignment: z
+        .object({ reason_code: z.enum(REASSIGN_REASONS), reason_text: z.string().nullable(), at: z.string() })
+        .nullable(),
     })
     .openapi('ProviderBookingDetail'),
   /** Clinic visits: the patient's visit code, or a reason to start without it (audited). Home visits: empty. */
@@ -292,6 +306,8 @@ export const BookingSchemas = {
       scheduled_end: z.string(),
       provider_payout: money,
       expires_at: z.string(),
+      /** Seconds left by the server's clock. */
+      seconds_remaining: z.number().int(),
     })
     .openapi('BookingOffer'),
 };

@@ -2567,6 +2567,12 @@
           "is_accepting_bookings": {
             "type": "boolean"
           },
+          "accepting_resumes_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "organization": {
             "type": "null"
           },
@@ -2626,6 +2632,7 @@
           "syndicate_number",
           "verification_status",
           "is_accepting_bookings",
+          "accepting_resumes_at",
           "organization",
           "rating_avg",
           "rating_count",
@@ -2740,7 +2747,8 @@
               "syndicate_card",
               "national_id_front",
               "national_id_back",
-              "certificate"
+              "certificate",
+              "criminal_record"
             ]
           },
           "status": {
@@ -2756,6 +2764,18 @@
           },
           "file_url": {
             "type": "string"
+          },
+          "back_file_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "back_mime": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "expires_at": {
             "type": [
@@ -2779,6 +2799,8 @@
           "status",
           "mime",
           "file_url",
+          "back_file_url",
+          "back_mime",
           "expires_at",
           "review_note",
           "uploaded_at"
@@ -2794,11 +2816,20 @@
               "syndicate_card",
               "national_id_front",
               "national_id_back",
-              "certificate"
+              "certificate",
+              "criminal_record"
             ]
           },
           "file_key": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "back_file_key": {
+            "type": [
+              "string",
+              "null"
+            ],
             "minLength": 1,
             "maxLength": 300
           },
@@ -2871,7 +2902,8 @@
                     "syndicate_card",
                     "national_id_front",
                     "national_id_back",
-                    "certificate"
+                    "certificate",
+                    "criminal_record"
                   ]
                 },
                 "status": {
@@ -3030,10 +3062,21 @@
                 "end_time"
               ]
             }
+          },
+          "break_minutes": {
+            "type": "integer"
+          },
+          "max_visits_per_day": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
-          "slots"
+          "slots",
+          "break_minutes",
+          "max_visits_per_day"
         ]
       },
       "TimeOff": {
@@ -3255,6 +3298,12 @@
           "is_accepting_bookings": {
             "type": "boolean"
           },
+          "accepting_resumes_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "organization": {
             "type": "null"
           },
@@ -3419,6 +3468,7 @@
           "syndicate_number",
           "verification_status",
           "is_accepting_bookings",
+          "accepting_resumes_at",
           "organization",
           "rating_avg",
           "rating_count",
@@ -3477,6 +3527,79 @@
             "type": [
               "string",
               "null"
+            ]
+          },
+          "governorate": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "area": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "manager_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paused": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "activity_licence_expired"
+                ]
+              },
+              "since": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "since"
             ]
           },
           "logo_url": {
@@ -3617,6 +3740,11 @@
           "description",
           "phone",
           "address_text",
+          "governorate",
+          "area",
+          "manager_name",
+          "email",
+          "paused",
           "logo_url",
           "verification_status",
           "rejection_reason",
@@ -3646,7 +3774,9 @@
             "type": "string",
             "enum": [
               "commercial_register",
-              "tax_card"
+              "tax_card",
+              "activity_licence",
+              "manager_id"
             ]
           },
           "status": {
@@ -3662,6 +3792,30 @@
           },
           "file_url": {
             "type": "string"
+          },
+          "back_file_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "back_mime": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issuing_authority": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "ministry_of_health",
+              "ministry_of_social_solidarity",
+              "other",
+              null
+            ]
           },
           "expires_at": {
             "type": [
@@ -3685,6 +3839,9 @@
           "status",
           "mime",
           "file_url",
+          "back_file_url",
+          "back_mime",
+          "issuing_authority",
           "expires_at",
           "review_note",
           "uploaded_at"
@@ -5856,6 +6013,18 @@
               "wallet",
               "covered"
             ]
+          },
+          "respond_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "seconds_remaining": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -5868,7 +6037,9 @@
           "scheduled_end",
           "total",
           "provider_payout",
-          "payment_method"
+          "payment_method",
+          "respond_by",
+          "seconds_remaining"
         ]
       },
       "ProviderBookingDetail": {
@@ -6142,6 +6313,48 @@
           },
           "can_chat": {
             "type": "boolean"
+          },
+          "respond_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "seconds_remaining": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "reassignment": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "reason_code": {
+                "type": "string",
+                "enum": [
+                  "staff_unavailable",
+                  "patient_request",
+                  "other"
+                ]
+              },
+              "reason_text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason_code",
+              "reason_text",
+              "at"
+            ]
           }
         },
         "required": [
@@ -6164,7 +6377,10 @@
           "clinic",
           "check_in",
           "allowed_actions",
-          "can_chat"
+          "can_chat",
+          "respond_by",
+          "seconds_remaining",
+          "reassignment"
         ]
       },
       "BookingOffer": {
@@ -6197,6 +6413,9 @@
           },
           "expires_at": {
             "type": "string"
+          },
+          "seconds_remaining": {
+            "type": "integer"
           }
         },
         "required": [
@@ -6207,7 +6426,8 @@
           "scheduled_start",
           "scheduled_end",
           "provider_payout",
-          "expires_at"
+          "expires_at",
+          "seconds_remaining"
         ]
       },
       "VisitReportRequest": {
@@ -6336,6 +6556,68 @@
           "date"
         ]
       },
+      "ProviderReviewSummary": {
+        "type": "object",
+        "properties": {
+          "rating_avg": {
+            "type": "number"
+          },
+          "rating_count": {
+            "type": "number"
+          },
+          "distribution": {
+            "type": "object",
+            "properties": {
+              "1": {
+                "type": "number"
+              },
+              "2": {
+                "type": "number"
+              },
+              "3": {
+                "type": "number"
+              },
+              "4": {
+                "type": "number"
+              },
+              "5": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ]
+          },
+          "top_tags": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "tag": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "tag",
+                "count"
+              ]
+            }
+          }
+        },
+        "required": [
+          "rating_avg",
+          "rating_count",
+          "distribution",
+          "top_tags"
+        ]
+      },
       "Notification": {
         "type": "object",
         "properties": {
@@ -6361,7 +6643,9 @@
               "promo",
               "account",
               "dispute",
-              "announcement"
+              "announcement",
+              "review_received",
+              "statement_ready"
             ]
           },
           "title": {
@@ -6407,12 +6691,16 @@
           },
           "chat": {
             "type": "boolean"
+          },
+          "reviews": {
+            "type": "boolean"
           }
         },
         "required": [
           "reminders",
           "promotions",
-          "chat"
+          "chat",
+          "reviews"
         ]
       },
       "AdminDashboard": {
@@ -7736,6 +8024,27 @@
                     "null"
                   ]
                 },
+                "internal_reason": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "text": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "text"
+                  ]
+                },
                 "at": {
                   "type": "string"
                 }
@@ -7745,6 +8054,7 @@
                 "to_status",
                 "changed_by",
                 "note",
+                "internal_reason",
                 "at"
               ]
             }
@@ -8719,6 +9029,68 @@
               "warning",
               "over_limit"
             ]
+          },
+          "cash_collected": {
+            "type": "number"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "completed_visits": {
+                  "type": "number"
+                },
+                "net": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "date",
+                "completed_visits",
+                "net"
+              ]
+            }
+          },
+          "next_payout": {
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "minimum_amount": {
+                "type": "number"
+              },
+              "eligible": {
+                "type": "boolean"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "below_minimum",
+                  "no_payout_method",
+                  "payout_in_progress",
+                  "commission_due",
+                  null
+                ]
+              }
+            },
+            "required": [
+              "date",
+              "amount",
+              "minimum_amount",
+              "eligible",
+              "reason"
+            ]
           }
         },
         "required": [
@@ -8731,7 +9103,10 @@
           "commission_due",
           "currency",
           "payout_method",
-          "commission_limit"
+          "commission_limit",
+          "cash_collected",
+          "days",
+          "next_payout"
         ]
       },
       "PayoutMethod": {
@@ -10661,6 +11036,79 @@
               "null"
             ]
           },
+          "governorate": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "area": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "manager_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paused": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "activity_licence_expired"
+                ]
+              },
+              "since": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "since"
+            ]
+          },
           "logo_url": {
             "type": [
               "string",
@@ -10764,6 +11212,11 @@
           "description",
           "phone",
           "address_text",
+          "governorate",
+          "area",
+          "manager_name",
+          "email",
+          "paused",
           "logo_url",
           "verification_status",
           "rejection_reason",
@@ -10824,6 +11277,38 @@
               "null"
             ],
             "maxLength": 300
+          },
+          "governorate_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "area_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "manager_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200,
+            "format": "email"
           }
         },
         "required": [
@@ -10882,6 +11367,38 @@
               "null"
             ],
             "maxLength": 300
+          },
+          "governorate_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "area_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "manager_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200,
+            "format": "email"
           }
         },
         "additionalProperties": false
@@ -10893,13 +11410,35 @@
             "type": "string",
             "enum": [
               "commercial_register",
-              "tax_card"
+              "tax_card",
+              "activity_licence",
+              "manager_id"
             ]
           },
           "file_key": {
             "type": "string",
             "minLength": 1,
             "maxLength": 300
+          },
+          "back_file_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "issuing_authority": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "ministry_of_health",
+              "ministry_of_social_solidarity",
+              "other",
+              null
+            ]
           },
           "expires_at": {
             "type": [
@@ -11144,6 +11683,30 @@
               "pattern": "^[0-9a-f]{24}$/i",
               "example": "665f1c2b9e1d2a4c3b9e8f1a"
             }
+          },
+          "suspension": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "ends_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "reason",
+              "ends_at"
+            ]
           }
         },
         "required": [
@@ -11161,7 +11724,8 @@
           "rating_avg",
           "completed_visits",
           "service_area_ids",
-          "service_ids"
+          "service_ids",
+          "suspension"
         ]
       },
       "StaffInvite": {
@@ -11194,8 +11758,30 @@
               "revoked"
             ]
           },
+          "area_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            }
+          },
+          "service_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            }
+          },
           "expires_at": {
             "type": "string"
+          },
+          "last_sent_at": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "created_at": {
             "type": "string"
@@ -11207,7 +11793,10 @@
           "full_name",
           "type",
           "status",
+          "area_ids",
+          "service_ids",
           "expires_at",
+          "last_sent_at",
           "created_at"
         ]
       },
@@ -11229,6 +11818,24 @@
               "nurse",
               "doctor"
             ]
+          },
+          "area_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "maxItems": 100
+          },
+          "service_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "maxItems": 100
           }
         },
         "required": [
@@ -11349,6 +11956,20 @@
               "example": "665f1c2b9e1d2a4c3b9e8f1a"
             },
             "maxItems": 100
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300
+          },
+          "ends_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -11706,6 +12327,36 @@
         ],
         "additionalProperties": false
       },
+      "ReassignStaff": {
+        "type": "object",
+        "properties": {
+          "provider_profile_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$/i",
+            "example": "665f1c2b9e1d2a4c3b9e8f1a"
+          },
+          "reason_code": {
+            "type": "string",
+            "enum": [
+              "staff_unavailable",
+              "patient_request",
+              "other"
+            ]
+          },
+          "reason_text": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "provider_profile_id",
+          "reason_code"
+        ],
+        "additionalProperties": false
+      },
       "OrgDashboard": {
         "type": "object",
         "properties": {
@@ -11854,6 +12505,12 @@
               "revenue": {
                 "type": "number"
               },
+              "commission": {
+                "type": "number"
+              },
+              "net": {
+                "type": "number"
+              },
               "avg_rating": {
                 "type": [
                   "number",
@@ -11876,6 +12533,8 @@
             "required": [
               "visits",
               "revenue",
+              "commission",
+              "net",
               "avg_rating",
               "cancellation_rate",
               "on_time_rate"
@@ -11898,6 +12557,12 @@
                 "revenue": {
                   "type": "number"
                 },
+                "commission": {
+                  "type": "number"
+                },
+                "net": {
+                  "type": "number"
+                },
                 "rating": {
                   "type": [
                     "number",
@@ -11916,6 +12581,8 @@
                 "label",
                 "visits",
                 "revenue",
+                "commission",
+                "net",
                 "rating",
                 "on_time_rate"
               ]
@@ -17875,7 +18542,7 @@
         }
       },
       "put": {
-        "summary": "Replace the weekly schedule (no overlapping slots per day; split overnight shifts across days)",
+        "summary": "Replace the weekly schedule (no overlapping slots per day; split overnight shifts across days), and optionally the break kept around home visits (0–120 min, default 15) and the most home visits per day (1–20, null = no limit)",
         "tags": [
           "Provider"
         ],
@@ -17919,11 +18586,25 @@
                       ]
                     },
                     "maxItems": 50
+                  },
+                  "break_minutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120
+                  },
+                  "max_visits_per_day": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 20
                   }
                 },
                 "required": [
                   "slots"
-                ]
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -18121,7 +18802,7 @@
     },
     "/api/v1/provider/accepting": {
       "patch": {
-        "summary": "Toggle accepting bookings (403 PROVIDER_NOT_VERIFIED unless approved)",
+        "summary": "Toggle accepting bookings (403 PROVIDER_NOT_VERIFIED unless approved). Pausing may set resumes_at (a time up to 7 days ahead, or \"end_of_day\" in Cairo time): accepting then turns back on by itself and the provider is notified. Turning on by hand clears it.",
         "tags": [
           "Provider"
         ],
@@ -18138,11 +18819,29 @@
                 "properties": {
                   "is_accepting_bookings": {
                     "type": "boolean"
+                  },
+                  "resumes_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "end_of_day"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 },
                 "required": [
                   "is_accepting_bookings"
-                ]
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -18457,8 +19156,11 @@
                         "national_id_front",
                         "national_id_back",
                         "certificate",
+                        "criminal_record",
                         "commercial_register",
-                        "tax_card"
+                        "tax_card",
+                        "activity_licence",
+                        "manager_id"
                       ]
                     },
                     "default": []
@@ -18554,8 +19256,11 @@
                         "national_id_front",
                         "national_id_back",
                         "certificate",
+                        "criminal_record",
                         "commercial_register",
-                        "tax_card"
+                        "tax_card",
+                        "activity_licence",
+                        "manager_id"
                       ]
                     },
                     "default": []
@@ -20933,7 +21638,7 @@
     },
     "/api/v1/provider/reviews": {
       "get": {
-        "summary": "My reviews (visible ones), newest first",
+        "summary": "My reviews (visible ones): sort newest (default), highest or lowest rating",
         "tags": [
           "Provider — Reviews"
         ],
@@ -20963,6 +21668,20 @@
             "required": false,
             "name": "per_page",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "newest",
+                "highest",
+                "lowest"
+              ],
+              "default": "newest"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
           }
         ],
         "responses": {
@@ -20986,6 +21705,49 @@
                   "required": [
                     "data",
                     "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/provider/reviews/summary": {
+      "get": {
+        "summary": "My rating at a glance: average and count, visible reviews per star, the most chosen tags",
+        "tags": [
+          "Provider — Reviews"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ProviderReviewSummary"
+                    }
+                  },
+                  "required": [
+                    "data"
                   ]
                 }
               }
@@ -21239,6 +22001,9 @@
                     "type": "boolean"
                   },
                   "chat": {
+                    "type": "boolean"
+                  },
+                  "reviews": {
                     "type": "boolean"
                   }
                 }
@@ -23126,6 +23891,16 @@
             },
             "required": false,
             "name": "provider_profile_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
+            "name": "review_id",
             "in": "query"
           },
           {
@@ -27181,6 +27956,61 @@
         }
       }
     },
+    "/api/v1/org/staff/invites/{id}/resend": {
+      "post": {
+        "summary": "Send a pending invite again (staff or reception): valid 7 more days. Once an hour per invite (429), within the 30-a-day invite limit.",
+        "tags": [
+          "Owner — Team"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/StaffInvite"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error (see `error.code`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/org/staff/invites/{id}": {
       "delete": {
         "summary": "Revoke an invite",
@@ -27434,11 +28264,25 @@
                       ]
                     },
                     "maxItems": 50
+                  },
+                  "break_minutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 120
+                  },
+                  "max_visits_per_day": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 20
                   }
                 },
                 "required": [
                   "slots"
-                ]
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -28029,7 +28873,7 @@
     },
     "/api/v1/org/bookings/{id}/reassign": {
       "post": {
-        "summary": "Change the assigned staff member of an accepted booking (the previous one loses access and the chat)",
+        "summary": "Change the assigned staff member of an accepted booking (the previous one loses access and the chat). reason_code / reason_text are internal: the new staff member and admins see them, the patient is only told the provider changed.",
         "tags": [
           "Owner — Bookings"
         ],
@@ -28054,7 +28898,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AssignStaff"
+                "$ref": "#/components/schemas/ReassignStaff"
               }
             }
           }

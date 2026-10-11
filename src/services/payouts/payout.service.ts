@@ -9,7 +9,7 @@ import { OrganizationModel } from '../../database/models/organization/organizati
 import { SubscriptionService } from '../organization/subscription.service';
 import { UserModel } from '../../database/models/user/user.model';
 import { getRedis } from '../../config/redis.config';
-import { BookingStatus } from '../../interfaces/IBooking';
+import { BookingStatus, PaymentMethod } from '../../interfaces/IBooking';
 import { LedgerEntryType, LedgerOwnerType } from '../../interfaces/ILedger';
 import { NotificationType } from '../../interfaces/INotification';
 import {
@@ -21,13 +21,16 @@ import {
 } from '../../interfaces/IPayout';
 import { decryptNullable } from '../../utils/crypto/field-encryption';
 import type { Pagination } from '../../utils/response/pagination';
-import { addDays, cairoDate, cairoToUtc, dayOfWeek } from '../../utils/time/cairo';
+import { addDays, cairoDate, cairoToUtc, CAIRO_TZ, dayOfWeek } from '../../utils/time/cairo';
 import { ConflictError, NotFoundError, ValidationError } from '../../utils/types-errors';
 import { AuditService, SYSTEM_AUDIT_CONTEXT, type AuditContext } from '../audit/audit.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { NotificationService } from '../notification/notification.service';
 import { SettingsService } from '../settings/settings.service';
 import { WEEKDAYS } from '../settings/settings.definitions';
+
+/** Why a balance isn't paid in the next batch (codes the app maps to its own text). */
+export type NextPayoutReason = 'below_minimum' | 'no_payout_method' | 'payout_in_progress' | 'commission_due';
 
 const PROVIDER = LedgerOwnerType.PROVIDER;
 const ORGANIZATION = LedgerOwnerType.ORGANIZATION;
@@ -136,6 +139,70 @@ export class PayoutService {
       walletBalance: Math.max(balance, 0),
       commissionDue: Math.max(-balance, 0),
     };
+  }
+
+  /**
+   * The earnings chart: one row per Cairo day in [from, to], zeros included — visits completed that day
+   * and their net (what the provider earns), plus the cash the provider took from patients in the period.
+   */
+  async dailyEarnings(of: Types.ObjectId | EarningsOwner, from: string, to: string) {
+    const owner = asOwner(of);
+    const rows = await BookingModel.aggregate<{ _id: string; visits: number; net: number; cash: number }>([
+      {
+        $match: {
+          ...(owner.ownerType === ORGANIZATION
+            ? { organizationId: owner.ownerId }
+            : { providerProfileId: owner.ownerId, organizationId: null }),
+          status: { $in: [BookingStatus.COMPLETED, BookingStatus.DISPUTED] },
+          completedAt: { $gte: cairoToUtc(from, '00:00'), $lt: cairoToUtc(addDays(to, 1), '00:00') },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$completedAt', timezone: CAIRO_TZ } },
+          visits: { $sum: 1 },
+          net: { $sum: '$price.providerPayout' },
+          cash: { $sum: { $cond: [{ $eq: ['$paymentMethod', PaymentMethod.CASH] }, '$price.total', 0] } },
+        },
+      },
+    ]);
+    const byDay = new Map(rows.map((r) => [r._id, r]));
+    const days: Array<{ date: string; completedVisits: number; net: number }> = [];
+    for (let d = from; d <= to; d = addDays(d, 1)) {
+      const row = byDay.get(d);
+      days.push({ date: d, completedVisits: row?.visits ?? 0, net: row?.net ?? 0 });
+    }
+    return { days, cashCollected: rows.reduce((sum, r) => sum + r.cash, 0) };
+  }
+
+  /**
+   * The next weekly payout (`payout_day`, Cairo) and whether this balance will be paid in it. When not,
+   * `reason` says why, as a code the app maps to its own text.
+   */
+  async nextPayout(of: Types.ObjectId | EarningsOwner, now = new Date()) {
+    const owner = asOwner(of);
+    const [day, minimum, balance, method, open] = await Promise.all([
+      this.settings.get('payout_day'),
+      this.settings.get('payout_min_amount'),
+      this.balance(owner),
+      PayoutMethodModel.exists(owner),
+      PayoutModel.exists({ ...owner, status: { $in: [PayoutStatus.PENDING, PayoutStatus.APPROVED] } }),
+    ]);
+    const today = cairoDate(now);
+    let date = today;
+    while (WEEKDAYS[(dayOfWeek(date) + 1) % 7] !== day) date = addDays(date, 1);
+    // Today's batch already ran → next week.
+    if (date === today && (await getRedis().exists(`payout-batch:${today}`))) date = addDays(date, 7);
+    const reason: NextPayoutReason | null = open
+      ? 'payout_in_progress'
+      : balance < 0
+        ? 'commission_due'
+        : !method
+          ? 'no_payout_method'
+          : balance < Math.max(1, minimum)
+            ? 'below_minimum'
+            : null;
+    return { date, amount: Math.max(balance, 0), minimumAmount: minimum, eligible: !reason, reason };
   }
 
   async ledgerEntries(of: Types.ObjectId | EarningsOwner, pagination: Pagination) {

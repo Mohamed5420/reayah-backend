@@ -16,6 +16,7 @@ import type { Slot } from '../discovery/slot-engine';
 import { sameWorld } from '../auth/test-accounts';
 import { LocationService } from '../location/location.service';
 import { HOME_VISIT, isVisitType, offeredEntry, visitTypeMatch } from '../catalog/visit-types';
+import { bookableOrg } from './bookable';
 
 export type StaffRow = {
   profile: IProviderProfile;
@@ -53,10 +54,7 @@ export class OrgDiscoveryService {
   /** Approved organization (patient-facing): 404 otherwise. */
   async approvedOrg(orgId: string) {
     const org = Types.ObjectId.isValid(orgId)
-      ? await OrganizationModel.findOne({
-          _id: orgId,
-          verificationStatus: VerificationStatus.APPROVED,
-        }).lean()
+      ? await OrganizationModel.findOne({ _id: orgId, ...bookableOrg() }).lean()
       : null;
     if (!org) throw new NotFoundError('errors.organization_not_found');
     return org;
@@ -180,7 +178,7 @@ export class OrgDiscoveryService {
       ...(filters.maxPrice !== undefined ? { $lte: filters.maxPrice } : {}),
     };
     const orgs = await OrganizationModel.find({
-      verificationStatus: VerificationStatus.APPROVED,
+      ...bookableOrg(),
       ...sameWorld(filters.testAccount),
       serviceAreas: { $elemMatch: { areaId, isActive: true } },
       services: {

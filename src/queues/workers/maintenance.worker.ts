@@ -3,6 +3,7 @@ import { Container } from 'typedi';
 import { BookingDeadlineService } from '../../services/booking/booking-deadline.service';
 import { BookingReminderService } from '../../services/booking/booking-reminder.service';
 import { AccountService } from '../../services/moderation/account.service';
+import { ProviderProfileService } from '../../services/provider';
 import { DocumentExpiryService } from '../../services/provider/document-expiry.service';
 import { PaymentService } from '../../services/payments/payment.service';
 import { PayoutService } from '../../services/payouts/payout.service';
@@ -31,6 +32,10 @@ export const runMaintenanceJob = async (name: string) => {
       break;
     case MaintenanceJob.SUSPENSION_EXPIRY:
       await Container.get(AccountService).liftExpired();
+      // Same 5-minute sweep: provider pauses that run out (PATCH /provider/accepting resumes_at).
+      await Container.get(ProviderProfileService).resumeDue();
+      // …and owners' timed suspensions of staff that ran out.
+      await Container.get(StaffService).liftExpiredSuspensions();
       break;
     case MaintenanceJob.PAYMENT_EXPIRY:
       await Container.get(PaymentService).expireUnpaid();

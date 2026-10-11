@@ -13,12 +13,13 @@ import type { Language } from '../../../utils/i18n';
 export const buildOrgReviewDetail = async (id: string, lang: Language) => {
   const { org, owner, checklist } = await Container.get(OrganizationAdminService).getForReview(id);
   const organizations = Container.get(OrganizationService);
-  const [logoUrl, documents, places, teamSizes, catalog] = await Promise.all([
+  const [logoUrl, documents, places, teamSizes, catalog, place] = await Promise.all([
     organizations.logoUrl(org),
     Container.get(OrganizationDocumentService).list(org._id),
     Container.get(LocationService).describeAreas(org.serviceAreas.map((a) => String(a.areaId))),
     organizations.teamSizes(org),
     Container.get(ProviderCoverageService).describeServices(org),
+    organizations.place(org, lang),
   ]);
   return presentOrgReviewDetail({
     org,
@@ -29,6 +30,7 @@ export const buildOrgReviewDetail = async (id: string, lang: Language) => {
     places,
     teamSizes,
     catalog,
+    place,
     lang,
   });
 };

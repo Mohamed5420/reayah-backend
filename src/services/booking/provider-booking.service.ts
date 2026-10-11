@@ -179,6 +179,7 @@ export class ProviderBookingService {
         booking.scheduledEnd,
         tx.session,
         booking._id,
+        booking.type,
       );
       return transitionBooking(tx, booking, BookingStatus.ACCEPTED, BookingActor.PROVIDER, {
         changedBy: userId,
@@ -346,6 +347,7 @@ export class ProviderBookingService {
         booking.scheduledEnd,
         tx.session,
         booking._id,
+        booking.type,
       );
 
       let updated: HydratedDocument<IBooking>;

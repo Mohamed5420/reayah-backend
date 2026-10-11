@@ -7,6 +7,12 @@ import { PatientProfileModel } from '../../database/models/patient/patient-profi
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
 import { UserModel } from '../../database/models/user/user.model';
 import { type Gender, VerificationStatus } from '../../interfaces/enums';
+import { LedgerOwnerType } from '../../interfaces/ILedger';
+import { NotificationType } from '../../interfaces/INotification';
+import type { IOrganization } from '../../interfaces/IOrganization';
+import { logger } from '../../utils/logger/winston';
+import type { Pagination } from '../../utils/response/pagination';
+import { addDays, cairoToUtc } from '../../utils/time/cairo';
 import {
   BookingType,
   AssignmentMode,
@@ -16,13 +22,8 @@ import {
   PaymentMethod,
   PreferredGender,
   type IBooking,
+  type ReassignReason,
 } from '../../interfaces/IBooking';
-import { LedgerOwnerType } from '../../interfaces/ILedger';
-import { NotificationType } from '../../interfaces/INotification';
-import type { IOrganization } from '../../interfaces/IOrganization';
-import { logger } from '../../utils/logger/winston';
-import type { Pagination } from '../../utils/response/pagination';
-import { addDays, cairoToUtc } from '../../utils/time/cairo';
 import {
   AssignmentDeadlinePassedError,
   ConflictError,
@@ -290,7 +291,14 @@ export class OrgBookingService {
     }
     return runBookingTransaction(async (tx) => {
       await lockProviderSchedule(staff, tx.session);
-      await assertProviderFree(staff, booking.scheduledStart, booking.scheduledEnd, tx.session, booking._id);
+      await assertProviderFree(
+        staff,
+        booking.scheduledStart,
+        booking.scheduledEnd,
+        tx.session,
+        booking._id,
+        booking.type,
+      );
       let updated;
       try {
         updated = await transitionBooking(tx, booking, BookingStatus.ACCEPTED, BookingActor.ORGANIZATION, {
@@ -336,7 +344,18 @@ export class OrgBookingService {
   }
 
   /** POST /org/bookings/{id}/reassign — another staff member for an accepted booking. */
-  async reassign(org: IOrganization, ownerId: string, bookingId: string, staffId: string) {
+  async reassign(
+    org: IOrganization,
+    ownerId: string,
+    bookingId: string,
+    staffId: string,
+    why: { reasonCode: ReassignReason; reasonText?: string | null },
+  ) {
+    const reassignment = {
+      reasonCode: why.reasonCode,
+      reasonText: why.reasonText?.trim() || null,
+      at: new Date(),
+    };
     const { booking, offer } = await this.get(org, bookingId);
     if (offer || booking.status !== BookingStatus.ACCEPTED || !booking.providerProfileId) {
       throw new InvalidStatusTransitionError();
@@ -346,7 +365,14 @@ export class OrgBookingService {
     const staff = await this.assertCanTake(org, booking, staffId);
     const updated = await runBookingTransaction(async (tx) => {
       await lockProviderSchedule(staff, tx.session);
-      await assertProviderFree(staff, booking.scheduledStart, booking.scheduledEnd, tx.session, booking._id);
+      await assertProviderFree(
+        staff,
+        booking.scheduledStart,
+        booking.scheduledEnd,
+        tx.session,
+        booking._id,
+        booking.type,
+      );
       const changed = await BookingModel.findOneAndUpdate(
         {
           _id: booking._id,
@@ -354,7 +380,7 @@ export class OrgBookingService {
           providerProfileId: previous,
           organizationId: org._id,
         },
-        { $set: { providerProfileId: staff, remindersSent: { day: null, hour: null } } },
+        { $set: { providerProfileId: staff, remindersSent: { day: null, hour: null }, reassignment } },
         { new: true, lean: true, session: tx.session },
       );
       if (!changed) throw new InvalidStatusTransitionError();
@@ -366,6 +392,7 @@ export class OrgBookingService {
         BookingActor.ORGANIZATION,
         ownerId,
         'reassigned',
+        { code: reassignment.reasonCode, text: reassignment.reasonText },
       );
       tx.publish({
         type: 'status_changed',
@@ -522,12 +549,20 @@ export class OrgBookingService {
    * organization's unassigned queue with a fresh deadline (same deadline and fallback rules), and they
    * lose access to those bookings and their chats at once.
    */
-  async takeBackFrom(orgId: Types.ObjectId, staffProfileId: Types.ObjectId, ownerId: string) {
+  async takeBackFrom(
+    orgId: Types.ObjectId,
+    staffProfileId: Types.ObjectId,
+    ownerId: string,
+    options: { before?: Date | null; reason?: 'staff_removed' | 'staff_suspended' } = {},
+  ) {
     const minutes = await this.settings.get('org_assign_deadline_minutes');
+    const reason = options.reason ?? 'staff_removed';
     const bookings = await BookingModel.find({
       organizationId: orgId,
       providerProfileId: staffProfileId,
       status: { $in: TAKEN_BACK },
+      // A timed suspension: only bookings starting before it ends.
+      ...(options.before ? { scheduledStart: { $lt: options.before } } : {}),
     }).lean();
     for (const booking of bookings) {
       try {
@@ -549,8 +584,8 @@ export class OrgBookingService {
                 isOnTime: null,
                 remindersSent: { day: null, hour: null },
               },
-              note: 'staff_removed',
-              reason: 'staff_removed',
+              note: reason,
+              reason,
             },
           );
           tx.publish({
@@ -567,6 +602,7 @@ export class OrgBookingService {
       }
     }
     // Their open offers from this organization lapse too.
+    if (reason === 'staff_suspended' && options.before) return bookings.length;
     await BookingOfferModel.updateMany(
       { providerProfileId: staffProfileId, organizationId: orgId, status: OfferStatus.OFFERED },
       { status: OfferStatus.EXPIRED },

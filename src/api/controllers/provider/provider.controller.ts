@@ -7,7 +7,7 @@ import { ProviderSchemas } from '../../validations/provider/provider.validation'
 import { parseDateOnly } from '../../validations/auth/auth.validation';
 import { z } from '../../validations/zod';
 import {
-  presentAvailability,
+  presentSchedule,
   presentProviderDocument,
   presentProviderProfile,
   presentProviderServices,
@@ -141,7 +141,8 @@ const r = {
   putAvailability: defineRoute({
     method: 'put',
     path: '/provider/availability',
-    summary: 'Replace the weekly schedule (no overlapping slots per day; split overnight shifts across days)',
+    summary:
+      'Replace the weekly schedule (no overlapping slots per day; split overnight shifts across days), and optionally the break kept around home visits (0–120 min, default 15) and the most home visits per day (1–20, null = no limit)',
     tags,
     auth,
     request: { body: ProviderSchemas.availabilityBody },
@@ -176,7 +177,8 @@ const r = {
   accepting: defineRoute({
     method: 'patch',
     path: '/provider/accepting',
-    summary: 'Toggle accepting bookings (403 PROVIDER_NOT_VERIFIED unless approved)',
+    summary:
+      'Toggle accepting bookings (403 PROVIDER_NOT_VERIFIED unless approved). Pausing may set resumes_at (a time up to 7 days ahead, or "end_of_day" in Cairo time): accepting then turns back on by itself and the provider is notified. Turning on by hand clears it.',
     tags,
     auth,
     request: { body: ProviderSchemas.acceptingBody },
@@ -263,7 +265,9 @@ export default class ProviderController implements IBaseController {
       const documents = await this.documents.list(profile._id);
       return HttpResponse.ok(
         res,
-        documents.map(({ document, fileUrl }) => presentProviderDocument(document, fileUrl)),
+        documents.map(({ document, fileUrl, backFileUrl }) =>
+          presentProviderDocument(document, fileUrl, backFileUrl),
+        ),
       );
     } catch (err) {
       next(err);
@@ -274,12 +278,13 @@ export default class ProviderController implements IBaseController {
     try {
       const body = req.body as z.infer<typeof ProviderSchemas.attachDocumentBody>;
       const profile = await this.profiles.getOwn(req.user!.id);
-      const { document, fileUrl } = await this.documents.attach(req.user!.id, profile._id, {
+      const { document, fileUrl, backFileUrl } = await this.documents.attach(req.user!.id, profile._id, {
         type: body.type,
         fileKey: body.file_key,
+        backFileKey: body.back_file_key ?? null,
         expiresAt: body.expires_at ? parseDateOnly(body.expires_at) : null,
       });
-      return HttpResponse.created(res, presentProviderDocument(document, fileUrl));
+      return HttpResponse.created(res, presentProviderDocument(document, fileUrl, backFileUrl));
     } catch (err) {
       next(err);
     }
@@ -385,7 +390,7 @@ export default class ProviderController implements IBaseController {
   private async getAvailability(req: Request, res: Response, next: NextFunction) {
     try {
       const profile = await this.profiles.getOwn(req.user!.id);
-      return HttpResponse.ok(res, { slots: presentAvailability(profile.availability) });
+      return HttpResponse.ok(res, presentSchedule(profile));
     } catch (err) {
       next(err);
     }
@@ -397,8 +402,9 @@ export default class ProviderController implements IBaseController {
       const profile = await this.coverage.replaceAvailability(
         await this.profiles.getOwn(req.user!.id),
         body.slots.map((s) => ({ dayOfWeek: s.day_of_week, startTime: s.start_time, endTime: s.end_time })),
+        { breakMinutes: body.break_minutes, maxVisitsPerDay: body.max_visits_per_day },
       );
-      return HttpResponse.ok(res, { slots: presentAvailability(profile.availability) });
+      return HttpResponse.ok(res, presentSchedule(profile));
     } catch (err) {
       next(err);
     }
@@ -440,7 +446,12 @@ export default class ProviderController implements IBaseController {
 
   private async accepting(req: Request, res: Response, next: NextFunction) {
     try {
-      const profile = await this.profiles.setAccepting(req.user!.id, req.body.is_accepting_bookings);
+      const body = req.body as { is_accepting_bookings: boolean; resumes_at?: string | null };
+      const profile = await this.profiles.setAccepting(
+        req.user!.id,
+        body.is_accepting_bookings,
+        body.resumes_at === 'end_of_day' ? 'end_of_day' : body.resumes_at ? new Date(body.resumes_at) : null,
+      );
       return HttpResponse.ok(res, presentProviderProfile(profile, await this.profiles.checklist(profile)));
     } catch (err) {
       next(err);

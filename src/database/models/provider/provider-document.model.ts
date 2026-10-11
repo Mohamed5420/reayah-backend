@@ -15,6 +15,8 @@ const providerDocumentSchema = new Schema<IProviderDocument, ProviderDocumentMod
     type: { type: String, enum: Object.values(ProviderDocumentType), required: true },
     fileKey: { type: String, required: true },
     mime: { type: String, required: true },
+    backFileKey: { type: String, default: null },
+    backMime: { type: String, default: null },
     status: {
       type: String,
       enum: Object.values(DocumentReviewStatus),

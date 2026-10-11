@@ -34,6 +34,7 @@ export const presentOrganization = (
   logoUrl: string | null,
   checklist: OrganizationChecklist,
   inviteStats: InviteStats = { pending: 0, accepted: 0, notAccepted: 0 },
+  place: { governorate: { id: string; name: string }; area: { id: string; name: string } } | null = null,
 ) => ({
   id: String(org._id),
   name: org.name,
@@ -43,6 +44,13 @@ export const presentOrganization = (
   description: org.description,
   phone: org.phone,
   address_text: org.addressText,
+  governorate: place?.governorate ?? null,
+  area: place?.area ?? null,
+  manager_name: org.managerName ?? null,
+  email: org.email ?? null,
+  paused: org.licencePausedAt
+    ? { reason: 'activity_licence_expired' as const, since: org.licencePausedAt.toISOString() }
+    : null,
   logo_url: logoUrl,
   verification_status: org.verificationStatus,
   rejection_reason: org.rejectionReason,
@@ -59,12 +67,19 @@ export const presentOrganization = (
   updated_at: org.updatedAt.toISOString(),
 });
 
-export const presentOrgDocument = (d: IOrganizationDocument, fileUrl: string) => ({
+export const presentOrgDocument = (
+  d: IOrganizationDocument,
+  fileUrl: string,
+  backFileUrl: string | null = null,
+) => ({
   id: String(d._id),
   type: d.type,
   status: d.status,
   mime: d.mime,
   file_url: fileUrl,
+  back_file_url: backFileUrl,
+  back_mime: d.backMime ?? null,
+  issuing_authority: d.issuingAuthority ?? null,
   expires_at: d.expiresAt ? d.expiresAt.toISOString().slice(0, 10) : null,
   review_note: d.reviewNote,
   uploaded_at: d.createdAt.toISOString(),
@@ -111,7 +126,8 @@ export const presentOrgReviewDetail = (input: {
   owner: IUser | null;
   logoUrl: string | null;
   checklist: OrganizationChecklist;
-  documents: Array<{ document: IOrganizationDocument; fileUrl: string }>;
+  documents: Array<{ document: IOrganizationDocument; fileUrl: string; backFileUrl?: string | null }>;
+  place?: { governorate: { id: string; name: string }; area: { id: string; name: string } } | null;
   places: Map<string, AreaDescription>;
   teamSizes: Map<string, number>;
   catalog: Map<string, { service: ICatalogService; available: boolean }>;
@@ -121,13 +137,15 @@ export const presentOrgReviewDetail = (input: {
     onboarding: _onboarding,
     invite_stats: _stats,
     ...base
-  } = presentOrganization(input.org, input.logoUrl, input.checklist);
+  } = presentOrganization(input.org, input.logoUrl, input.checklist, undefined, input.place ?? null);
   return {
     ...base,
     kind: 'organization' as const,
     owner: presentOwner(input.owner),
     commission_rate: input.org.commissionRate,
-    documents: input.documents.map(({ document, fileUrl }) => presentOrgDocument(document, fileUrl)),
+    documents: input.documents.map(({ document, fileUrl, backFileUrl }) =>
+      presentOrgDocument(document, fileUrl, backFileUrl ?? null),
+    ),
     service_areas: presentOrgServiceAreas(input.org, input.places, input.teamSizes, input.lang),
     services: presentOrgServices(input.org, input.catalog, input.lang),
     onboarding: presentOrgChecklist(input.checklist),
@@ -173,6 +191,12 @@ export const presentStaffMember = (p: IProviderProfile, user: StaffUser, avatarU
   completed_visits: p.completedVisitsCount,
   service_area_ids: p.serviceAreas.map((a) => String(a.areaId)),
   service_ids: p.services.map((s) => String(s.serviceId)),
+  suspension: p.staffSuspended
+    ? {
+        reason: p.staffSuspendedReason ?? null,
+        ends_at: p.staffSuspendedUntil ? p.staffSuspendedUntil.toISOString() : null,
+      }
+    : null,
 });
 
 export const presentStaffDetail = (input: {
@@ -210,7 +234,10 @@ export const presentStaffInvite = (i: IStaffInvite) => ({
   full_name: i.fullName,
   type: i.type,
   status: i.status,
+  area_ids: (i.areaIds ?? []).map(String),
+  service_ids: (i.serviceIds ?? []).map(String),
   expires_at: i.expiresAt.toISOString(),
+  last_sent_at: i.lastSentAt ? i.lastSentAt.toISOString() : null,
   created_at: i.createdAt.toISOString(),
 });
 

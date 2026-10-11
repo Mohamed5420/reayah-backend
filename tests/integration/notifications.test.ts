@@ -82,6 +82,7 @@ describe('booking events → notifications', () => {
           data: {
             booking_id: bookingId,
             status: 'accepted',
+            event: 'booking_accepted',
             type: 'booking_status',
             notification_id: String(accepted._id),
           },
@@ -226,12 +227,12 @@ describe('inbox endpoints', () => {
   it('settings default to on and can be changed one at a time', async () => {
     const patient = await world.newPatient();
     const get = await request(app).get('/api/v1/me/notification-settings').set('Authorization', patient.auth);
-    expect(get.body.data).toEqual({ reminders: true, promotions: true, chat: true });
+    expect(get.body.data).toEqual({ reminders: true, promotions: true, chat: true, reviews: true });
     const put = await request(app)
       .put('/api/v1/me/notification-settings')
       .set('Authorization', patient.auth)
       .send({ promotions: false });
-    expect(put.body.data).toEqual({ reminders: true, promotions: false, chat: true });
+    expect(put.body.data).toEqual({ reminders: true, promotions: false, chat: true, reviews: true });
   });
 });
 

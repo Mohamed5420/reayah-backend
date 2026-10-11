@@ -158,17 +158,17 @@ export default class OrganizationController implements IBaseController {
 
     this.mount(r.create, async (req, res) => {
       const org = await this.organizations.create(owner(req), camelizeKeys(req.body) as OrganizationInput);
-      return HttpResponse.created(res, await this.view(org));
+      return HttpResponse.created(res, await this.view(org, req));
     });
     this.mount(r.get, async (req, res) =>
-      HttpResponse.ok(res, await this.view(await this.organizations.getOwn(owner(req)))),
+      HttpResponse.ok(res, await this.view(await this.organizations.getOwn(owner(req)), req)),
     );
     this.mount(r.update, async (req, res) => {
       const org = await this.organizations.update(
         owner(req),
         camelizeKeys(req.body) as Partial<OrganizationInput>,
       );
-      return HttpResponse.ok(res, await this.view(org));
+      return HttpResponse.ok(res, await this.view(org, req));
     });
     this.router.post(
       r.logo.path,
@@ -176,7 +176,7 @@ export default class OrganizationController implements IBaseController {
       ...Auth(UserRole.OWNER),
       UploadMiddleware('file', IMAGE_MIMES),
       this.handle(async (req, res) =>
-        HttpResponse.ok(res, await this.view(await this.organizations.setLogo(owner(req), req.file!))),
+        HttpResponse.ok(res, await this.view(await this.organizations.setLogo(owner(req), req.file!), req)),
       ),
     );
 
@@ -185,18 +185,22 @@ export default class OrganizationController implements IBaseController {
       const documents = await this.documents.list(org._id);
       return HttpResponse.ok(
         res,
-        documents.map(({ document, fileUrl }) => presentOrgDocument(document, fileUrl)),
+        documents.map(({ document, fileUrl, backFileUrl }) =>
+          presentOrgDocument(document, fileUrl, backFileUrl),
+        ),
       );
     });
     this.mount(r.attachDocument, async (req, res) => {
       const body = req.body as z.infer<typeof OrganizationSchemas.attachDocumentBody>;
       const org = await this.organizations.getOwn(owner(req));
-      const { document, fileUrl } = await this.documents.attach(owner(req), org._id, {
+      const { document, fileUrl, backFileUrl } = await this.documents.attach(owner(req), org._id, {
         type: body.type,
         fileKey: body.file_key,
+        backFileKey: body.back_file_key ?? null,
+        issuingAuthority: body.issuing_authority ?? null,
         expiresAt: body.expires_at ? parseDateOnly(body.expires_at) : null,
       });
-      return HttpResponse.created(res, presentOrgDocument(document, fileUrl));
+      return HttpResponse.created(res, presentOrgDocument(document, fileUrl, backFileUrl));
     });
     this.mount(r.removeDocument, async (req, res) => {
       const org = await this.organizations.getOwn(owner(req));
@@ -204,7 +208,7 @@ export default class OrganizationController implements IBaseController {
       return HttpResponse.noContent(res);
     });
     this.mount(r.submit, async (req, res) =>
-      HttpResponse.ok(res, await this.view(await this.organizations.submit(owner(req)))),
+      HttpResponse.ok(res, await this.view(await this.organizations.submit(owner(req)), req)),
     );
 
     this.mount(r.serviceAreas, async (req, res) =>
@@ -236,13 +240,14 @@ export default class OrganizationController implements IBaseController {
     });
   }
 
-  private async view(org: OrganizationDoc) {
-    const [logoUrl, checklist, inviteStats] = await Promise.all([
+  private async view(org: OrganizationDoc, req: Request) {
+    const [logoUrl, checklist, inviteStats, place] = await Promise.all([
       this.organizations.logoUrl(org),
       this.organizations.checklist(org),
       Container.get(StaffService).inviteStats(org._id, org.lapsedInvitesCount ?? 0),
+      this.organizations.place(org, resolveLanguage(req)),
     ]);
-    return presentOrganization(org, logoUrl, checklist, inviteStats);
+    return presentOrganization(org, logoUrl, checklist, inviteStats, place);
   }
 
   private async areas(org: OrganizationDoc, req: Request) {

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { cairoDate } from '../../src/utils/time/cairo';
 import request from 'supertest';
 import { Container } from 'typedi';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -218,7 +219,7 @@ describe('payout batches', () => {
 describe('exports', () => {
   it('serves CSV with a header row, audited', async () => {
     await world.book(patient, provider, { scheduled_start: tomorrowAt('10:00') });
-    const today = new Date().toISOString().slice(0, 10);
+    const today = cairoDate();
     const res = await as(admin.auth).get(`/admin/reports/export?type=bookings&from=2026-01-01&to=${today}`);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('text/csv');

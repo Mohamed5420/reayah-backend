@@ -3,7 +3,8 @@ import { ProviderProfileModel } from '../../database/models/provider/provider-pr
 import { ProviderDocumentModel } from '../../database/models/provider/provider-document.model';
 import { ProviderType, VerificationStatus } from '../../interfaces/enums';
 import type { IProviderProfile } from '../../interfaces/IProfiles';
-import { DocumentReviewStatus, REQUIRED_PROVIDER_DOCUMENTS } from '../../interfaces/IProvider';
+import { DocumentReviewStatus } from '../../interfaces/IProvider';
+import { ProviderDocumentService } from './provider-document.service';
 import { invalidateCacheNamespace } from '../../utils/cache/cache';
 import {
   ConflictError,
@@ -17,6 +18,14 @@ import type { SpecialtyKey } from '../catalog/specialties';
 import { ClinicService } from '../clinic/clinic.service';
 import { isVisitType } from '../catalog/visit-types';
 import { BookingType } from '../../interfaces/IBooking';
+import { UserModel } from '../../database/models/user/user.model';
+import { UserStatus } from '../../interfaces/enums';
+import { NotificationType } from '../../interfaces/INotification';
+import { NotificationService } from '../notification/notification.service';
+import { addDays, cairoDate, cairoToUtc } from '../../utils/time/cairo';
+
+/** Longest pause with an automatic resume. */
+const MAX_PAUSE_DAYS = 7;
 
 /** Statuses in which a provider may edit identity fields and (re)submit for verification. */
 export const EDITABLE_STATUSES = [
@@ -90,18 +99,64 @@ export class ProviderProfileService {
     return profile;
   }
 
-  /** PATCH /provider/accepting — only verified providers can take bookings. */
-  async setAccepting(userId: string, isAccepting: boolean) {
+  /**
+   * PATCH /provider/accepting — only verified providers can take bookings. A pause may carry
+   * `resumesAt` ("end_of_day" = the next Cairo midnight; at most 7 days ahead): accepting then turns
+   * back on by itself (`resumeDue`). Turning accepting on by hand clears it.
+   */
+  async setAccepting(userId: string, isAccepting: boolean, resumesAt?: Date | 'end_of_day' | null) {
     const profile = await this.getOwn(userId);
     if (isAccepting && profile.verificationStatus !== VerificationStatus.APPROVED) {
       throw new ProviderNotVerifiedError();
     }
-    if (profile.isAcceptingBookings !== isAccepting) {
-      profile.isAcceptingBookings = isAccepting;
-      await profile.save();
-      await invalidateCacheNamespace(PROVIDER_PRICES_CACHE);
+    let resume: Date | null = null;
+    if (resumesAt) {
+      if (isAccepting) throw new ValidationError({ resumes_at: ['validation.resumes_at_needs_pause'] });
+      if (profile.verificationStatus !== VerificationStatus.APPROVED) throw new ProviderNotVerifiedError();
+      resume = resumesAt === 'end_of_day' ? cairoToUtc(addDays(cairoDate(), 1), '00:00') : resumesAt;
+      if (resume.getTime() <= Date.now())
+        throw new ValidationError({ resumes_at: ['validation.in_the_past'] });
+      if (resume.getTime() > Date.now() + MAX_PAUSE_DAYS * 24 * 3600_000) {
+        throw new ValidationError({ resumes_at: ['validation.resumes_at_too_far'] });
+      }
     }
+    const changed = profile.isAcceptingBookings !== isAccepting;
+    profile.isAcceptingBookings = isAccepting;
+    profile.acceptingResumesAt = resume;
+    await profile.save();
+    if (changed) await invalidateCacheNamespace(PROVIDER_PRICES_CACHE);
     return profile;
+  }
+
+  /**
+   * Maintenance sweep: pauses whose time has come. Accepting turns back on only for a provider still
+   * approved, not suspended by their organization and with an active account; the provider is notified.
+   */
+  async resumeDue(now = new Date()) {
+    const due = await ProviderProfileModel.find({ acceptingResumesAt: { $ne: null, $lte: now } })
+      .select('userId verificationStatus staffSuspended isAcceptingBookings')
+      .lean();
+    let resumed = 0;
+    for (const p of due) {
+      const user = await UserModel.findById(p.userId).select('status').lean();
+      const ok =
+        p.verificationStatus === VerificationStatus.APPROVED &&
+        !p.staffSuspended &&
+        user?.status === UserStatus.ACTIVE;
+      const result = await ProviderProfileModel.updateOne(
+        { _id: p._id, acceptingResumesAt: { $ne: null, $lte: now } },
+        { acceptingResumesAt: null, ...(ok ? { isAcceptingBookings: true } : {}) },
+      );
+      if (!ok || !result.modifiedCount) continue;
+      resumed += 1;
+      await Container.get(NotificationService).notify([String(p.userId)], {
+        type: NotificationType.ACCOUNT,
+        template: 'accepting_resumed',
+        data: { is_accepting_bookings: 'true' },
+      });
+    }
+    if (resumed) await invalidateCacheNamespace(PROVIDER_PRICES_CACHE);
+    return resumed;
   }
 
   /** Spec §7.10 `onboarding` block: what's done, and whether the profile can be submitted now. */
@@ -133,7 +188,9 @@ export class ProviderProfileService {
         profile.yearsOfExperience !== null &&
         (profile.type !== ProviderType.DOCTOR || profile.specialty),
       ),
-      documentsUploaded: REQUIRED_PROVIDER_DOCUMENTS.every((type) => usableTypes.has(type)),
+      documentsUploaded: (await Container.get(ProviderDocumentService).requiredTypes()).every((type) =>
+        usableTypes.has(type),
+      ),
       areasSelected: staff || clinicOnly || profile.serviceAreas.length > 0,
       servicesSet: staff || home || clinic,
       availabilitySet: staff || clinicOnly || profile.availability.length > 0,

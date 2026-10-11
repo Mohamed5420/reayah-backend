@@ -1,4 +1,7 @@
 import { Schema, model } from 'mongoose';
+import { PricingUnit } from '../../../interfaces/enums';
+import { baseSchemaOptions, piastresValidator } from '../../schema-options';
+import { encryptOnWrite } from '../../../utils/crypto/field-encryption';
 import {
   AssignmentMode,
   BookingActor,
@@ -7,11 +10,9 @@ import {
   PaymentMethod,
   PaymentStatus,
   PreferredGender,
+  REASSIGN_REASONS,
   type IBooking,
 } from '../../../interfaces/IBooking';
-import { PricingUnit } from '../../../interfaces/enums';
-import { baseSchemaOptions, piastresValidator } from '../../schema-options';
-import { encryptOnWrite } from '../../../utils/crypto/field-encryption';
 
 const money = { type: Number, required: true, validate: piastresValidator };
 const text = { type: String, default: null };
@@ -64,6 +65,17 @@ const bookingSchema = new Schema<IBooking>(
     },
     visitCode: { type: String, default: null },
     visitCodeAttempts: { type: Number, default: 0 },
+    reassignment: {
+      type: new Schema(
+        {
+          reasonCode: { type: String, enum: [...REASSIGN_REASONS], required: true },
+          reasonText: { type: String, default: null },
+          at: { type: Date, required: true },
+        },
+        { _id: false },
+      ),
+      default: null,
+    },
     checkIn: {
       type: new Schema(
         {

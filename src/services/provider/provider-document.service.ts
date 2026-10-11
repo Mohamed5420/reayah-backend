@@ -3,17 +3,21 @@ import type { Types } from 'mongoose';
 import { ProviderDocumentModel } from '../../database/models/provider/provider-document.model';
 import {
   DocumentReviewStatus,
+  NO_BACK_PAGE,
   ProviderDocumentType,
   REQUIRED_PROVIDER_DOCUMENTS,
+  SINGLE_PROVIDER_DOCUMENTS,
 } from '../../interfaces/IProvider';
+import { SettingsService } from '../settings/settings.service';
 import { logger } from '../../utils/logger/winston';
-import { ConflictError, NotFoundError } from '../../utils/types-errors';
+import { ConflictError, NotFoundError, ValidationError } from '../../utils/types-errors';
 import { StorageService, mimeOfKey } from '../storage/storage.service';
 
 /**
  * Verification documents (spec §4.4, §7.10). Files go through POST /uploads (purpose `provider_document`)
- * and are attached here. One current document per required type — uploading a new one replaces it.
- * Certificates can be many. Documents the admin accepted ("matching") can't be deleted.
+ * and are attached here. One current document per type (uploading a new one replaces it), except
+ * certificates, which can be many. A card can carry its back as a second page (`backFileKey`); the
+ * admin reviews the document as one. Documents the admin accepted ("matching") can't be deleted.
  */
 @Service()
 export class ProviderDocumentService {
@@ -26,18 +30,37 @@ export class ProviderDocumentService {
     return this.withUrls(documents);
   }
 
+  /** What a provider must upload before submitting: the base list, plus the criminal record when required. */
+  async requiredTypes(): Promise<ProviderDocumentType[]> {
+    const criminal = await Container.get(SettingsService).get('criminal_record_required');
+    return criminal
+      ? [...REQUIRED_PROVIDER_DOCUMENTS, ProviderDocumentType.CRIMINAL_RECORD]
+      : REQUIRED_PROVIDER_DOCUMENTS;
+  }
+
   async attach(
     userId: string,
     profileId: Types.ObjectId,
-    input: { type: ProviderDocumentType; fileKey: string; expiresAt?: Date | null },
+    input: {
+      type: ProviderDocumentType;
+      fileKey: string;
+      backFileKey?: string | null;
+      expiresAt?: Date | null;
+    },
   ) {
-    const fileKey = await this.storage.promote(input.fileKey, {
-      ownerId: userId,
-      purpose: 'provider_document',
-      destPrefix: `provider-documents/${String(profileId)}`,
-    });
+    if (input.backFileKey && NO_BACK_PAGE.includes(input.type)) {
+      throw new ValidationError({ back_file_key: ['validation.no_back_page'] });
+    }
+    const promote = (key: string) =>
+      this.storage.promote(key, {
+        ownerId: userId,
+        purpose: 'provider_document',
+        destPrefix: `provider-documents/${String(profileId)}`,
+      });
+    const fileKey = await promote(input.fileKey);
+    const backFileKey = input.backFileKey ? await promote(input.backFileKey) : null;
 
-    if (REQUIRED_PROVIDER_DOCUMENTS.includes(input.type)) {
+    if (SINGLE_PROVIDER_DOCUMENTS.includes(input.type)) {
       const previous = await ProviderDocumentModel.find({ providerProfileId: profileId, type: input.type });
       for (const document of previous) await this.discard(document);
     }
@@ -47,6 +70,8 @@ export class ProviderDocumentService {
       type: input.type,
       fileKey,
       mime: mimeOfKey(fileKey),
+      backFileKey,
+      backMime: backFileKey ? mimeOfKey(backFileKey) : null,
       expiresAt: input.expiresAt ?? null,
     });
     return (await this.withUrls([document]))[0];
@@ -61,19 +86,23 @@ export class ProviderDocumentService {
     await this.discard(document);
   }
 
-  async withUrls<T extends { fileKey: string }>(documents: T[]) {
+  async withUrls<T extends { fileKey: string; backFileKey?: string | null }>(documents: T[]) {
     return Promise.all(
       documents.map(async (document) => ({
         document,
         fileUrl: await this.storage.signedUrl(document.fileKey),
+        backFileUrl: document.backFileKey ? await this.storage.signedUrl(document.backFileKey) : null,
       })),
     );
   }
 
   private async discard(document: InstanceType<typeof ProviderDocumentModel>) {
     await document.softDelete();
-    await this.storage
-      .delete(document.fileKey)
-      .catch((err: unknown) => logger.error(`Failed to delete provider file ${document.fileKey}`, err));
+    for (const key of [document.fileKey, document.backFileKey]) {
+      if (!key) continue;
+      await this.storage
+        .delete(key)
+        .catch((err: unknown) => logger.error(`Failed to delete provider file ${key}`, err));
+    }
   }
 }

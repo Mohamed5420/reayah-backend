@@ -453,6 +453,10 @@ describe('statements, dashboard and reports', () => {
     expect(pdf.body.data.url).toContain('org-statements/');
     const stored = [...fakeBucket.entries()].find(([key]) => key.startsWith('org-statements/'))!;
     expect(stored[1].body.subarray(0, 4).toString()).toBe('%PDF');
+
+    // The owner is told the statement is ready (always pushed), with type + event to route on.
+    const notice = queuedPushes().find((p) => p.userId === owner.userId && p.data.type === 'statement_ready');
+    expect(notice?.data).toMatchObject({ event: 'statement_ready', statement_id: statement.id, period });
   });
 
   it('dashboard KPIs and alerts; report grouped by staff', async () => {

@@ -22,7 +22,8 @@ import {
 } from '../../interfaces/IOrganization';
 import type { IAvailabilitySlot, IProviderProfile } from '../../interfaces/IProfiles';
 import { PayoutStatus } from '../../interfaces/IPayout';
-import { t } from '../../utils/i18n';
+import { t, type Language } from '../../utils/i18n';
+import { formatCairoDateTime } from '../../utils/time/cairo';
 import { logger } from '../../utils/logger/winston';
 import { isOverLimit } from '../../utils/rate-limit';
 import type { Pagination } from '../../utils/response/pagination';
@@ -44,6 +45,15 @@ import { HOME_VISIT, isVisitType } from '../catalog/visit-types';
 
 /** Invites per organization per day (SMS costs money and can be abused). */
 const INVITES_PER_DAY = 30;
+/** Longest timed suspension of a staff member. */
+const MAX_SUSPENSION_DAYS = 90;
+
+/** " حتى 20 أكتوبر. السبب: …" — what the member is told about a suspension (empty when neither is set). */
+const suspensionDetails = (until: Date | null, reason: string | null, lang: Language) =>
+  [
+    until ? t('notifications.staff_suspended_until', { date: formatCairoDateTime(until, lang) }, lang) : '',
+    reason ? t('notifications.staff_suspended_reason', { reason }, lang) : '',
+  ].join('');
 const DAY_MS = 24 * 3600_000;
 
 type ProfileDoc = HydratedDocument<IProviderProfile>;
@@ -73,11 +83,18 @@ export class StaffService {
   async invite(
     org: IOrganization,
     ownerId: string,
-    input: { phone: string; fullName: string; type: ProviderType },
+    input: {
+      phone: string;
+      fullName: string;
+      type: ProviderType;
+      areaIds?: string[];
+      serviceIds?: string[];
+    },
   ) {
     if (org.verificationStatus !== VerificationStatus.APPROVED) {
       throw new ConflictError('errors.organization_not_approved');
     }
+    const setup = await this.checkSetup(org, input.type, input.areaIds ?? [], input.serviceIds ?? []);
     const existing = await UserModel.findOne({ phone: input.phone }).lean();
     if (existing) await this.assertCanJoin(existing, org._id);
     // Plan limit (decision M3.4): members + open invites; existing staff are never affected.
@@ -95,22 +112,118 @@ export class StaffService {
       phone: input.phone,
       fullName: input.fullName,
       type: input.type,
+      areaIds: setup.areaIds,
+      serviceIds: setup.serviceIds,
       invitedBy: ownerId,
       expiresAt: new Date(Date.now() + STAFF_INVITE_DAYS * DAY_MS),
+      lastSentAt: new Date(),
     });
+    await this.sendInvite(invite.toObject(), org, existing?._id ?? null);
+    return invite.toObject();
+  }
+
+  /**
+   * POST /org/staff/invites/{id}/resend — a pending invite (staff or reception): valid 7 more days and
+   * the SMS again. Once an hour per invite, inside the organization's 30-a-day invite cap.
+   */
+  async resend(org: IOrganization, inviteId: string) {
+    const invite = Types.ObjectId.isValid(inviteId)
+      ? await StaffInviteModel.findOne({
+          _id: inviteId,
+          organizationId: org._id,
+          status: StaffInviteStatus.PENDING,
+        })
+      : null;
+    if (!invite) throw new NotFoundError('errors.invite_not_found');
+    if (await isOverLimit(`staff-invite-resend:${inviteId}`, 1, 3600)) throw new TooManyRequestsError();
+    if (await isOverLimit(`staff-invite:${String(org._id)}`, INVITES_PER_DAY, 24 * 3600)) {
+      throw new TooManyRequestsError();
+    }
+    invite.expiresAt = new Date(Date.now() + STAFF_INVITE_DAYS * DAY_MS);
+    invite.lastSentAt = new Date();
+    await invite.save();
+    const existing = await UserModel.findOne({ phone: invite.phone }).select('_id').lean();
+    await this.sendInvite(invite.toObject(), org, existing?._id ?? null);
+    return invite.toObject();
+  }
+
+  /** The invite SMS (nothing about the person: the organization's name and the app link), plus an in-app notice for an existing provider. */
+  private async sendInvite(
+    invite: IStaffInvite,
+    org: Pick<IOrganization, 'name'>,
+    existingUserId: Types.ObjectId | null,
+  ) {
     await Container.get(SmsService)
-      // Nothing about the person: the organization's name and the app link only (default pending counsel).
-      .send(input.phone, t('sms.staff_invite', { organization: org.name, link: env.appDownloadUrl }))
+      .send(invite.phone, t('sms.staff_invite', { organization: org.name, link: env.appDownloadUrl }))
       .catch((err: unknown) => logger.error(`Staff invite SMS to invite ${String(invite._id)} failed`, err));
-    if (existing) {
-      await this.notifications.notify([existing._id], {
+    if (existingUserId && invite.kind !== 'reception') {
+      await this.notifications.notify([existingUserId], {
         type: NotificationType.ACCOUNT,
         template: 'staff_invite',
         params: { organization: org.name },
         data: { invite_id: String(invite._id) },
       });
     }
-    return invite.toObject();
+  }
+
+  /**
+   * Areas and services an invite gives the member on joining: the organization's active areas and its
+   * home-visit services of the member's type. Errors name the entry (`area_ids.N`, `service_ids.N`).
+   */
+  private async checkSetup(org: IOrganization, type: ProviderType, areaIds: string[], serviceIds: string[]) {
+    const fields: ErrorFields = {};
+    const orgAreas = new Set(org.serviceAreas.filter((a) => a.isActive).map((a) => String(a.areaId)));
+    for (const [i, id] of areaIds.entries()) {
+      if (areaIds.indexOf(id) !== i) addError(fields, `area_ids.${i}`, 'validation.duplicate');
+      else if (!orgAreas.has(id)) addError(fields, `area_ids.${i}`, 'validation.area_not_served_by_org');
+    }
+    const catalog = new Map((await this.catalog.activeServices()).map((s) => [s.id, s]));
+    const offered = new Set(
+      org.services.filter((s) => s.isActive && isVisitType(s, HOME_VISIT)).map((s) => String(s.serviceId)),
+    );
+    for (const [i, id] of serviceIds.entries()) {
+      const service = catalog.get(id);
+      if (serviceIds.indexOf(id) !== i) addError(fields, `service_ids.${i}`, 'validation.duplicate');
+      else if (!offered.has(id) || !service)
+        addError(fields, `service_ids.${i}`, 'validation.service_not_offered_by_org');
+      else if (service.providerType !== type)
+        addError(fields, `service_ids.${i}`, 'validation.service_wrong_type');
+    }
+    if (Object.keys(fields).length) throw new ValidationError(fields);
+    return {
+      areaIds: areaIds.map((id) => new Types.ObjectId(id)),
+      serviceIds: serviceIds.map((id) => new Types.ObjectId(id)),
+    };
+  }
+
+  /**
+   * What the invite set up, as it stands at joining: only areas and services the organization still
+   * offers, at its current travel fee and price.
+   */
+  private async joinSetup(
+    invite: Pick<IStaffInvite, 'organizationId' | 'areaIds' | 'serviceIds'>,
+    session?: ClientSession,
+  ) {
+    const org = await OrganizationModel.findById(invite.organizationId)
+      .session(session ?? null)
+      .lean();
+    if (!org) return { serviceAreas: [], services: [] };
+    const areas = new Map(org.serviceAreas.filter((a) => a.isActive).map((a) => [String(a.areaId), a]));
+    const offered = new Map(
+      org.services
+        .filter((s) => s.isActive && isVisitType(s, HOME_VISIT))
+        .map((s) => [String(s.serviceId), s]),
+    );
+    return {
+      serviceAreas: (invite.areaIds ?? []).flatMap((id) => {
+        const a = areas.get(String(id));
+        return a ? [{ areaId: a.areaId, travelFee: a.travelFee }] : [];
+      }),
+      services: (invite.serviceIds ?? []).flatMap((id) => {
+        const s = offered.get(String(id));
+        return s ? [{ serviceId: s.serviceId, price: s.price, isActive: true }] : [];
+      }),
+    };
   }
 
   pendingInvites(orgId: Types.ObjectId) {
@@ -228,6 +341,7 @@ export class StaffService {
   ) {
     const invite = await this.claim(session, inviteId, user.phone, user._id);
     await Container.get(SubscriptionService).assertCanAddStaff(invite.organizationId, false);
+    const setup = await this.joinSetup(invite, session);
     await ProviderProfileModel.create(
       [
         {
@@ -235,6 +349,7 @@ export class StaffService {
           organizationId: invite.organizationId,
           type: invite.type,
           isTestAccount: Boolean(user.isTestAccount),
+          ...setup,
         },
       ],
       { session },
@@ -253,15 +368,17 @@ export class StaffService {
       await this.assertCanJoin(user, claimed.organizationId, session);
       await Container.get(SubscriptionService).assertCanAddStaff(claimed.organizationId, false);
       await UserModel.updateOne({ _id: userId }, { role: UserRole.PROVIDER_STAFF }, { session });
-      // Areas, services and prices now come from the organization (the owner sets them).
+      // Areas, services and prices now come from the organization: what the invite set up, if anything.
+      const setup = await this.joinSetup(claimed, session);
       await ProviderProfileModel.updateOne(
         { _id: profile._id },
         {
           organizationId: claimed.organizationId,
           staffSuspended: false,
-          serviceAreas: [],
-          services: [],
+          serviceAreas: setup.serviceAreas,
+          services: setup.services,
           isAcceptingBookings: false,
+          acceptingResumesAt: null,
         },
         { session },
       );
@@ -378,9 +495,24 @@ export class StaffService {
   async update(
     org: OrganizationDoc,
     profileId: string,
-    patch: { status?: 'active' | 'suspended'; serviceIds?: string[] },
+    patch: {
+      status?: 'active' | 'suspended';
+      serviceIds?: string[];
+      reason?: string | null;
+      endsAt?: Date | null;
+    },
   ) {
     const profile = await this.member(org._id, profileId);
+    if ((patch.reason || patch.endsAt) && patch.status !== 'suspended') {
+      throw new ValidationError({ status: ['validation.suspension_details_need_suspend'] });
+    }
+    if (patch.endsAt) {
+      if (patch.endsAt.getTime() <= Date.now())
+        throw new ValidationError({ ends_at: ['validation.in_the_past'] });
+      if (patch.endsAt.getTime() > Date.now() + MAX_SUSPENSION_DAYS * DAY_MS) {
+        throw new ValidationError({ ends_at: ['validation.suspension_too_long'] });
+      }
+    }
     if (patch.serviceIds) {
       const catalog = new Map((await this.catalog.activeServices()).map((s) => [s.id, s]));
       // Staff serve the organization's home-visit services here (branch clinic work: C4).
@@ -413,20 +545,73 @@ export class StaffService {
     }
     if (patch.status === 'suspended') {
       profile.staffSuspended = true;
+      profile.staffSuspendedReason = patch.reason?.trim() || null;
+      profile.staffSuspendedUntil = patch.endsAt ?? null;
       profile.isAcceptingBookings = false;
+      profile.acceptingResumesAt = null;
     } else if (patch.status === 'active') {
       profile.staffSuspended = false;
+      profile.staffSuspendedReason = null;
+      profile.staffSuspendedUntil = null;
     }
     await profile.save();
+    if (patch.status === 'suspended') {
+      // As on removal: their active bookings in the suspension period go back to the owner's queue
+      // with a fresh deadline (all of them when the suspension has no end).
+      await Container.get(OrgBookingService).takeBackFrom(org._id, profile._id, String(org.ownerUserId), {
+        before: patch.endsAt ?? null,
+        reason: 'staff_suspended',
+      });
+    }
     if (patch.status) {
       await this.notifications.notify([profile.userId], {
         type: NotificationType.ACCOUNT,
         template: patch.status === 'suspended' ? 'staff_suspended' : 'staff_activated',
-        params: { organization: org.name },
-        data: { organization_id: String(org._id) },
+        params: (lang) => ({
+          organization: org.name,
+          details:
+            patch.status === 'suspended'
+              ? suspensionDetails(
+                  profile.staffSuspendedUntil ?? null,
+                  profile.staffSuspendedReason ?? null,
+                  lang,
+                )
+              : '',
+        }),
+        data: {
+          organization_id: String(org._id),
+          ...(profile.staffSuspendedUntil ? { ends_at: profile.staffSuspendedUntil.toISOString() } : {}),
+        },
       });
     }
     return profile;
+  }
+
+  /** 5-minute sweep: timed suspensions that ran out; the member is told they're back (not accepting yet). */
+  async liftExpiredSuspensions(now = new Date()) {
+    const due = await ProviderProfileModel.find({
+      staffSuspended: true,
+      staffSuspendedUntil: { $ne: null, $lte: now },
+    })
+      .select('userId organizationId')
+      .lean();
+    let lifted = 0;
+    for (const p of due) {
+      const result = await ProviderProfileModel.updateOne(
+        { _id: p._id, staffSuspended: true, staffSuspendedUntil: { $ne: null, $lte: now } },
+        { staffSuspended: false, staffSuspendedReason: null, staffSuspendedUntil: null },
+      );
+      if (!result.modifiedCount) continue;
+      lifted++;
+      const org = await OrganizationModel.findById(p.organizationId).select('name').lean();
+      await this.notifications.notify([p.userId], {
+        type: NotificationType.ACCOUNT,
+        template: 'staff_activated',
+        params: { organization: org?.name ?? '' },
+        data: { organization_id: String(p.organizationId) },
+      });
+    }
+    return lifted;
   }
 
   /** PUT /org/staff/{id}/service-areas: areas the organization serves; its travel fee applies. */
@@ -449,10 +634,16 @@ export class StaffService {
     return profile;
   }
 
-  async setAvailability(orgId: Types.ObjectId, profileId: string, slots: IAvailabilitySlot[]) {
+  async setAvailability(
+    orgId: Types.ObjectId,
+    profileId: string,
+    slots: IAvailabilitySlot[],
+    rules: { breakMinutes?: number; maxVisitsPerDay?: number | null } = {},
+  ) {
     return Container.get(ProviderCoverageService).replaceAvailability(
       await this.member(orgId, profileId),
       slots,
+      rules,
     );
   }
 
@@ -471,6 +662,7 @@ export class StaffService {
           organizationId: null,
           staffSuspended: false,
           isAcceptingBookings: false,
+          acceptingResumesAt: null,
           serviceAreas: [],
           services: [],
         },

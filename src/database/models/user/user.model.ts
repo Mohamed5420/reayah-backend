@@ -43,6 +43,7 @@ const userSchema = new Schema<IUser, UserModelType, SoftDeleteMethods>(
       reminders: { type: Boolean, default: true },
       promotions: { type: Boolean, default: true },
       chat: { type: Boolean, default: true },
+      reviews: { type: Boolean, default: true },
     },
   },
   baseSchemaOptions,

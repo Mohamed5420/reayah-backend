@@ -70,10 +70,10 @@ const r = {
     method: 'post',
     path: '/org/bookings/:id/reassign',
     summary:
-      'Change the assigned staff member of an accepted booking (the previous one loses access and the chat)',
+      'Change the assigned staff member of an accepted booking (the previous one loses access and the chat). reason_code / reason_text are internal: the new staff member and admins see them, the patient is only told the provider changed.',
     tags,
     auth,
-    request: { params, body: OrgBookingSchemas.assignBody },
+    request: { params, body: OrgBookingSchemas.reassignBody },
     response: { schema: OrgBookingSchemas.booking },
   }),
   broadcast: defineRoute({
@@ -169,8 +169,11 @@ export default class OrgBookingController implements IBaseController {
       return HttpResponse.ok(res, await this.view(req));
     });
     this.mount(r.reassign, async (req, res) => {
-      const body = req.body as z.infer<typeof OrgBookingSchemas.assignBody>;
-      await this.bookings.reassign(await org(req), req.user!.id, req.params.id, body.provider_profile_id);
+      const body = req.body as z.infer<typeof OrgBookingSchemas.reassignBody>;
+      await this.bookings.reassign(await org(req), req.user!.id, req.params.id, body.provider_profile_id, {
+        reasonCode: body.reason_code,
+        reasonText: body.reason_text,
+      });
       return HttpResponse.ok(res, await this.view(req));
     });
     this.mount(r.broadcast, async (req, res) =>

@@ -59,7 +59,7 @@ export class NotificationService {
           type: input.type,
           title,
           body,
-          data: input.data ?? {},
+          data: { ...(input.data ?? {}), event: input.template },
           ...(input.dedupeKey ? { dedupeKey: input.dedupeKey } : {}),
         });
       } catch (err) {
@@ -68,7 +68,12 @@ export class NotificationService {
         throw err;
       }
       created.push(notification.toObject({ flattenMaps: true }) as unknown as INotification);
-      const data = { ...(input.data ?? {}), type: input.type, notification_id: String(notification._id) };
+      const data = {
+        ...(input.data ?? {}),
+        event: input.template,
+        type: input.type,
+        notification_id: String(notification._id),
+      };
 
       emitNotificationToUser(String(user._id), {
         id: String(notification._id),
@@ -108,7 +113,7 @@ export class NotificationService {
         userId: String(user._id),
         title: t(`notifications.${input.template}.title` as TranslationKey, params, lang),
         body: t(`notifications.${input.template}.body` as TranslationKey, params, lang),
-        data: { ...(input.data ?? {}), type: input.type },
+        data: { ...(input.data ?? {}), event: input.template, type: input.type },
       }).catch((err: unknown) =>
         logger.error(`Failed to queue push ${input.type} for ${String(user._id)}`, err),
       );

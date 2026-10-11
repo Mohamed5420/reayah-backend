@@ -6,6 +6,7 @@ import { OrganizationModel } from '../../database/models/organization/organizati
 import { OrgDiscoveryService } from '../organization/org-discovery.service';
 import { PaymentModel } from '../../database/models/payment/payment.models';
 import { VerificationStatus } from '../../interfaces/enums';
+import { bookableOrg } from '../organization/bookable';
 import {
   PackageSubscriptionStatus,
   perVisitValue,
@@ -455,7 +456,7 @@ export class PackageService {
     if (independent) return true;
     // Or an organization in the area at or below the per-visit value, with someone to send.
     const candidates = await OrganizationModel.find({
-      verificationStatus: VerificationStatus.APPROVED,
+      ...bookableOrg(),
       serviceAreas: { $elemMatch: { areaId: area, isActive: true } },
       services: {
         $elemMatch: {

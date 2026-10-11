@@ -1,5 +1,7 @@
 import { Container, Service } from 'typedi';
 import { Types, type HydratedDocument } from 'mongoose';
+import { localized } from '../../api/presenters/localize';
+import type { Language } from '../../utils/i18n';
 import {
   OrganizationDocumentModel,
   OrganizationModel,
@@ -32,6 +34,10 @@ export type OrganizationInput = {
   description?: string | null;
   phone?: string | null;
   addressText?: string | null;
+  governorateId?: string | null;
+  areaId?: string | null;
+  managerName?: string | null;
+  email?: string | null;
 };
 
 /** Identity fields: editable only before approval (as for providers), so what was verified stays put. */
@@ -40,7 +46,7 @@ const IDENTITY_FIELDS = ['name', 'type', 'commercialRegisterNo', 'taxId'] as con
 /** Checklist item → field name + message reported when it's missing at submission. */
 const MISSING_ITEM_FIELDS = {
   infoCompleted: ['organization', 'validation.onboarding_org_info'],
-  documentsUploaded: ['documents', 'validation.onboarding_documents'],
+  documentsUploaded: ['documents', 'validation.onboarding_org_documents'],
   areasSelected: ['service_areas', 'validation.onboarding_areas'],
   servicesSet: ['services', 'validation.onboarding_services'],
 } as const;
@@ -66,6 +72,7 @@ export class OrganizationService {
     if (await OrganizationModel.exists({ ownerUserId: userId })) {
       throw new ConflictError('errors.organization_exists');
     }
+    await this.assertPlace(input.governorateId ?? null, input.areaId ?? null);
     const owner = await UserModel.findById(userId).select('isTestAccount').lean();
     return OrganizationModel.create({
       ...input,
@@ -92,9 +99,44 @@ export class OrganizationService {
     if (touchesIdentity && !EDITABLE_STATUSES.includes(org.verificationStatus)) {
       throw new ConflictError('errors.organization_fields_locked');
     }
+    if (patch.governorateId !== undefined || patch.areaId !== undefined) {
+      await this.assertPlace(
+        patch.governorateId !== undefined
+          ? patch.governorateId
+          : org.governorateId && String(org.governorateId),
+        patch.areaId !== undefined ? patch.areaId : org.areaId && String(org.areaId),
+      );
+    }
     for (const [key, value] of Object.entries(patch)) if (value !== undefined) org.set(key, value);
     await org.save();
     return org;
+  }
+
+  /** Governorate and area go together: a bookable area of that governorate (as for addresses). */
+  private async assertPlace(governorateId: string | null, areaId: string | null) {
+    if (!governorateId && !areaId) return;
+    if (!governorateId) throw new ValidationError({ governorate_id: ['validation.required'] });
+    if (!areaId) throw new ValidationError({ area_id: ['validation.required'] });
+    const area = await this.locations.findBookableArea(areaId);
+    if (!area) throw new ValidationError({ area_id: ['validation.area_unavailable'] });
+    if (area.governorateId !== governorateId) {
+      throw new ValidationError({ area_id: ['validation.area_governorate_mismatch'] });
+    }
+  }
+
+  /** The organization's governorate and area names, for its own screens and the admin review. */
+  async place(org: Pick<IOrganization, 'areaId'>, lang: Language) {
+    if (!org.areaId) return null;
+    const p = (await this.locations.describeAreas([String(org.areaId)])).get(String(org.areaId));
+    return p
+      ? {
+          governorate: {
+            id: p.governorate.id,
+            name: localized(p.governorate.nameAr, p.governorate.nameEn, lang),
+          },
+          area: { id: p.area.id, name: localized(p.area.nameAr, p.area.nameEn, lang) },
+        }
+      : null;
   }
 
   /** POST /org/logo: stores the (already type-checked) image and replaces the previous one. */
@@ -187,7 +229,9 @@ export class OrganizationService {
     );
     const active = new Set((await this.catalog.activeServices()).map((s) => s.id));
     const items = {
-      infoCompleted: Boolean(org.name && org.type && org.commercialRegisterNo && org.taxId),
+      infoCompleted: Boolean(
+        org.name && org.type && org.commercialRegisterNo && org.taxId && org.areaId && org.managerName,
+      ),
       documentsUploaded: REQUIRED_ORGANIZATION_DOCUMENTS.every((type) => usable.has(type)),
       areasSelected: org.serviceAreas.some((a) => a.isActive),
       servicesSet: org.services.some((s) => s.isActive && active.has(String(s.serviceId))),

@@ -232,8 +232,13 @@ describe('the owner assigns', () => {
       (await api(other.auth).post(`/org/bookings/${id}/assign`, { provider_profile_id: sara.id })).status,
     ).toBe(404);
 
+    expect(
+      (await api(owner.auth).post(`/org/bookings/${id}/reassign`, { provider_profile_id: omar.id })).status,
+    ).toBe(422); // the reason is required
     const moved = await api(owner.auth).post(`/org/bookings/${id}/reassign`, {
       provider_profile_id: omar.id,
+      reason_code: 'staff_unavailable',
+      reason_text: 'سارة في إجازة مرضية',
     });
     expect(moved.body.data.staff).toMatchObject({ id: omar.id });
     expect((await world.providerApi(sara, 'get', `/bookings/${id}`)).status).toBe(404);

@@ -18,6 +18,7 @@ import { UserRole } from '../../../interfaces/enums';
 import { HttpResponse } from '../../../utils/response/http-response';
 import { parsePagination } from '../../../utils/response/pagination';
 import { cairoDate } from '../../../utils/time/cairo';
+import { ValidationError } from '../../../utils/types-errors';
 
 const auth = true;
 const providerTags = ['Provider — Earnings'];
@@ -180,8 +181,16 @@ export default class FinanceController implements IBaseController {
       const today = cairoDate();
       const from = q.from ?? `${today.slice(0, 8)}01`;
       const to = q.to ?? today;
+      if (to < from) throw new ValidationError({ to: ['validation.ends_before_starts'] });
+      if (Math.round((Date.parse(to) - Date.parse(from)) / 864e5) + 1 > 366) {
+        throw new ValidationError({ to: ['validation.range_too_long'] });
+      }
       const profile = await this.profiles.getOwn(req.user!.id);
-      const e = await this.payouts.earnings(profile._id, from, to);
+      const [e, daily, next] = await Promise.all([
+        this.payouts.earnings(profile._id, from, to),
+        this.payouts.dailyEarnings(profile._id, from, to),
+        this.payouts.nextPayout(profile._id),
+      ]);
       return HttpResponse.ok(res, {
         period: { from, to },
         completed_visits: e.completedVisits,
@@ -197,6 +206,15 @@ export default class FinanceController implements IBaseController {
           warning: s.warning,
           over_limit: s.overLimit,
         })),
+        cash_collected: daily.cashCollected,
+        days: daily.days.map((d) => ({ date: d.date, completed_visits: d.completedVisits, net: d.net })),
+        next_payout: {
+          date: next.date,
+          amount: next.amount,
+          minimum_amount: next.minimumAmount,
+          eligible: next.eligible,
+          reason: next.reason,
+        },
       });
     });
     this.mount(r.ledger, provider, async (req, res) => {

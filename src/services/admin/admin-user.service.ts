@@ -157,7 +157,10 @@ export class AdminUserService {
         (from === VerificationStatus.SUSPENDED && input.verificationStatus === VerificationStatus.APPROVED);
       if (!allowed) throw new ConflictError('errors.use_verification_flow');
       profile.verificationStatus = input.verificationStatus;
-      if (input.verificationStatus === VerificationStatus.SUSPENDED) profile.isAcceptingBookings = false;
+      if (input.verificationStatus === VerificationStatus.SUSPENDED) {
+        profile.isAcceptingBookings = false;
+        profile.acceptingResumesAt = null;
+      }
     }
     if (input.adminMessage !== undefined) profile.adminMessage = input.adminMessage;
     await profile.save();

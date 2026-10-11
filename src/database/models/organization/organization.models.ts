@@ -2,6 +2,7 @@ import { Schema, model, type Model } from 'mongoose';
 import { ProviderType, VerificationStatus } from '../../../interfaces/enums';
 import { DocumentReviewStatus } from '../../../interfaces/IProvider';
 import {
+  IssuingAuthority,
   OrganizationDocumentType,
   OrganizationType,
   StaffInviteStatus,
@@ -28,6 +29,11 @@ const organizationSchema = new Schema<IOrganization, OrganizationModelType, Soft
     description: { type: String, default: null },
     phone: { type: String, default: null },
     addressText: { type: String, default: null },
+    governorateId: { type: Schema.Types.ObjectId, ref: 'Governorate', default: null },
+    areaId: { type: Schema.Types.ObjectId, ref: 'Area', default: null },
+    managerName: { type: String, default: null, trim: true },
+    email: { type: String, default: null, trim: true, lowercase: true },
+    licencePausedAt: { type: Date, default: null },
     logoKey: { type: String, default: null },
     verificationStatus: {
       type: String,
@@ -111,6 +117,10 @@ const organizationDocumentSchema = new Schema<
     type: { type: String, enum: Object.values(OrganizationDocumentType), required: true },
     fileKey: { type: String, required: true },
     mime: { type: String, required: true },
+    backFileKey: { type: String, default: null },
+    backMime: { type: String, default: null },
+    issuingAuthority: { type: String, enum: [...Object.values(IssuingAuthority), null], default: null },
+    expiryNoticeAt: { type: Date, default: null },
     status: {
       type: String,
       enum: Object.values(DocumentReviewStatus),
@@ -126,6 +136,8 @@ const organizationDocumentSchema = new Schema<
 
 organizationDocumentSchema.plugin(softDeletePlugin);
 organizationDocumentSchema.index({ organizationId: 1, type: 1 });
+// Daily expiry job: activity licences.
+organizationDocumentSchema.index({ type: 1, expiresAt: 1 });
 
 export const OrganizationDocumentModel = model<IOrganizationDocument, OrganizationDocumentModelType>(
   'OrganizationDocument',
@@ -141,6 +153,9 @@ const staffInviteSchema = new Schema<IStaffInvite>(
     type: { type: String, enum: [...Object.values(ProviderType), null], default: null },
     kind: { type: String, enum: ['staff', 'reception'], default: 'staff' },
     clinicId: { type: Schema.Types.ObjectId, ref: 'Clinic', default: null },
+    areaIds: { type: [Schema.Types.ObjectId], default: [] },
+    serviceIds: { type: [Schema.Types.ObjectId], default: [] },
+    lastSentAt: { type: Date, default: null },
     status: { type: String, enum: Object.values(StaffInviteStatus), default: StaffInviteStatus.PENDING },
     invitedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     expiresAt: { type: Date, required: true },

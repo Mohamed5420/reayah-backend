@@ -54,6 +54,7 @@ const payout = z
 /** Request and response schemas for earnings, payouts and admin finance (spec §7.10, §7.15). */
 export const FinanceSchemas = {
   idParams: z.object({ id: objectId }),
+  /** Cairo dates; default this month so far. At most 366 days. */
   earningsQuery: z.object({ from: date.optional(), to: date.optional() }),
   earnings: z
     .object({
@@ -70,6 +71,24 @@ export const FinanceSchemas = {
       payout_method: payoutMethod,
       /** Cash-booking commission limit: warning from commission_warning_percent, over_limit = no new cash bookings. */
       commission_limit: z.object({ max: z.number(), warning: z.boolean(), over_limit: z.boolean() }),
+      /** Cash the provider took from patients for visits completed in the period (piastres). */
+      cash_collected: z.number(),
+      /** One row per Cairo day of the period, days without visits included (0). */
+      days: z.array(z.object({ date: z.string(), completed_visits: z.number(), net: z.number() })),
+      /** The next weekly payout and whether the current balance will be paid in it. */
+      next_payout: z.object({
+        /** Cairo date of the next payout batch ("YYYY-MM-DD"). */
+        date: z.string(),
+        /** What would be paid: the current balance (0 when the provider owes commission). */
+        amount: z.number(),
+        /** Smallest balance paid out (setting payout_min_amount). */
+        minimum_amount: z.number(),
+        eligible: z.boolean(),
+        /** Why not: below_minimum, no_payout_method, payout_in_progress, commission_due; null when eligible. */
+        reason: z
+          .enum(['below_minimum', 'no_payout_method', 'payout_in_progress', 'commission_due'])
+          .nullable(),
+      }),
     })
     .openapi('ProviderEarnings'),
   ledgerEntry: z

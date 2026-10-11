@@ -180,6 +180,9 @@ export const presentAdminBookingDetail = (input: {
       to_status: h.toStatus,
       changed_by: h.changedBy ? String(h.changedBy) : null,
       note: h.note,
+      internal_reason: h.internalReason
+        ? { code: h.internalReason.code, text: h.internalReason.text ?? null }
+        : null,
       at: h.createdAt.toISOString(),
     })),
     offers: input.offers.map((o) => ({
