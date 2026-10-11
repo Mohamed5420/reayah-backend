@@ -11364,6 +11364,26 @@
               "clinic_visit"
             ]
           },
+          "clinic": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$/i",
+                "example": "665f1c2b9e1d2a4c3b9e8f1a"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
           "service": {
             "type": "object",
             "properties": {
@@ -11557,6 +11577,7 @@
           "reference_code",
           "status",
           "type",
+          "clinic",
           "service",
           "quantity",
           "area_name",
@@ -27633,6 +27654,16 @@
             },
             "required": false,
             "name": "staff_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$/i",
+              "example": "665f1c2b9e1d2a4c3b9e8f1a"
+            },
+            "required": false,
+            "name": "branch_id",
             "in": "query"
           }
         ],

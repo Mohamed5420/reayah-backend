@@ -86,7 +86,7 @@ export class OrgBookingService {
 
   async list(
     org: IOrganization,
-    filters: { status?: BookingStatus; date?: string; staffId?: string },
+    filters: { status?: BookingStatus; date?: string; staffId?: string; branchId?: string },
     pagination: Pagination,
   ) {
     const query: FilterQuery<IBooking> = {
@@ -97,6 +97,9 @@ export class OrgBookingService {
           : { $ne: BookingStatus.AWAITING_PAYMENT },
       ...(filters.staffId && Types.ObjectId.isValid(filters.staffId)
         ? { providerProfileId: new Types.ObjectId(filters.staffId) }
+        : {}),
+      ...(filters.branchId && Types.ObjectId.isValid(filters.branchId)
+        ? { clinicId: new Types.ObjectId(filters.branchId) }
         : {}),
       ...(filters.date
         ? {

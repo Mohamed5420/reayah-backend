@@ -79,9 +79,13 @@ export class BranchService {
     return this.clinics.submitDoc(await this.get(org, branchId));
   }
 
-  /** Removes the branch and every doctor's hours there (active appointments: C4 booking guard). */
+  /** Removes the branch and every doctor's hours there; refused while it has appointments to come. */
   async remove(org: Pick<IOrganization, '_id'>, branchId: string) {
     const branch = await this.get(org, branchId);
+    await this.clinics.assertNoUpcomingAppointments(
+      { clinicId: branch._id },
+      'errors.branch_has_appointments',
+    );
     await branch.softDelete();
     await ProviderProfileModel.updateMany(
       { organizationId: org._id },
@@ -123,8 +127,14 @@ export class BranchService {
     return { branch: branch.toObject(), staff };
   }
 
+  /** Takes a doctor off a branch; refused while they have appointments to come there. */
   async removeDoctor(org: Pick<IOrganization, '_id'>, staffProfileId: string, branchId: string) {
     const branch = await this.get(org, branchId);
+    if (!Types.ObjectId.isValid(staffProfileId)) throw new NotFoundError('errors.staff_not_found');
+    await this.clinics.assertNoUpcomingAppointments(
+      { clinicId: branch._id, providerProfileId: new Types.ObjectId(staffProfileId) },
+      'errors.branch_doctor_has_appointments',
+    );
     const result = await ProviderProfileModel.updateOne(
       { _id: staffProfileId, organizationId: org._id },
       { $pull: { clinics: { clinicId: branch._id } } },

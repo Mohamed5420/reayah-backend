@@ -3,6 +3,8 @@ import { Types, type HydratedDocument } from 'mongoose';
 import { ClinicModel } from '../../database/models/clinic/clinic.model';
 import { ProviderProfileModel } from '../../database/models/provider/provider-profile.model';
 import { OrganizationModel } from '../../database/models/organization/organization.models';
+import { BookingModel } from '../../database/models/booking/booking.model';
+import { ACTIVE_BOOKING_STATUSES } from '../../interfaces/IBooking';
 import { ProviderType } from '../../interfaces/enums';
 import {
   ClinicStatus,
@@ -177,9 +179,26 @@ export class ClinicService {
   /** Soft-deletes the clinic and drops its hours from the profile (bookings guard: C3). */
   async remove(profile: ProfileDoc, clinicId: string) {
     const clinic = await this.getOwn(profile, clinicId);
+    await this.assertNoUpcomingAppointments({ clinicId: clinic._id }, 'errors.clinic_has_appointments');
     await clinic.softDelete();
     profile.clinics = profile.clinics.filter((l) => !l.clinicId.equals(clinic._id));
     await profile.save();
+  }
+
+  /**
+   * Refuses (409, with the count) while a clinic, or one doctor at it, still has appointments to come
+   * (pending, accepted or under way, including unpaid ones holding a slot). Those must be cancelled or
+   * rescheduled first, so no patient arrives at a clinic or doctor that is gone.
+   */
+  async assertNoUpcomingAppointments(
+    filter: { clinicId: Types.ObjectId; providerProfileId?: Types.ObjectId },
+    messageKey:
+      | 'errors.clinic_has_appointments'
+      | 'errors.branch_has_appointments'
+      | 'errors.branch_doctor_has_appointments',
+  ) {
+    const count = await BookingModel.countDocuments({ ...filter, status: { $in: ACTIVE_BOOKING_STATUSES } });
+    if (count) throw new ConflictError(messageKey, { count });
   }
 
   /** Appointment length, instant confirmation and weekly hours at one clinic (replaces the hours). */

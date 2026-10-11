@@ -293,6 +293,8 @@ const orgBooking = z
     reference_code: z.string(),
     status: z.enum(BookingStatus),
     type: z.enum(BookingType),
+    /** The branch of a clinic visit; null for home visits. */
+    clinic: z.object({ id: objectId, name: z.string() }).nullable(),
     service: z.object({ id: objectId, name: z.string() }),
     quantity: z.number(),
     area_name: z.string(),
@@ -330,6 +332,8 @@ export const OrgBookingSchemas = {
     status: z.enum(BookingStatus).optional(),
     date: z.iso.date().optional(),
     staff_id: objectId.optional(),
+    /** Clinic visits at one branch only (C4). */
+    branch_id: objectId.optional(),
   }),
   booking: orgBooking,
   eligibleStaff: z

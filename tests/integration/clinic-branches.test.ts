@@ -311,6 +311,38 @@ describe('booking a branch', () => {
   });
 });
 
+describe('owner queue and removals', () => {
+  it('the queue names the branch of each clinic visit and filters by branch', async () => {
+    const id = (await book(at('18:40'))).body.data.id;
+    const other = await api(owner.auth).post('/org/branches', {
+      ...branchBody,
+      name: 'فرع آخر',
+      governorate_id: world.cairo,
+      area_id: world.nasrCity,
+    });
+    const list = (q: string) => api(owner.auth).get(`/org/bookings${q}`);
+    const item = (await list('')).body.data.find((b: { id: string }) => b.id === id);
+    expect(item.clinic).toEqual({ id: branchId, name: branchBody.name });
+    expect((await list(`?branch_id=${branchId}`)).body.data.map((b: { id: string }) => b.id)).toEqual([id]);
+    expect((await list(`?branch_id=${other.body.data.id}`)).body.data).toEqual([]);
+  });
+
+  it('a doctor with appointments to come can’t be taken off the branch, nor the branch removed', async () => {
+    const id = (await book(at('18:20'), { provider_id: sara.id })).body.data.id;
+    const offSara = await api(owner.auth).delete(`/org/branches/${branchId}/doctors/${sara.id}`);
+    expect(offSara.status).toBe(409);
+    expect(offSara.body.error.message).toContain('1');
+    const removeBranch = await api(owner.auth).delete(`/org/branches/${branchId}`);
+    expect(removeBranch.status).toBe(409);
+    // A doctor with nothing booked there can go.
+    expect((await api(owner.auth).delete(`/org/branches/${branchId}/doctors/${omar.id}`)).status).toBe(204);
+
+    await BookingModel.updateOne({ _id: id }, { status: 'cancelled' });
+    expect((await api(owner.auth).delete(`/org/branches/${branchId}/doctors/${sara.id}`)).status).toBe(204);
+    expect((await api(owner.auth).delete(`/org/branches/${branchId}`)).status).toBe(204);
+  });
+});
+
 describe('branch reception', () => {
   /** Invite + sign-up as reception through the real API. */
   const newReception = async () => {

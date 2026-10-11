@@ -127,7 +127,7 @@ export default class OrgBookingController implements IBaseController {
       const pagination = parsePagination(req.query);
       const { data, total, staff } = await this.bookings.list(
         await org(req),
-        { status: q.status, date: q.date, staffId: q.staff_id },
+        { status: q.status, date: q.date, staffId: q.staff_id, branchId: q.branch_id },
         pagination,
       );
       const lang = resolveLanguage(req);

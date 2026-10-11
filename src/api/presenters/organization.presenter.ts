@@ -251,6 +251,7 @@ export const presentOrgBooking = (input: {
     reference_code: b.referenceCode,
     status: b.status,
     type: b.type,
+    clinic: b.clinicId && b.clinic ? { id: String(b.clinicId), name: b.clinic.name } : null,
     service: { id: String(b.serviceId), name: localized(b.service.nameAr, b.service.nameEn, input.lang) },
     quantity: b.quantity,
     area_name: b.address.areaNameAr,

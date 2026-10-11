@@ -203,6 +203,19 @@ describe('promo codes by visit type', () => {
   });
 });
 
+describe('removing a clinic', () => {
+  it('is refused while it has appointments to come', async () => {
+    const id = (await bookClinic(at('18:00'))).body.data.id;
+    const remove = () =>
+      request(app).delete(`/api/v1/provider/clinics/${clinicId}`).set('Authorization', doctor.auth);
+    const refused = await remove();
+    expect(refused.status).toBe(409);
+    expect(refused.body.error.message).toContain('1');
+    await BookingModel.updateOne({ _id: id }, { status: 'cancelled' });
+    expect((await remove()).status).toBe(204);
+  });
+});
+
 describe('admin', () => {
   it('bookings and analytics filter by visit type; clinic visits never started need attention', async () => {
     const clinicBooking = (await bookClinic(at('18:40'))).body.data.id;
