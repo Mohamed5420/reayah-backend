@@ -337,11 +337,11 @@ and dispute descriptions come back as `null` for every role except super admin a
 
 ### Reception app (new role)
 
-| Endpoint                                     | Purpose                                             |
-| -------------------------------------------- | --------------------------------------------------- |
-| `GET /reception/appointments`                | Today's appointments at the branch.                 |
-| `POST /reception/appointments/{id}/check-in` | Body `{ visit_code }` or `{ without_code_reason }`. |
-| `POST /reception/appointments/{id}/no-show`  | Mark a patient who did not come.                    |
+| Endpoint                                     | Purpose                                                                                                                                                                                                                                  |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /reception/appointments`                | Today's appointments at the branch: `{ id, reference_code, patient_name, doctor, service_name, scheduled_start, scheduled_end, status, check_in, visit_code_locked, allowed_actions }`. The branch itself is in `GET /me` → `reception`. |
+| `POST /reception/appointments/{id}/check-in` | Body `{ visit_code }` or `{ without_code_reason }`.                                                                                                                                                                                      |
+| `POST /reception/appointments/{id}/no-show`  | Mark a patient who did not come.                                                                                                                                                                                                         |
 
 ### Admin panel
 

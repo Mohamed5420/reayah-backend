@@ -537,6 +537,52 @@
               "verification_status"
             ]
           },
+          "reception": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "organization": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{24}$/i",
+                    "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ]
+              },
+              "branch": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{24}$/i",
+                    "example": "665f1c2b9e1d2a4c3b9e8f1a"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ]
+              }
+            },
+            "required": [
+              "organization",
+              "branch"
+            ]
+          },
           "unread_notifications": {
             "type": "number"
           }
@@ -554,6 +600,7 @@
           "status",
           "provider_profile",
           "organization",
+          "reception",
           "unread_notifications"
         ]
       },
@@ -13269,13 +13316,25 @@
           "patient_name": {
             "type": "string"
           },
-          "doctor_name": {
+          "doctor": {
             "type": [
-              "string",
+              "object",
               "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
             ]
           },
-          "service": {
+          "service_name": {
             "type": "string"
           },
           "scheduled_start": {
@@ -13300,28 +13359,61 @@
               "disputed"
             ]
           },
-          "checked_in": {
+          "check_in": {
             "type": [
-              "string",
+              "object",
               "null"
             ],
-            "enum": [
-              "code",
-              "without_code",
-              null
+            "properties": {
+              "at": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "code",
+                  "without_code"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "at",
+              "method",
+              "reason"
             ]
+          },
+          "visit_code_locked": {
+            "type": "boolean"
+          },
+          "allowed_actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "check_in",
+                "no_show"
+              ]
+            }
           }
         },
         "required": [
           "id",
           "reference_code",
           "patient_name",
-          "doctor_name",
-          "service",
+          "doctor",
+          "service_name",
           "scheduled_start",
           "scheduled_end",
           "status",
-          "checked_in"
+          "check_in",
+          "visit_code_locked",
+          "allowed_actions"
         ]
       }
     },

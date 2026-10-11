@@ -26,7 +26,7 @@ import { SmsService } from '../sms/sms.service';
 import { TokenService } from '../auth/token.service';
 import { SettingsService } from '../settings/settings.service';
 import { runBookingTransaction, transitionBooking } from '../booking/booking-transaction';
-import { verifyCheckIn } from '../booking/clinic-visit';
+import { verifyCheckIn, VISIT_CODE_MAX_ATTEMPTS } from '../booking/clinic-visit';
 import { patientFeeFor } from '../booking/patient-fees';
 
 const INVITE_DAYS = 7;
@@ -162,7 +162,7 @@ export class ReceptionService {
     })
       .sort({ scheduledStart: 1 })
       .select(
-        'referenceCode patientProfileId providerProfileId service scheduledStart scheduledEnd status checkIn',
+        'referenceCode patientProfileId providerProfileId service scheduledStart scheduledEnd status checkIn visitCodeAttempts',
       )
       .lean();
     const [patients, doctors] = await Promise.all([
@@ -185,12 +185,27 @@ export class ReceptionService {
       entityId: String(clinicId),
       metadata: { date: today, count: bookings.length },
     });
+    const grace = await this.settings.get('clinic_no_show_grace_minutes');
+    const now = Date.now();
     return bookings.map((b) => {
       const doctor = doctors.find((d) => b.providerProfileId && d._id.equals(b.providerProfileId));
+      // Same rules as checkIn / noShow below: an accepted appointment with a doctor; no-show after the grace.
+      const actions: Array<'check_in' | 'no_show'> = [];
+      if (b.status === BookingStatus.ACCEPTED && b.providerProfileId) actions.push('check_in');
+      if (b.status === BookingStatus.ACCEPTED && b.scheduledStart.getTime() + grace * 60_000 <= now) {
+        actions.push('no_show');
+      }
       return {
         booking: b,
         patientName: patients.find((p) => p._id.equals(b.patientProfileId))?.fullName ?? '',
-        doctorName: doctor ? (doctorUsers.find((u) => u._id.equals(doctor.userId))?.fullName ?? '') : null,
+        doctor: doctor
+          ? {
+              id: String(doctor._id),
+              name: doctorUsers.find((u) => u._id.equals(doctor.userId))?.fullName ?? '',
+            }
+          : null,
+        visitCodeLocked: (b.visitCodeAttempts ?? 0) >= VISIT_CODE_MAX_ATTEMPTS,
+        allowedActions: actions,
       };
     });
   }

@@ -84,9 +84,13 @@ A clinic's services and prices are in `clinics[].services[]` of `GET /providers/
 ## Reception app (new role)
 
 - Sign up with role `reception` and the invite's `staff_invite_id`.
-- `GET /reception/appointments`: today's appointments at the branch (patient name, time, service, doctor, status, `checked_in`).
+- `GET /me` adds `reception: { organization: { id, name }, branch: { id, name } }` (null for other roles).
+- `GET /reception/appointments`: today's appointments at the branch, each
+  `{ id, reference_code, patient_name, doctor: { id, name } | null, service_name, scheduled_start, scheduled_end, status, check_in: { at, method, reason } | null, visit_code_locked, allowed_actions }`
+  (`allowed_actions`: `check_in`, `no_show`). No phone, prices or medical data.
 - `POST /reception/appointments/{id}/check-in` with `visit_code` or `without_code_reason`, and `POST /reception/appointments/{id}/no-show`.
-- Reception can't use any other part of the app.
+- Check-in errors are the same as the doctor's start: wrong code → `422` on `fields.visit_code`; after 5 wrong codes (shared with the doctor) → `409`, then only `without_code_reason`.
+- Reception can use the shared account routes (`/me`, devices, notifications, sign-out) and nothing else; no notifications are sent to reception yet.
 
 ## Screens
 

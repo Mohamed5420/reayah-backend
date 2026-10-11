@@ -383,23 +383,46 @@ describe('branch reception', () => {
       expect.objectContaining({
         id,
         patient_name: expect.any(String),
-        doctor_name: expect.any(String),
+        doctor: { id: sara.id, name: expect.any(String) },
+        service_name: 'كشف',
         status: 'accepted',
+        check_in: null,
+        visit_code_locked: false,
+        // Started just now: no-show only after the grace period.
+        allowed_actions: ['check_in'],
       }),
     ]);
     expect(Object.keys(list[0]).sort()).toEqual(
       [
-        'checked_in',
-        'doctor_name',
+        'allowed_actions',
+        'check_in',
+        'doctor',
         'id',
         'patient_name',
         'reference_code',
         'scheduled_end',
         'scheduled_start',
-        'service',
+        'service_name',
         'status',
+        'visit_code_locked',
       ].sort(),
     );
+    await BookingModel.updateOne(
+      { _id: id },
+      { scheduledStart: new Date(Date.now() - 20 * 60_000), visitCodeAttempts: 5 },
+    );
+    expect((await api(reception.auth).get('/reception/appointments')).body.data[0]).toMatchObject({
+      visit_code_locked: true,
+      allowed_actions: ['check_in', 'no_show'],
+    });
+
+    // GET /me names the branch the desk works at.
+    const me = (await api(reception.auth).get('/me')).body.data;
+    expect(me.reception).toEqual({
+      organization: { id: owner.orgId, name: expect.any(String) },
+      branch: { id: branchId, name: branchBody.name },
+    });
+    expect((await api(patient.auth).get('/me')).body.data.reception).toBeNull();
     expect(
       await AuditLogModel.exists({ action: 'reception.appointments_view', actorId: reception.userId }),
     ).toBeTruthy();

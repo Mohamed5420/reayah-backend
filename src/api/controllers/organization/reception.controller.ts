@@ -27,12 +27,20 @@ const appointment = z
     id: z.string(),
     reference_code: z.string(),
     patient_name: z.string(),
-    doctor_name: z.string().nullable(),
-    service: z.string(),
+    /** null while an "any doctor" appointment waits for the owner to assign one. */
+    doctor: z.object({ id: z.string(), name: z.string() }).nullable(),
+    service_name: z.string(),
     scheduled_start: z.string(),
     scheduled_end: z.string(),
     status: z.enum(BookingStatus),
-    checked_in: z.enum(['code', 'without_code']).nullable(),
+    /** null until the patient is checked in. */
+    check_in: z
+      .object({ at: z.string(), method: z.enum(['code', 'without_code']), reason: z.string().nullable() })
+      .nullable(),
+    /** 5 wrong codes were entered: check in only with without_code_reason. */
+    visit_code_locked: z.boolean(),
+    /** Buttons to show: check_in (accepted, with a doctor), no_show (accepted, from start + grace). */
+    allowed_actions: z.array(z.enum(['check_in', 'no_show'])),
   })
   .openapi('ReceptionAppointment');
 
@@ -162,16 +170,20 @@ export default class ReceptionController implements IBaseController {
       const rows = await this.reception.today(req.user!.id, auditContextFrom(req));
       return HttpResponse.ok(
         res,
-        rows.map(({ booking: b, patientName, doctorName }) => ({
+        rows.map(({ booking: b, patientName, doctor, visitCodeLocked, allowedActions }) => ({
           id: String(b._id),
           reference_code: b.referenceCode,
           patient_name: patientName,
-          doctor_name: doctorName,
-          service: lang === 'en' && b.service.nameEn ? b.service.nameEn : b.service.nameAr,
+          doctor,
+          service_name: lang === 'en' && b.service.nameEn ? b.service.nameEn : b.service.nameAr,
           scheduled_start: b.scheduledStart.toISOString(),
           scheduled_end: b.scheduledEnd.toISOString(),
           status: b.status,
-          checked_in: b.checkIn?.method ?? null,
+          check_in: b.checkIn
+            ? { at: b.checkIn.at.toISOString(), method: b.checkIn.method, reason: b.checkIn.reason ?? null }
+            : null,
+          visit_code_locked: visitCodeLocked,
+          allowed_actions: allowedActions,
         })),
       );
     });

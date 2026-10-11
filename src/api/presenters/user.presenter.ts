@@ -19,12 +19,14 @@ export const presentMe = ({
   avatarUrl,
   unreadNotifications,
   organization = null,
+  reception = null,
 }: {
   user: IUser;
   providerProfile: IProviderProfile | null;
   avatarUrl: string | null;
   unreadNotifications: number;
   organization?: Pick<IOrganization, '_id' | 'name' | 'type' | 'verificationStatus'> | null;
+  reception?: { organization: { id: string; name: string }; branch: { id: string; name: string } } | null;
 }) => ({
   id: String(user._id),
   phone: user.phone,
@@ -53,5 +55,7 @@ export const presentMe = ({
         verification_status: organization.verificationStatus,
       }
     : null,
+  // Reception: the organization and branch (null for every other role).
+  reception,
   unread_notifications: unreadNotifications,
 });

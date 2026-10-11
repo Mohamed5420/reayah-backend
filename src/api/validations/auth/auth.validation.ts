@@ -71,6 +71,13 @@ const me = z
         verification_status: z.enum(VerificationStatus),
       })
       .nullable(),
+    /** Reception: the organization and the one branch they work at (null for other roles). */
+    reception: z
+      .object({
+        organization: z.object({ id: objectId, name: z.string() }),
+        branch: z.object({ id: objectId, name: z.string() }),
+      })
+      .nullable(),
     unread_notifications: z.number(),
   })
   .openapi('Me');
