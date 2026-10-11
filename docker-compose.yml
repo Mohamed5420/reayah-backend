@@ -4,7 +4,8 @@ services:
   mongo:
     image: mongo:7
     command: ['--replSet', 'rs0', '--bind_ip_all']
-    ports: ['27017:27017']
+    # MONGO_PORT: another host port when a MongoDB installed on the machine already uses 27017.
+    ports: ['${MONGO_PORT:-27017}:27017']
     volumes: ['mongo-data:/data/db']
     healthcheck:
       # Also initiates the replica set on first start.
@@ -24,28 +25,36 @@ services:
     ports: ['6379:6379']
     volumes: ['redis-data:/data']
 
-  # S3-compatible private storage. Console: http://localhost:9001 (reaya / reaya-dev-secret).
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
+  # S3-compatible private storage (RustFS; MinIO no longer publishes public images).
+  # Console: http://localhost:9001 (reaya / reaya-dev-secret).
+  storage:
+    image: rustfs/rustfs:latest
     ports: ['9000:9000', '9001:9001']
     environment:
-      MINIO_ROOT_USER: reaya
-      MINIO_ROOT_PASSWORD: reaya-dev-secret
-    volumes: ['minio-data:/data']
+      RUSTFS_ACCESS_KEY: reaya
+      RUSTFS_SECRET_KEY: reaya-dev-secret
+      RUSTFS_CONSOLE_ENABLE: 'true'
+    volumes: ['storage-data:/data']
 
   # One-shot: creates the bucket and expires unattached uploads under tmp/ after 1 day.
-  minio-setup:
-    image: minio/mc
-    depends_on: [minio]
+  storage-setup:
+    image: amazon/aws-cli:latest
+    depends_on: [storage]
+    environment:
+      AWS_ACCESS_KEY_ID: reaya
+      AWS_SECRET_ACCESS_KEY: reaya-dev-secret
+      AWS_DEFAULT_REGION: us-east-1
     entrypoint: >
       /bin/sh -c "
-      until mc alias set local http://minio:9000 reaya reaya-dev-secret; do sleep 1; done;
-      mc mb --ignore-existing local/reaya-private;
-      mc ilm rule ls local/reaya-private 2>/dev/null | grep -q tmp/ || mc ilm rule add --prefix tmp/ --expire-days 1 local/reaya-private
+      until aws --endpoint-url http://storage:9000 s3api list-buckets >/dev/null 2>&1; do sleep 1; done;
+      aws --endpoint-url http://storage:9000 s3api head-bucket --bucket reaya-private 2>/dev/null ||
+      aws --endpoint-url http://storage:9000 s3api create-bucket --bucket reaya-private;
+      aws --endpoint-url http://storage:9000 s3api put-bucket-lifecycle-configuration --bucket reaya-private
+      --lifecycle-configuration '{\"Rules\":[{\"ID\":\"tmp-1-day\",\"Status\":\"Enabled\",\"Filter\":{\"Prefix\":\"tmp/\"},\"Expiration\":{\"Days\":1}}]}'
+      || echo 'lifecycle rule not supported; unattached uploads stay until removed'
       "
 
 volumes:
   mongo-data:
   redis-data:
-  minio-data:
+  storage-data:
